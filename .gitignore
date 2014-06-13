@@ -1,0 +1,9 @@
+# ignore files
+/lib/
+/data/
+*.csv
+/results/
+*.mat
+*.m
+*.swp
+*.pyc
