@@ -210,6 +210,7 @@ def logistic_reg(x,y,theta,l=0,verbose=0,method='g'):
         plot_multiclass_2d(x,theta)
       else:
         plot_db(x,y,theta[1],title='Decision boundary')
+        plt.savefig('/home/nadege/Desktop/Figures_these/db2c2f.png')
     if n == 3:
       if K != 1:
         plot_multiclass_3d(x,theta)
@@ -222,7 +223,7 @@ def logistic_reg(x,y,theta,l=0,verbose=0,method='g'):
 def degree_and_regularization(xtest,ytest,xcv,ycv,xtrain,ytrain,verbose=False):
   """
   Looks for the best polynomial degree (model selection) and lambda (regularization)
-  xtest, ytest, xcv, ycv, xtrain, ytrain are of DataFrame type
+  xtest, ytest, xcv, ycv, xtrain, ytrain are pandas DataFrame
   """
   n=xtest.shape[1] # number of features
   K=ytest.shape[1] # number of classes
@@ -324,7 +325,7 @@ def misclassification_error(y,y_pred,t):
 def test_hyp(xtest,theta,threshold=0.5,deg=None,verbose=0):
   """
   Returns a classification vector for a given test set after the hypothesis function was determined on the training set
-  xtest is of DataFrame type
+  xtest is a pandas DataFrame
   """
 
   K=len(theta)
@@ -389,7 +390,7 @@ def precision_and_recall(x,y,theta,verbose=False):
   """
   Precision and recall: try different prediction thresholds
   and choose the one which maximizes the F1 score
-  x is of DataFrame type
+  x is a pandas DataFrame
   y is a np.array
   """
   thresholds=np.arange(0.05,1,0.05)
@@ -429,7 +430,7 @@ def precision_and_recall(x,y,theta,verbose=False):
 def data_sets(x,y,wtr=None,verbose=False):
   """
   Randomly generates training/cross-validation/test sets
-  x, y are DataFrame
+  x, y are pandas DataFrame
   """
   m = x.shape[0] # size of the training set
   n = x.shape[1] # number of features
@@ -476,7 +477,7 @@ def data_sets(x,y,wtr=None,verbose=False):
 def old_data_sets(x,y,wtr=np.array([]),verbose=False):
   """
   Randomly generates training/cross-validation/test sets
-  x, y are DataFrame
+  x, y are pandas DataFrame
   """
   m = x.shape[0] # size of the training set
   n = x.shape[1] # number of features
@@ -553,7 +554,7 @@ def old_data_sets(x,y,wtr=np.array([]),verbose=False):
 def evaluation(x,y,wtr=np.array([]),learn=False,verbose=False):
   """
   Returns the best theta vector as well as the polynomial degree, lambda and the prediction threshold
-  x, y are pandas DataFrames
+  x, y are pandas DataFrame
   If learn = True, then learning curves are computed and displayed
   """ 
   m=x.shape[0] # size of the training set
@@ -642,7 +643,7 @@ def evaluation(x,y,wtr=np.array([]),learn=False,verbose=False):
 def bad_class(x_test,list_i):
   """
   Returns a DataFrame containing misclassified points only
-  x_test is of DataFrame type
+  x_test is a pandas DataFrame
   """
   x_bad = x_test.copy()
   x_bad = x_bad.reindex(index=list_i)
