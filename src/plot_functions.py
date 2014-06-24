@@ -21,7 +21,7 @@ def plot_hyp_func(x,y,syn,hyp):
   plt.xlabel(x.columns[0])
   plt.title('Logistic regression - 1 feature')
 # ---------------------------------------------------
-# Plotting function for 2 features
+# Plotting function for 2 features and degree = 2
 def plot_db(x,y,theta,lim=.1,title=None):
   """
   Plots the decision boundary 
@@ -43,7 +43,37 @@ def plot_db(x,y,theta,lim=.1,title=None):
   if title:
     plt.title(title)
 # ---------------------------------------------------
-# Plotting function for 3 features
+def plot_db_test(x,y,theta,lim=.1,title=None):
+  """
+  Plots the decision boundary 
+  x is of DataFrame type
+  y is a np.array
+  """
+  x1 = x.values[:,0]
+  x2 = x.values[:,1]
+
+  fig = plt.figure()
+  fig.set_facecolor('white')
+  ax = fig.add_subplot(111)
+  xplot = np.arange(np.min(x1)-lim,np.max(x1)+lim,0.1)
+  plt.scatter(x1,x2,c=y,cmap=plt.cm.gray,s=50)
+  plt.plot(xplot,1./theta[2]*(-theta[0]-theta[1]*xplot),'r',lw=2.)
+  plt.text(4.7,5.5,"LR",color='r',size='xx-large')
+  plt.plot([1.5,6.5],[6,1.5],'g',lw=2.)
+  plt.text(2.5,5.5,"SVM",color='g',size='xx-large')
+  plt.plot([.5,4.5],[5,1.5],'g--')
+  plt.plot([3.5,7],[6,3],'g--')
+  ax.annotate("",xy=(4.5,1.6),xycoords='data',xytext=(6.5,3.4),textcoords='data',arrowprops=dict(arrowstyle="<->",facecolor='b',edgecolor='b'))
+  #ax.arrow(4.5,1.6,6.5,3.5,fc='b',ec='b')
+  ax.text(6,2.5,"Margin",color='b')
+  plt.xlim((np.min(x1)-lim,np.max(x1)+lim))
+  plt.ylim((np.min(x2)-lim,np.max(x2)+lim))
+  plt.xlabel(x.columns[0])
+  plt.ylabel(x.columns[1])
+  if title:
+    plt.title(title)
+# ---------------------------------------------------
+# Plotting function for 2 features and degree = 3
 def plot_db_3d(x,y,theta,lim=.1,title=None):
   from mpl_toolkits.mplot3d import Axes3D
 
