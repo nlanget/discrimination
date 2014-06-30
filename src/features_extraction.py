@@ -182,7 +182,7 @@ def read_data_for_features_extraction(save=False):
   If option 'save' is set, then save the pandas DataFrame as a .csv file
   """
   from options import MultiOptions
-  opt = MultiOptions(opt='norm')
+  opt = MultiOptions(opt='hash')
 
   list_features = opt.opdict['feat_list']
   df = pd.DataFrame(columns=list_features)
@@ -210,7 +210,11 @@ def read_data_for_features_extraction(save=False):
         if len(list_files) > 0:
           file =  list_files[0]
           print ifile, file
-          dic = extract_features(list_features,date,file,dic,plot=False)
+          if opt.opdict['option'] == 'norm':
+            dic = extract_norm_features(list_features,date,file,dic,plot=False)
+          elif opt.opdict['option'] == 'hash':
+            permut_file = '%s/permut_%s'%(opt.opdict['libdir'],opt.opdict['feat_filename'].split('.')[0])
+            dic = extract_hash_features(list_features,date,file,dic,permut_file,plot=False)
           df = df.append(dic)
 
   if save:
@@ -218,7 +222,7 @@ def read_data_for_features_extraction(save=False):
 
 # ================================================================
 
-def extract_features(list_features,date,file,dic,plot=False):
+def extract_norm_features(list_features,date,file,dic,plot=False):
 
     s = SeismicTraces(file,utcdatetime.UTCDateTime(str(date)))
     list_attr = s.__dict__.keys()
@@ -233,7 +237,7 @@ def extract_features(list_features,date,file,dic,plot=False):
 
     if len(list_attr) > 7:
 
-      if 'Spectrogram' in list_features:
+      if 'Dur' in list_features:
         # Mean of the predominant frequency
         from waveform_features import spectrogram
         s, dic['MeanPredF'], dic['TimeMaxSpec'], dic['NbPeaks'], dic['Width'], hob, vals, dic['sPredF'] = spectrogram(s,plot=False)
@@ -251,15 +255,17 @@ def extract_features(list_features,date,file,dic,plot=False):
         for i in range(len(vals)):
           dic['fratio%d'%i] = vals[i]
 
-      if 'Ene' in list_features:
+      if 'Ene20-30' in list_features:
        # Energy between 10 and 30 Hz
         from waveform_features import energy_between_10Hz_and_30Hz
         f1, f2 = 20,30
         dic['Ene%d-%d'%(f1,f2)] = energy_between_10Hz_and_30Hz(s.tr[s.i1:s.i2]/np.max(s.tr[s.i1:s.i2]),s.dt,wd=f1,wf=f2,ponset=s.ponset)
 
+      if 'Ene5-10' in list_features:
         f1, f2 = 5,10
         dic['Ene%d-%d'%(f1,f2)] = energy_between_10Hz_and_30Hz(s.tr[s.i1:s.i2]/np.max(s.tr[s.i1:s.i2]),s.dt,wd=f1,wf=f2,ponset=s.ponset)
 
+      if 'Ene0-5' in list_features:
         f1, f2 = .5,5
         dic['Ene%d-%d'%(f1,f2)] = energy_between_10Hz_and_30Hz(s.tr[s.i1:s.i2]/np.max(s.tr[s.i1:s.i2]),s.dt,wd=f1,wf=f2,ponset=s.ponset)
 
@@ -358,7 +364,72 @@ def hob(hobs,y_train,y_test,x_train,x_test):
       print corr
       raw_input("Pause")
 
+# ================================================================
 
+def extract_hash_features(list_features,date,file,dic,permut_file,plot=False):
+  """
+  Extracts hash table values.
+  """
+  plot = True
+  from fingerprint_functions import FuncFingerprint, spectrogram, ponset_stack, vec_compute_signature, LSH
 
+  s = SeismicTraces(file,utcdatetime.UTCDateTime(str(date)))
+  list_attr = s.__dict__.keys()
+  if 'tr_grad' not in list_attr:
+    for feat in list_features:
+      dic[feat] = np.nan
+    return dic
+
+  full_tr = s.tr
+  grad = s.tr_grad
+  q = [400.,.6,8]
+  (full_spectro,f,full_time,end) = spectrogram(full_tr,param=q)
+  ponset = ponset_stack(full_tr,grad,full_time,plot=plot)
+  idebut = ponset-int(1*full_spectro.shape[1]/full_time[-1])
+  if idebut < 0:
+    idebut = 0
+  ifin = idebut+full_spectro.shape[0]
+  time = full_time[idebut:ifin]
+  spectro = full_spectro[:,idebut:ifin]
+  if spectro.shape[1] < spectro.shape[0]:
+    spectro = full_spectro[:,-spectro.shape[0]:]
+  haar_bin = FuncFingerprint(np.log10(spectro),time,full_tr,f,end,plot=plot,error=plot)
+
+  m = haar_bin.shape[1]  # number of columns
+  n = haar_bin.shape[0]  # number of rows
+  vec_bin = np.zeros(m*n)
+  for i in range(n):
+    for j in range(m):
+      vec_bin[m*i+j] = haar_bin[i,j]
+  
+  # HASH TABLES
+  pp = 500 
+  if not os.path.isfile(permut_file):
+    print "Permutation"
+    from fingerprint_functions import define_permutation
+    import cPickle
+    permut = define_permutation(len(vec_bin),pp)
+    with open(permut_file,'wb') as file:
+      my_pickler = cPickle.Pickler(file)
+      my_pickler.dump(permut)
+      file.close()
+  else:
+    import cPickle
+    with open(permut_file,'rb') as file:
+      my_depickler = cPickle.Unpickler(file)
+      permut = my_depickler.load()
+      file.close()
+
+  MH_sign = vec_compute_signature(vec_bin,permut)
+  HashTab = LSH(MH_sign,l=50)
+  for iht,ht in enumerate(HashTab):
+    dic['%d'%iht] = ht
+
+  if plot:
+    plt.show()
+
+  return dic
+
+# ================================================================
 if __name__ == '__main__':
   read_data_for_features_extraction(save=True)

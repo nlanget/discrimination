@@ -13,7 +13,7 @@ class Options(object):
     # Define directories and paths
     self.opdict['dir'] = 'Ijen'
     self.opdict['network'] = 'ID'
-    self.opdict['stations'] = ['IJEN','KWUI']
+    self.opdict['stations'] = ['IJEN']
     #self.opdict['stations'] = ['DAM','IBLW','IGEN','IJEN','IMLB','IPAL','IPLA','KWUI','MLLR','POS','POSI','PSG','PUN','RAUN','TRWI']
     self.opdict['channels'] = ['HHZ','HHE','HHN','EHZ','EHE','EHN','BHZ','BHE','BHN']
 
@@ -22,29 +22,29 @@ class Options(object):
     self.opdict['outdir'] = os.path.join('../results',self.opdict['dir'])
 
     # Define options for classification functions
-    self.opdict['method'] = 'svm' # could be 'lr' (logistic regression),'svm' (Support Vector Machine from scikit.learn package),'ova' (1-vs-all extractor), '1b1' (1-by-1 extractor)
+    self.opdict['method'] = 'lr' # could be 'lr' (logistic regression),'svm' (Support Vector Machine from scikit.learn package),'ova' (1-vs-all extractor), '1b1' (1-by-1 extractor)
     self.opdict['boot'] = 1 # number of iterations (a new training set is generated at each 'iteration')
     self.opdict['plot'] = False # displays the pdfs of the features
 
+    self.opdict['option'] = opt
+
+    import time
+    date = time.localtime()
     if opt == 'norm':
       # Features "normales"
-      import time
-      date = time.localtime()
       #self.opdict['feat_filename'] = 'ijen_%02d%02d.csv'%(date.tm_mday,date.tm_mon)
-      self.opdict['feat_filename'] = 'ijen_1006.csv'
-      self.opdict['feat_filepath'] = '../results/%s/features/%s'%(self.opdict['dir'],self.opdict['feat_filename'])
-      #self.opdict['feat_list'] = ['AsDec','Bandwidth','CentralF','Centroid_time','Dur','Ene20-30','Ene5-10','Ene0-5','F_low','F_up','Growth','IFslope','Kurto','MeanPredF','NbPeaks','Norm_envelope','PredF','RappMaxMean','RappMaxMeanTF','Skewness','sPredF','TimeMaxSpec','Width','ibw0','ibw1','ibw2','ibw3','ibw4','ibw5','ibw6','ibw7','ibw8','ibw9','if0','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9']
-      self.opdict['feat_list'] = ['RappMaxMean','Kurto']
+      self.opdict['feat_filename'] = 'ijen_2706.csv'
+      self.opdict['feat_list'] = ['AsDec','Bandwidth','CentralF','Centroid_time','Dur','F_low','F_up','Growth','IFslope','Kurto','MeanPredF','NbPeaks','Norm_envelope','PredF','RappMaxMean','RappMaxMeanTF','Skewness','sPredF','TimeMaxSpec','Width','ibw0','ibw1','ibw2','ibw3','ibw4','ibw5','ibw6','ibw7','ibw8','ibw9','if0','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9']
+      #self.opdict['feat_list'] = ['RappMaxMean','Kurto']
 
     if opt == 'hash':
       # Hashing
-      self.opdict['feat_filename'] = '%s/features/hash_tab_ijen.csv'%self.opdict['outdir']
+      self.opdict['feat_filename'] = 'HT_ijen_%02d%02d.csv'%(date.tm_mday,date.tm_mon)
       self.opdict['feat_list'] = map(str,range(50))
 
-    self.opdict['label_filename'] = '%s/Ijen_reclass_all_ter.csv'%self.opdict['libdir']
+    self.opdict['feat_filepath'] = '../results/%s/features/%s'%(self.opdict['dir'],self.opdict['feat_filename'])
+    self.opdict['label_filename'] = '%s/Ijen_class_all.csv'%self.opdict['libdir']
 
-    import time
-    d = time.localtime()
     self.opdict['result_file'] = 'results_%s_%s'%(self.opdict['feat_filename'].split('.')[0],self.opdict['method'])
     self.opdict['result_path'] = '../results/%s/%s'%(self.opdict['dir'],self.opdict['result_file'])
 
@@ -143,7 +143,6 @@ class Options(object):
     nbtyp.sort(reverse=True)
     print nbtyp
     self.types = [ty[1] for ty in nbtyp]
-    self.types.sort()
     if 'nan' in self.types:
       self.y = self.y[self.y.Type!='nan']
       self.types.remove('nan')
