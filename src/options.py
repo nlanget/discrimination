@@ -13,7 +13,7 @@ class Options(object):
     # Define directories and paths
     self.opdict['dir'] = 'Ijen'
     self.opdict['network'] = 'ID'
-    self.opdict['stations'] = ['IJEN']
+    self.opdict['stations'] = ['TRWI']
     #self.opdict['stations'] = ['DAM','IBLW','IGEN','IJEN','IMLB','IPAL','IPLA','KWUI','MLLR','POS','POSI','PSG','PUN','RAUN','TRWI']
     self.opdict['channels'] = ['HHZ','HHE','HHN','EHZ','EHE','EHN','BHZ','BHE','BHN']
 
@@ -24,7 +24,7 @@ class Options(object):
     # Define options for classification functions
     self.opdict['method'] = 'lr' # could be 'lr' (logistic regression),'svm' (Support Vector Machine from scikit.learn package),'ova' (1-vs-all extractor), '1b1' (1-by-1 extractor)
     self.opdict['boot'] = 1 # number of iterations (a new training set is generated at each 'iteration')
-    self.opdict['plot'] = False # displays the pdfs of the features
+    self.opdict['plot'] = True # displays the pdfs of the features
 
     self.opdict['option'] = opt
 
@@ -32,9 +32,9 @@ class Options(object):
     date = time.localtime()
     if opt == 'norm':
       # Features "normales"
-      #self.opdict['feat_filename'] = 'ijen_%02d%02d.csv'%(date.tm_mday,date.tm_mon)
-      self.opdict['feat_filename'] = 'ijen_2706.csv'
-      self.opdict['feat_list'] = ['AsDec','Bandwidth','CentralF','Centroid_time','Dur','F_low','F_up','Growth','IFslope','Kurto','MeanPredF','NbPeaks','Norm_envelope','PredF','RappMaxMean','RappMaxMeanTF','Skewness','sPredF','TimeMaxSpec','Width','ibw0','ibw1','ibw2','ibw3','ibw4','ibw5','ibw6','ibw7','ibw8','ibw9','if0','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9']
+      self.opdict['feat_filename'] = 'ijen_%02d%02d_trwi.csv'%(date.tm_mday,date.tm_mon)
+      #self.opdict['feat_filename'] = 'ijen_3006.csv'
+      self.opdict['feat_list'] = ['AsDec','Bandwidth','CentralF','Centroid_time','Dur','Ene20-30','Ene5-10','Ene0-5','F_low','F_up','Growth','IFslope','Kurto','MeanPredF','NbPeaks','Norm_envelope','PredF','RappMaxMean','RappMaxMeanTF','Skewness','sPredF','TimeMaxSpec','Width','ibw0','ibw1','ibw2','ibw3','ibw4','ibw5','ibw6','ibw7','ibw8','ibw9','if0','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9']
       #self.opdict['feat_list'] = ['RappMaxMean','Kurto']
 
     if opt == 'hash':
@@ -171,7 +171,6 @@ class Options(object):
 
     self.gaussians = {}
     for feat in self.opdict['feat_list']:
-      print feat
       vec = np.linspace(self.x.min()[feat],self.x.max()[feat],200)
 
       self.gaussians[feat] = {}
@@ -196,6 +195,7 @@ class Options(object):
     if not hasattr(self,'gaussians'):
       self.compute_pdfs()
 
+    list = []
     for feat in sorted(self.gaussians):
       fig = plt.figure()
       fig.set_facecolor('white')
@@ -206,6 +206,8 @@ class Options(object):
           lstyle = '-'
         if feat != 'NbPeaks':
           plt.plot(self.gaussians[feat]['vec'],self.gaussians[feat][t],ls=lstyle)
+        else:
+          list.append(self.gaussians[feat][t])
       if feat == 'NbPeaks':
         plt.hist(list,normed=True,alpha=.2)
       plt.title(feat)
