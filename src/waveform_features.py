@@ -906,6 +906,13 @@ def polarization_analysis(filenames,dur,ponset,plot=False):
   st_z = read(filenames[2])
   tr_z = st_z[0].data
 
+  if not tr_n.any() and not tr_n.all():
+    return np.nan, np.nan, np.nan
+  if not tr_e.any() and not tr_e.all():
+    return np.nan, np.nan, np.nan
+  if not tr_z.any() and not tr_z.all():
+    return np.nan, np.nan, np.nan
+
   cov_mat = np.cov((tr_z,tr_n,tr_e))
   vals, vecs = np.linalg.eig(cov_mat)
 
