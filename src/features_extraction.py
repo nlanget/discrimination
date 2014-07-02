@@ -182,7 +182,7 @@ def read_data_for_features_extraction(save=False):
   If option 'save' is set, then save the pandas DataFrame as a .csv file
   """
   from options import MultiOptions
-  opt = MultiOptions(opt='hash')
+  opt = MultiOptions(opt='norm')
 
   list_features = opt.opdict['feat_list']
   df = pd.DataFrame(columns=list_features)
@@ -201,21 +201,34 @@ def read_data_for_features_extraction(save=False):
 
     for sta in list_sta:
       print "#####",sta
+      counter = 0
       for comp in ['Z','E','N']:
         ind = (date,sta,comp)
         dic = pd.DataFrame(columns=list_features,index=[ind])
         dic['EventType'] = type
+        dic['Ponset'] = 0
         list_files = glob.glob(os.path.join(opt.opdict['datadir'],sta,'*%s.D'%comp,'*%s.D*%s_%s*'%(comp,str(date)[:8],str(date)[8:])))
         list_files.sort()
         if len(list_files) > 0:
           file =  list_files[0]
           print ifile, file
           if opt.opdict['option'] == 'norm':
+            counter = counter + 1
             dic = extract_norm_features(list_features,date,file,dic,plot=False)
           elif opt.opdict['option'] == 'hash':
             permut_file = '%s/permut_%s'%(opt.opdict['libdir'],opt.opdict['feat_filename'].split('.')[0])
-            dic = extract_hash_features(list_features,date,file,dic,permut_file,plot=False)
+            dic = extract_hash_features(list_features,date,file,dic,permut_file,plot=True)
           df = df.append(dic)
+
+      if counter == 3 and 'Rectilinearity' in list_features:
+        from waveform_features import polarization_analysis
+        d_mean = (df.Dur[(date,sta,comp)] + df.Dur[(date,sta,'E')] + df.Dur[(date,sta,'Z')])/3.
+        po_mean = int((df.Ponset[(date,sta,comp)] + df.Ponset[(date,sta,'E')] + df.Ponset[(date,sta,'Z')])/3)
+        list_files = [file,file.replace("N.D","E.D"),file.replace("N.D","Z.D")]
+        rect, plan, eigen = polarization_analysis(list_files,d_mean,po_mean,plot=False)
+        df.Rectilinearity[(date,sta,'Z')], df.Rectilinearity[(date,sta,'N')], df.Rectilinearity[(date,sta,'E')] = rect, rect, rect
+        df.Planarity[(date,sta,'Z')], df.Planarity[(date,sta,'N')], df.Planarity[(date,sta,'E')] = plan, plan, plan
+        df.MaxEigenvalue[(date,sta,'Z')], df.MaxEigenvalue[(date,sta,'N')], df.MaxEigenvalue[(date,sta,'E')] = eigen, eigen, eigen
 
   if save:
     df.to_csv(opt.opdict['feat_filepath'])
@@ -223,6 +236,11 @@ def read_data_for_features_extraction(save=False):
 # ================================================================
 
 def extract_norm_features(list_features,date,file,dic,plot=False):
+
+    """
+    Extraction of all features given by list_features, except hash 
+    table values.
+    """
 
     s = SeismicTraces(file,utcdatetime.UTCDateTime(str(date)))
     list_attr = s.__dict__.keys()
@@ -341,6 +359,7 @@ def extract_norm_features(list_features,date,file,dic,plot=False):
         #dic['Cepstrum'] = cepstrum(s.TF,s.freqs,plot=True)
         cep = cepstrum(s.TF,s.freqs,plot=False)
 
+      dic['Ponset'] = s.ponset
       return dic
 
 # ================================================================
@@ -370,7 +389,6 @@ def extract_hash_features(list_features,date,file,dic,permut_file,plot=False):
   """
   Extracts hash table values.
   """
-  plot = True
   from fingerprint_functions import FuncFingerprint, spectrogram, ponset_stack, vec_compute_signature, LSH
 
   s = SeismicTraces(file,utcdatetime.UTCDateTime(str(date)))
@@ -382,10 +400,12 @@ def extract_hash_features(list_features,date,file,dic,permut_file,plot=False):
 
   full_tr = s.tr
   grad = s.tr_grad
-  q = [400.,.6,8]
+  q = [200.,.2,1]
   (full_spectro,f,full_time,end) = spectrogram(full_tr,param=q)
   ponset = ponset_stack(full_tr,grad,full_time,plot=plot)
-  idebut = ponset-int(1*full_spectro.shape[1]/full_time[-1])
+  
+  idebut = ponset-int(5*full_spectro.shape[1]/full_time[-1])
+  print ponset, idebut
   if idebut < 0:
     idebut = 0
   ifin = idebut+full_spectro.shape[0]
