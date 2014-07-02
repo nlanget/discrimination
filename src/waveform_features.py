@@ -398,7 +398,6 @@ def spectrogram(trace,plot=False):
   Fs = 1./trace.dt
   wlen = Fs / 100.
   if ('i1' or 'i2') in trace.__dict__.keys():
-    print trace.i1, trace.i2
     data = trace.tr[trace.i1:trace.i2] - np.mean(trace.tr[trace.i1:trace.i2])
     det_ponset = False
   else:
@@ -527,6 +526,8 @@ def spectrogram(trace,plot=False):
     halfbin_time = (time[1] - time[0]) / 2.0
     halfbin_freq = (f[1] - f[0]) / 2.0
     extent = (time[0] - halfbin_time, time[-1] + halfbin_time, f[0] - halfbin_freq, f[-1] + halfbin_freq)
+
+    print "Duration :",trace.dur,'s' 
 
     import matplotlib.pyplot as plt
     import matplotlib.gridspec as gridspec
@@ -684,7 +685,6 @@ def around_freq(TF,freqs,plot=False):
     plt.ylabel("abs(TF)")
     plt.title("Amplitude spectrum")
     plt.legend()
-    plt.savefig('/home/nadege/Desktop/PdF_Clement/Figures/spectrum_.png')
     plt.show()
   return predf,bwid,fmean
 
@@ -768,7 +768,6 @@ def instant_freq(trace, dt, TF, ponset, tend, plot=False):
     ax4.plot(time[10:],ifreq[10:],'k')
     ax4.plot(tval,val,'r')
     ax4.set_xlabel('Time (s)')
-    plt.savefig('/home/nadege/Desktop/PdF_Clement/Figures/inst_.png')
     plt.show()
 
   return val, p[0]
@@ -827,7 +826,6 @@ def instant_bw(trace, env, dt, TF, ponset=0, tend=0, plot=False):
     ax2.plot(time[10:-10],ibw[10:-10],'k')
     ax2.plot(tval,val,'r')
     ax2.set_xlabel('Time (s)')
-    #plt.savefig('/home/nadege/Desktop/PdF_Clement/Figures/ibw_.png')
     plt.show()
 
   return val, normEnv
@@ -891,7 +889,7 @@ def centroid_time(trace,dt,TF,ponset,tend=0,plot=False):
 # ***********************************************************
 
 
-def polarization_analysis(trace,plot=False):
+def polarization_analysis(filenames,dur,ponset,plot=False):
   """
   Returns:
   - the planarity
@@ -899,8 +897,16 @@ def polarization_analysis(trace,plot=False):
   - the largest eigenvalue
   from Hammer et al. 2012
   """
+  from obspy.core import read
 
-  cov_mat = np.cov((trace.tr,trace.tr_n,trace.tr_e))
+  st_n = read(filenames[0])
+  tr_n = st_n[0].data
+  st_e = read(filenames[1])
+  tr_e = st_e[0].data
+  st_z = read(filenames[2])
+  tr_z = st_z[0].data
+
+  cov_mat = np.cov((tr_z,tr_n,tr_e))
   vals, vecs = np.linalg.eig(cov_mat)
 
   vals_sort,vecs_sort = np.sort(vals)[::-1], np.array([])
@@ -943,14 +949,14 @@ def polarization_analysis(trace,plot=False):
     ax.set_zlabel('E')
     ax.set_title('Polarisation ellipsoid')
 
-    plot_particle_motion(trace)
-    plt.savefig('/home/nadege/Desktop/PdF_Clement/Figures/polarisation_.png')
+    i1, i2 = ponset-100, ponset+int(dur*1./st_z[0].stats.delta)
+    plot_particle_motion(tr_z,tr_e,tr_n,filenames[0].split('/')[4],i1,i2)
     plt.show()
 
   return rect, plan, vals_sort[0]
 
 
-def plot_particle_motion(trace):
+def plot_particle_motion(tr_z,tr_e,tr_n,station,i1,i2):
   """
   Plots particle motion
   """
@@ -963,35 +969,35 @@ def plot_particle_motion(trace):
   fig.set_facecolor('white')
 
   ax1 = fig.add_subplot(G[:2,:2],title='Comp Z')
-  ax1.plot(trace.tr,'k')
-  ax1.plot(range(trace.i1,trace.i2),trace.tr[trace.i1:trace.i2],'r')
+  ax1.plot(tr_z,'k')
+  ax1.plot(range(i1,i2),tr_z[i1:i2],'r')
   ax1.set_xticklabels('')
 
   ax2 = fig.add_subplot(G[2:4,:2],title='Comp N')
-  ax2.plot(trace.tr_n,'k')
-  ax2.plot(range(trace.i1,trace.i2),trace.tr_n[trace.i1:trace.i2],'r')
+  ax2.plot(tr_n,'k')
+  ax2.plot(range(i1,i2),tr_n[i1:i2],'r')
   ax2.set_xticklabels('')
 
   ax3 = fig.add_subplot(G[4:,:2],title='Comp E')
-  ax3.plot(trace.tr_e,'k')
-  ax3.plot(range(trace.i1,trace.i2),trace.tr_e[trace.i1:trace.i2],'r')
+  ax3.plot(tr_e,'k')
+  ax3.plot(range(i1,i2),tr_e[i1:i2],'r')
 
   ax1 = fig.add_subplot(G[:3,2])
-  ax1.plot(trace.tr_n[trace.i1:trace.i2],trace.tr[trace.i1:trace.i2],'k')
+  ax1.plot(tr_n[i1:i2],tr_z[i1:i2],'k')
   ax1.set_xlabel('N')
   ax1.set_ylabel('Z')
 
   ax2 = fig.add_subplot(G[3:,2])
-  ax2.plot(trace.tr_n[trace.i1:trace.i2],trace.tr_e[trace.i1:trace.i2],'k')
+  ax2.plot(tr_n[i1:i2],tr_e[i1:i2],'k')
   ax2.set_xlabel('N')
   ax2.set_ylabel('E')
 
   ax3 = fig.add_subplot(G[:3,3])
-  ax3.plot(trace.tr[trace.i1:trace.i2],trace.tr_e[trace.i1:trace.i2],'k')
+  ax3.plot(tr_z[i1:i2],tr_e[i1:i2],'k')
   ax3.set_xlabel('Z')
   ax3.set_ylabel('E')
  
-  fig.suptitle(trace.station)
+  fig.suptitle(station)
 
 
 # ***********************************************************
@@ -1055,7 +1061,6 @@ def cum(x,plot=False):
     plt.plot(line/np.max(line),'b')
     plt.plot(l/np.max(l),'r')
     plt.plot(mins,l[mins]/np.max(l),'ro')
-    #plt.savefig('/home/nadege/Desktop/PdF_Clement/Figures/ponset_.png')
-    #plt.show()
+    plt.show()
 
   return l
