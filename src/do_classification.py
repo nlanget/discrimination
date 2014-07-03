@@ -167,6 +167,8 @@ def create_training_set(y_ref,numt):
   for i in numt:
     a = y[y.Type==i]
     nb = int(np.floor(0.4*len(a)))
+    if nb < 3:
+      nb = 3
     y_train = y_train.append(a[:nb])
     r = np.floor(len(a)*np.random.rand(nb))
     while len(np.unique(r)) != nb:
@@ -329,6 +331,7 @@ def final_result(opt):
   """
   manual = opt.opdict['label_filename']
   auto = opt.opdict['class_auto_path']
+  print auto
 
   a = pd.read_csv(auto,index_col=False)
   a = a.reindex(columns=['Type'])
