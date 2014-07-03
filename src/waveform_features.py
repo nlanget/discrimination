@@ -905,6 +905,7 @@ def polarization_analysis(filenames,dur,ponset,plot=False):
   tr_e = st_e[0].data
   st_z = read(filenames[2])
   tr_z = st_z[0].data
+  delta = st_z[0].stats.delta
 
   if not tr_n.any() and not tr_n.all():
     return np.nan, np.nan, np.nan
@@ -912,6 +913,24 @@ def polarization_analysis(filenames,dur,ponset,plot=False):
     return np.nan, np.nan, np.nan
   if not tr_z.any() and not tr_z.all():
     return np.nan, np.nan, np.nan
+
+  while len(tr_e) != len(tr_z) or len(tr_n) != len(tr_z) or len(tr_e) != len(tr_n):
+    print len(tr_z),len(tr_e),len(tr_n)
+    stt_z = st_z[0].stats.starttime
+    stt_e = st_e[0].stats.starttime
+    stt_n = st_n[0].stats.starttime
+    if stt_z == stt_e and stt_z == stt_n:
+      lens = np.array([len(tr_z),len(tr_e),len(tr_n)])
+      l = np.min(lens)
+      tr_z = tr_z[:l]
+      tr_e = tr_e[:l]
+      tr_n = tr_n[:l]
+    else:
+      stts = np.array([stt_z,stt_e,stt_n])
+      stt_max = np.max(stts)
+      tr_z = tr_z[(stt_max-stt_z)*1./delta:]
+      tr_e = tr_e[(stt_max-stt_e)*1./delta:]
+      tr_n = tr_n[(stt_max-stt_n)*1./delta:]
 
   cov_mat = np.cov((tr_z,tr_n,tr_e))
   vals, vecs = np.linalg.eig(cov_mat)
