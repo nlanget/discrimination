@@ -95,7 +95,7 @@ def classifier(opt):
         print "Test set: Incoherence in x and y dimensions"
         sys.exit()
 
-      if opt.opdict['plot']:
+      if opt.opdict['plot_pdf']:
         opt.plot_all_pdfs(save=False)
 
       if opt.opdict['method'] == '1b1':
@@ -126,14 +126,16 @@ def classifier(opt):
           print i, opt.types[i], len(np.where(y_train.values[:,0]==i)[0]), len(np.where(CLASS_train==i)[0])
         print "\n"
         if opt.opdict['boot'] == 1:
-          confusion(y_train,CLASS_train,opt.st,'training','LogReg',plot=True)
+          confusion(y_train,CLASS_train,opt.st,'training','LogReg',plot=opt.opdict['plot_confusion'])
 
         print "\t Test set"
         for i in range(K):
           print i, opt.types[i], len(np.where(y_test.values[:,0]==i)[0]), len(np.where(CLASS_test==i)[0])
         print "\n"
         if opt.opdict['boot'] == 1:
-          confusion(y_test,CLASS_test,opt.st,'test','LogReg',plot=True)
+          confusion(y_test,CLASS_test,opt.st,'test','LogReg',plot=opt.opdict['plot_confusion'])
+          if opt.opdict['plot_confusion']:
+            plt.show()
 
       subdic['%'] = pourcentages
       trad_CLASS_test = []
@@ -156,7 +158,7 @@ def create_training_set(y_ref,numt):
 
   """
   Generates a training set randomly from the test set.
-  Proportions of each class constituting the test set are kept.
+  The proportions of each class constituting the test set are kept.
   """
 
   y = y_ref.copy()
@@ -206,7 +208,6 @@ def confusion(y,LR_train,l,set,method,plot=False,output=False):
     #plt.xticks(range(len(l)),l)
     #plt.yticks(range(len(l)),l)
     plt.colorbar()
-    #plt.savefig('/home/nadege/Desktop/confusion_mat.png')
     #plt.show()
   if output:
     return cmat
@@ -231,7 +232,7 @@ def plot_clustering(x,x_data,y_train,y_clus,K):
     plt.xlabel(x_data.columns[0])
     plt.ylabel(x_data.columns[1])
 # ================================================================
-def implement_svm(x_train,x_test,y_train,y_test,types,b):
+def implement_svm(x_train,x_test,y_train,y_test,types,b,plot=False):
   # do grid search
   from sklearn.grid_search import GridSearchCV
   from sklearn import svm
@@ -253,7 +254,7 @@ def implement_svm(x_train,x_test,y_train,y_test,types,b):
   for i in range(len(np.unique(y_train.values))):
     print i, types[i], len(np.where(y_train.values[:,0]==i)[0]), len(np.where(y_train_SVM==i)[0])
   if b == 1:
-    confusion(y_train,y_train_SVM,types,'training','SVM',plot=True)
+    confusion(y_train,y_train_SVM,types,'training','SVM',plot=plot)
 
   print "\t *Test set"
   diff = y_test.values.ravel() - y_test_SVM
@@ -262,33 +263,10 @@ def implement_svm(x_train,x_test,y_train,y_test,types,b):
   for i in range(len(np.unique(y_train.values))):
     print i, types[i], len(np.where(y_test.values[:,0]==i)[0]), len(np.where(y_test_SVM==i)[0])
   if b == 1:
-    confusion(y_test,y_test_SVM,types,'test','SVM',plot=True)
+    confusion(y_test,y_test_SVM,types,'test','SVM',plot=plot)
+    if plot:
+      plt.show()
   return y_test_SVM,(p_tr,p_test)
-# ================================================================
-def implement_LR_scikit_learn(x_train,x_test,y_train,y_test,types):
-  from sklearn.linear_model import LogisticRegression
-
-  LR = LogisticRegression()
-  LR.fit(x_train.values,y_train.values.ravel())
-  y_train_LR = LR.predict(x_train.values)
-  y_test_LR = LR.predict(x_test.values)
-
-  print "\t *Training set"
-  diff = y_train.values.ravel() - y_train_LR
-  p_tr = float(len(np.where(diff==0)[0]))/y_train.shape[0]*100
-  print "Correct classification: %.2f%%"%p_tr
-  for i in range(len(np.unique(y_train.values))):
-    print i, types[i], len(np.where(y_train.values[:,0]==i)[0]), len(np.where(y_train_LR==i)[0])
-  confusion(y_train,y_train_LR,types,'training','LogRegSL',plot=True)
-
-  print "\t *Test set"
-  diff = y_test.values.ravel() - y_test_LR
-  p_test = float(len(np.where(diff==0)[0]))/y_test.shape[0]*100
-  print "Correct classification: %.2f%%"%p_test
-  for i in range(len(np.unique(y_train.values))):
-    print i, types[i], len(np.where(y_test.values[:,0]==i)[0]), len(np.where(y_test_LR==i)[0])
-  confusion(y_test,y_test_LR,types,'test','LogRegSL',plot=True)
-  return (p_tr,p_test)
 # ================================================================
 def class_final(opt):
   """
@@ -341,7 +319,7 @@ def class_final(opt):
         struct['%'][df.index[iev]] = np.max(np.array(prop))
       else:
         struct['Type'][df.index[iev]] = '?'
-        struct['%'][df.index[iev]] = 50.
+        struct['%'][df.index[iev]] = 1./len(t_uniq)*100
 
   struct.to_csv(opt.opdict['class_auto_path'])
 # ================================================================
@@ -368,14 +346,23 @@ def final_result(opt):
   list_man = m.values.ravel()
   list_auto = a.values.ravel()
   sim = np.where(list_man==list_auto)[0]
+  list_auto_sim = list_auto[sim]
   print "% of well classified events :", len(sim)*100./N
   print "\n"
 
   types = np.unique(list_auto)
   print np.unique(list_auto)
   print np.unique(list_man)
+  print "\nPercentages of well-classified events"
+  for t in types:
+    if t != '?':
+      l1 = len(np.where(list_man==t)[0])
+      l2 = len(np.where(list_auto_sim==t)[0])
+      print "%% for type %s : %.2f (%d out of %d)"%(t,l2*100./l1,l2,l1)
+
+  print "\nRepartition of automatic classification"
   for t in types:
     l1 = len(np.where(list_man==t)[0])
-    l2 = len(np.where(list_man[sim]==t)[0])
-    print "% for type",t,":",l2*100./l1 
+    l2 = len(np.where(list_auto==t)[0])
+    print "%s : manual = %d vs auto = %d"%(t,l1,l2)
 
