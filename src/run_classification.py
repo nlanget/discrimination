@@ -8,6 +8,8 @@ def run_test():
   opt = TestOptions()
 
   classifier(opt)
+  class_final(opt)
+  final_result(opt)
 
 
 def run_all():
