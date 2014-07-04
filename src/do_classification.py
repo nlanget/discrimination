@@ -96,7 +96,7 @@ def classifier(opt):
         sys.exit()
 
       if opt.opdict['plot_pdf']:
-        opt.plot_all_pdfs(save=False)
+        opt.plot_all_pdfs(save=opt.opdict['save_pdf'])
 
       if opt.opdict['method'] == '1b1':
         # EXTRACTEURS
@@ -104,17 +104,19 @@ def classifier(opt):
         from extraction import one_by_one
         savefile = '%s/1B1_%s_%s'%(opt.opdict['outdir'],opt.opdict['feat_filename'].split('.')[0],opt.trad[isc][0])
         one_by_one(x_test,y_test,opt.types,opt.numt,set['Otime'],savefile,boot=10,method='svm')
+        continue
 
       elif opt.opdict['method'] == 'ova':
         print "********** EXTRACTION 1-VS-ALL **********"
         from extraction import one_vs_all
         savefile = '%s/OVA_%s_%s'%(opt.opdict['outdir'],opt.opdict['feat_filename'].split('.')[0],opt.trad[isc][0])
         one_vs_all(x_test,y_test,opt.types,opt.numt,set['Otime'],savefile,boot=10,method='svm')
+        continue
 
       elif opt.opdict['method'] == 'svm':
         # SVM
         print "********** SVM **********"
-        CLASS_test, pourcentages = implement_svm(x_train,x_test,y_train,y_test,opt.types,opt.opdict['boot'])
+        CLASS_test, pourcentages = implement_svm(x_train,x_test,y_train,y_test,opt.types,opt.opdict)
 
       elif opt.opdict['method'] == 'lr': 
         # LOGISTIC REGRESSION
@@ -127,6 +129,8 @@ def classifier(opt):
         print "\n"
         if opt.opdict['boot'] == 1:
           confusion(y_train,CLASS_train,opt.st,'training','LogReg',plot=opt.opdict['plot_confusion'])
+          if opt.opdict['plot_confusion'] and opt.opdict['save_confusion']:
+            plt.savefig('%s/figures/training_%s.png'%(opt.opdict['outdir'],opt.opdict['result_file'][8:]))
 
         print "\t Test set"
         for i in range(K):
@@ -135,6 +139,8 @@ def classifier(opt):
         if opt.opdict['boot'] == 1:
           confusion(y_test,CLASS_test,opt.st,'test','LogReg',plot=opt.opdict['plot_confusion'])
           if opt.opdict['plot_confusion']:
+            if opt.opdict['save_confusion']:
+              plt.savefig('%s/figures/test_%s.png'%(opt.opdict['outdir'],opt.opdict['result_file'][8:]))
             plt.show()
 
       subdic['%'] = pourcentages
@@ -234,7 +240,7 @@ def plot_clustering(x,x_data,y_train,y_clus,K):
     plt.xlabel(x_data.columns[0])
     plt.ylabel(x_data.columns[1])
 # ================================================================
-def implement_svm(x_train,x_test,y_train,y_test,types,b,plot=False):
+def implement_svm(x_train,x_test,y_train,y_test,types,opdict):
   # do grid search
   from sklearn.grid_search import GridSearchCV
   from sklearn import svm
@@ -255,8 +261,10 @@ def implement_svm(x_train,x_test,y_train,y_test,types,b,plot=False):
   print "Correct classification: %.2f%%"%p_tr
   for i in range(len(np.unique(y_train.values))):
     print i, types[i], len(np.where(y_train.values[:,0]==i)[0]), len(np.where(y_train_SVM==i)[0])
-  if b == 1:
-    confusion(y_train,y_train_SVM,types,'training','SVM',plot=plot)
+  if opdict['boot'] == 1:
+    confusion(y_train,y_train_SVM,types,'training','SVM',plot=opdict['plot_confusion'])
+    if opdict['plot_confusion'] and opdict['save_confusion']:
+      plt.savefig('%s/figures/training_%s.png'%(opdict['outdir'],opdict['result_file'][8:]))
 
   print "\t *Test set"
   diff = y_test.values.ravel() - y_test_SVM
@@ -264,9 +272,11 @@ def implement_svm(x_train,x_test,y_train,y_test,types,b,plot=False):
   print "Correct classification: %.2f%%"%p_test
   for i in range(len(np.unique(y_train.values))):
     print i, types[i], len(np.where(y_test.values[:,0]==i)[0]), len(np.where(y_test_SVM==i)[0])
-  if b == 1:
-    confusion(y_test,y_test_SVM,types,'test','SVM',plot=plot)
-    if plot:
+  if opdict['boot'] == 1:
+    confusion(y_test,y_test_SVM,types,'test','SVM',plot=opdict['plot_confusion'])
+    if opdict['plot_confusion']:
+      if opdict['save_confusion']:
+        plt.savefig('%s/figures/test_%s.png'%(opdict['outdir'],opdict['result_file'][8:]))
       plt.show()
   return y_test_SVM,(p_tr,p_test)
 # ================================================================

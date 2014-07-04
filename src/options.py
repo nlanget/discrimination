@@ -13,8 +13,8 @@ class Options(object):
     # Define directories and paths
     self.opdict['dir'] = 'Ijen'
     self.opdict['network'] = 'ID'
-    self.opdict['stations'] = ['IJEN']
-    #self.opdict['stations'] = ['DAM','IBLW','IGEN','IJEN','IMLB','IPAL','IPLA','KWUI','MLLR','POS','POSI','PSG','PUN','RAUN','TRWI']
+    #self.opdict['stations'] = ['IJEN']
+    self.opdict['stations'] = ['DAM','IBLW','IGEN','IJEN','IMLB','IPAL','IPLA','KWUI','MLLR','POS','POSI','PSG','PUN','RAUN','TRWI']
     self.opdict['channels'] = ['HHZ','HHE','HHN','EHZ','EHE','EHN','BHZ','BHE','BHN']
 
     self.opdict['datadir'] = os.path.join('../data',self.opdict['dir'],self.opdict['network'])
@@ -25,7 +25,9 @@ class Options(object):
     self.opdict['method'] = 'lr' # could be 'lr' (logistic regression),'svm' (Support Vector Machine from scikit.learn package),'ova' (1-vs-all extractor), '1b1' (1-by-1 extractor)
     self.opdict['boot'] = 1 # number of iterations (a new training set is generated at each 'iteration')
     self.opdict['plot_pdf'] = False # display the pdfs of the features
+    self.opdict['save_pdf'] = False
     self.opdict['plot_confusion'] = False # display the confusion matrices
+    self.opdict['save_confusion'] = False
 
     self.opdict['option'] = opt
 
@@ -34,7 +36,7 @@ class Options(object):
     if opt == 'norm':
       # Features "normales"
       #self.opdict['feat_filename'] = 'ijen_%02d%02d_polarization.csv'%(date.tm_mday,date.tm_mon)
-      self.opdict['feat_filename'] = 'ijen_0605_1sta.csv'
+      self.opdict['feat_filename'] = 'ijen_3006.csv'
       self.opdict['feat_list'] = ['AsDec','Bandwidth','CentralF','Centroid_time','Dur','Ene20-30','Ene5-10','Ene0-5','F_low','F_up','Growth','IFslope','Kurto','MeanPredF','NbPeaks','PredF','RappMaxMean','RappMaxMeanTF','Skewness','sPredF','TimeMaxSpec','Width','ibw0','ibw1','ibw2','ibw3','ibw4','ibw5','ibw6','ibw7','ibw8','ibw9','if0','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9']#,'Rectilinearity','Planarity','MaxEigenvalue']
       #self.opdict['feat_list'] = ['Dur','Rectilinearity','Planarity','MaxEigenvalue']
 
@@ -43,14 +45,14 @@ class Options(object):
       self.opdict['feat_filename'] = 'HT_ijen_%02d%02d.csv'%(date.tm_mday,date.tm_mon)
       self.opdict['feat_list'] = map(str,range(50))
 
-    self.opdict['feat_filepath'] = '../results/%s/features/%s'%(self.opdict['dir'],self.opdict['feat_filename'])
-    self.opdict['label_filename'] = '%s/Ijen_reclass_all.csv'%self.opdict['libdir']
+    self.opdict['feat_filepath'] = '%s/features/%s'%(self.opdict['outdir'],self.opdict['feat_filename'])
+    self.opdict['label_filename'] = '%s/Ijen_class_all.csv'%self.opdict['libdir']
 
-    self.opdict['result_file'] = 'results_%s-reclass_%s'%(self.opdict['feat_filename'].split('.')[0],self.opdict['method'])
-    self.opdict['result_path'] = '../results/%s/%s'%(self.opdict['dir'],self.opdict['result_file'])
+    self.opdict['result_file'] = 'results_%s_%s'%(self.opdict['feat_filename'].split('.')[0],self.opdict['method'])
+    self.opdict['result_path'] = '%s/%s'%(self.opdict['outdir'],self.opdict['result_file'])
 
     self.opdict['class_auto_file'] = 'auto_class_%s_%s.csv'%(self.opdict['result_file'].split('_')[2],self.opdict['method'])
-    self.opdict['class_auto_path'] = '../results/%s/%s'%(self.opdict['dir'],self.opdict['class_auto_file'])
+    self.opdict['class_auto_path'] = '%s/%s'%(self.opdict['outdir'],self.opdict['class_auto_file'])
 
     self.opdict['types'] = None
 
