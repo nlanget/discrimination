@@ -532,9 +532,9 @@ def spectrogram(trace,plot=False):
     import matplotlib.pyplot as plt
     import matplotlib.gridspec as gridspec
     from mpl_toolkits.mplot3d import Axes3D
-    G = gridspec.GridSpec(6,2)
+    G = gridspec.GridSpec(3,2)
 
-    fig = plt.figure(figsize=(12,10))
+    fig = plt.figure(figsize=(12,6))
     fig.set_facecolor('white')
     ax1 = fig.add_subplot(G[0,0])
     ax1.plot(data,'k')
@@ -570,7 +570,10 @@ def spectrogram(trace,plot=False):
     ax4.set_ylabel('Frequency (Hz)')
     ax4.set_zlabel('Amplitude of the spectrum')
 
-    ax5 = fig.add_subplot(G[3:,0])
+    fig = plt.figure(figsize=(10,4))
+    fig.set_facecolor('white')
+    G = gridspec.GridSpec(1,2)
+    ax5 = fig.add_subplot(G[:,0])
     ax5.plot(f,a,'k')
     if f[np.argmax(a)]-w/2 > 0:
       ax5.plot([f[np.argmax(a)]-w/2.,f[np.argmax(a)]+w/2.],[0.1*np.max(a),0.1*np.max(a)],'y')
@@ -581,7 +584,7 @@ def spectrogram(trace,plot=False):
     ax5.set_title('Stack in time')
 
     from obspy.signal import envelope
-    ax6 = fig.add_subplot(G[3:,1])
+    ax6 = fig.add_subplot(G[:,1])
     ax6.plot(time,b,'k')
     #ax6.plot(time[maxb],b[maxb],'ro')
     #ax6.plot([time[0],time[-1]],[rms,rms],'r')
@@ -680,7 +683,7 @@ def around_freq(TF,freqs,plot=False):
     plt.figtext(.6,.65,"Central f = %.2f Hz"%fmean)
     plt.figtext(.6,.6,"Predominant f = %.2f Hz"%predf)
     plt.figtext(.6,.55,"Bandwidth = %.2f Hz"%bwid)
-    #plt.xlim([0,20])
+    plt.xlim([0,16])
     plt.xlabel("Frequency (Hz)")
     plt.ylabel("abs(TF)")
     plt.title("Amplitude spectrum")
@@ -798,7 +801,6 @@ def instant_bw(trace, env, dt, TF, ponset=0, tend=0, plot=False):
     A = np.abs(analytic)
 
   gradA = np.gradient(A) * 1./dt
-
   ibw = np.sqrt((1./(2*pi*A) * gradA)**2)
 
   fny = 1./(2*dt)
@@ -807,7 +809,7 @@ def instant_bw(trace, env, dt, TF, ponset=0, tend=0, plot=False):
 
   time = np.arange(len(A))*dt
 
-  if ponset != 0 and tend != 0:
+  if ponset != 0 or tend != 0:
     val, tval = window_p(ibw,time,ponset,tend,befp=10,opt='max')
   else:
     val = []
@@ -824,7 +826,7 @@ def instant_bw(trace, env, dt, TF, ponset=0, tend=0, plot=False):
     ax1.set_xticklabels('')
     ax2 = fig.add_subplot(212,title='Instantaneous bandwidth')
     ax2.plot(time[10:-10],ibw[10:-10],'k')
-    ax2.plot(tval,val,'r')
+    #ax2.plot(tval,val,'r')
     ax2.set_xlabel('Time (s)')
     plt.show()
 
@@ -850,11 +852,11 @@ def centroid_time(trace,dt,TF,ponset,tend=0,plot=False):
   A = np.abs(analytic)
 
   befp = 50
-  if ponset-50 < 0:
+  if ponset-befp < 0:
     p1 = 0
   else:
-    p1 = befp
-  if tend + 50 > len(trace) or tend == 0:
+    p1 = ponset-befp
+  if tend + befp > len(trace) or tend == 0:
     B = A[p1:]
   else:
     B = A[p1:tend]
