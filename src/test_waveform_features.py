@@ -7,20 +7,20 @@ from random import gauss
 
 def suite():
   suite = unittest.TestSuite()
-  suite.addTest(FeatureTests('test_energy_between_10Hz_and_30Hz'))
-  suite.addTest(FeatureTests('test_gaussian_kurtosis'))
-  suite.addTest(FeatureTests('test_max_over_mean'))
-  suite.addTest(FeatureTests('test_signal_duration_and_growth_over_decay'))
-  suite.addTest(FeatureTests('test_spectral_features'))
+  #suite.addTest(FeatureTests('test_energy_between_10Hz_and_30Hz'))
+  #suite.addTest(FeatureTests('test_gaussian_kurtosis'))
+  #suite.addTest(FeatureTests('test_max_over_mean'))
+  #suite.addTest(FeatureTests('test_signal_duration_and_growth_over_decay'))
+  #suite.addTest(FeatureTests('test_spectral_features'))
   #suite.addTest(FeatureTests('test_cepstrum'))
   #suite.addTest(FeatureTests('test_instantaneous_bandwidth'))
-  suite.addTest(FeatureTests('test_centroid_time'))
+  #suite.addTest(FeatureTests('test_centroid_time'))
   #suite.addTest(FeatureTests('test_polarization'))
   #suite.addTest(TestAnalyticFeatures('test_sin'))
   #suite.addTest(TestAnalyticFeatures('test_linear_mod'))
   #suite.addTest(TestAnalyticFeatures('test_sum_sin'))
   suite.addTest(TestRicker('test_ricker'))
-  suite.addTest(TestRicker('test_trace'))
+  #suite.addTest(TestRicker('test_trace'))
   return suite
 
 
@@ -28,7 +28,7 @@ def suite():
 class FeatureTests(unittest.TestCase):
 
   def setUp(self):
-    self.filename = os.path.join('test_data','YA.UV15.00.HHZ.MSEED' )
+    self.filename = os.path.join('../data/Test','YA.UV15.00.HHZ.MSEED' )
     self.st = read(self.filename)
     self.tr = self.st[0]
 
@@ -60,13 +60,13 @@ class FeatureTests(unittest.TestCase):
 
 
   def test_signal_duration_and_growth_over_decay(self):
-    st_filt = read('./test_data/synth.sac')
+    st_filt = read('../data/Test/synth.sac')
     self.tr_filt = st_filt[0]
 
-    st_env = read('./test_data/synth_env.sac')
+    st_env = read('../data/Test/synth_env.sac')
     self.tr_env = st_env[0]
 
-    st_grad = read('./test_data/synth_grad.sac')
+    st_grad = read('../data/Test/synth_grad.sac')
     self.tr_grad = st_grad[0]
 
     #self.ponset,self.tend,dur = signal_duration(self,it0=1500,plot=False)
@@ -141,7 +141,7 @@ class FeatureTests(unittest.TestCase):
   def test_instantaneous_bandwidth(self):
     data = self.sin_func
 
-    #st_filt = read('./test_data/synth.sac')
+    #st_filt = read('../data/Test/synth.sac')
     #tr = st_filt[0]
     #dt = tr.stats.delta
     #data = tr.data[1500:2500]
@@ -155,7 +155,7 @@ class FeatureTests(unittest.TestCase):
     #data = self.ricker
     data = self.sin_func
     TF = np.fft.fft(data)
-    C = centroid_time(data,self.dt,TF,0,plot=False)
+    C = centroid_time(data,self.dt,TF,0,plot=True)
     self.assertAlmostEquals(C,(len(data)/2-1)*1./len(data),places=1)
 
 
@@ -271,6 +271,8 @@ class TestRicker(unittest.TestCase):
     ax1.plot(tr,self.ricker,'k')
     ax2 = fig.add_subplot(212)
     ax2.plot(f,np.abs(tf),'k')
+    ax2.set_xlabel('Frequency')
+    ax2.set_ylabel('abs(TF)')
 
 
   def test_ricker(self):
@@ -279,9 +281,8 @@ class TestRicker(unittest.TestCase):
     env = filter.envelope(self.ricker)
 
     tf = np.fft.fft(self.ricker)
-    ifreq = instant_freq(self.ricker, self.dt, tf, 0, len(self.ricker)-1, plot=True)
+    ifreq = instant_freq(self.ricker, self.dt, tf, 50, 150, plot=True)
     ibw = instant_bw(self.ricker, env, self.dt, tf, plot=True)
-
 
 
   def test_trace(self):
@@ -309,7 +310,7 @@ class TestRicker(unittest.TestCase):
     from obspy.signal import filter
     env = filter.envelope(trace)
     ifreq = instant_freq(trace, self.dt, np.fft.fft(trace), 0, len(trace)-1, plot=True)
-    ibw = instant_bw(trace, env, self.dt, np.fft.fft(trace), plot=True)
+    ibw = instant_bw(trace, env, self.dt, np.fft.fft(trace), ponset = 0, tend=len(trace), plot=True)
 
 
 if __name__ == '__main__':

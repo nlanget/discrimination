@@ -762,7 +762,7 @@ def instant_freq(trace, dt, TF, ponset, tend, plot=False):
     ax2 = fig.add_subplot(222,title='Analytic signal')
     ax2.plot(time,np.real(analytic),'k',label='real part')
     ax2.plot(time,np.imag(analytic),'r',label='imag part')
-    ax2.legend()
+    #ax2.legend()
     ax3 = fig.add_subplot(223,title='Instantaneous phase (unwrapped)')
     ax3.plot(time,np.unwrap(phase),'k')
     ax3.plot(time,np.polyval(p,time),'r')
