@@ -13,8 +13,8 @@ class Options(object):
     # Define directories and paths
     self.opdict['dir'] = 'Ijen'
     self.opdict['network'] = 'ID'
-    #self.opdict['stations'] = ['IJEN']
-    self.opdict['stations'] = ['DAM','IBLW','IGEN','IJEN','IMLB','IPAL','IPLA','KWUI','MLLR','POS','POSI','PSG','PUN','RAUN','TRWI']
+    self.opdict['stations'] = ['IJEN']
+    #self.opdict['stations'] = ['DAM','IBLW','IGEN','IJEN','IMLB','IPAL','IPLA','KWUI','MLLR','POS','POSI','PSG','PUN','RAUN','TRWI']
     self.opdict['channels'] = ['HHZ','HHE','HHN','EHZ','EHE','EHN','BHZ','BHE','BHN']
 
     self.opdict['datadir'] = os.path.join('../data',self.opdict['dir'],self.opdict['network'])
@@ -22,8 +22,9 @@ class Options(object):
     self.opdict['outdir'] = os.path.join('../results',self.opdict['dir'])
 
     # Define options for classification functions
-    self.opdict['method'] = 'lr' # could be 'lr' (logistic regression),'svm' (Support Vector Machine from scikit.learn package),'ova' (1-vs-all extractor), '1b1' (1-by-1 extractor)
-    self.opdict['boot'] = 1 # number of iterations (a new training set is generated at each 'iteration')
+    self.opdict['method'] = 'svm' # could be 'lr' (logistic regression),'svm' (Support Vector Machine from scikit.learn package),'ova' (1-vs-all extractor), '1b1' (1-by-1 extractor)
+    self.opdict['boot'] = 10 # number of iterations (a new training set is generated at each 'iteration')
+    self.opdict['train_file'] = '%s/train_%d'%(self.opdict['libdir'],self.opdict['boot'])
     self.opdict['plot_pdf'] = False # display the pdfs of the features
     self.opdict['save_pdf'] = False
     self.opdict['plot_confusion'] = False # display the confusion matrices
@@ -35,10 +36,11 @@ class Options(object):
     date = time.localtime()
     if opt == 'norm':
       # Features "normales"
-      #self.opdict['feat_filename'] = 'ijen_%02d%02d_polarization.csv'%(date.tm_mday,date.tm_mon)
-      self.opdict['feat_filename'] = 'ijen_3006.csv'
-      self.opdict['feat_list'] = ['AsDec','Bandwidth','CentralF','Centroid_time','Dur','Ene20-30','Ene5-10','Ene0-5','F_low','F_up','Growth','IFslope','Kurto','MeanPredF','NbPeaks','PredF','RappMaxMean','RappMaxMeanTF','Skewness','sPredF','TimeMaxSpec','Width','ibw0','ibw1','ibw2','ibw3','ibw4','ibw5','ibw6','ibw7','ibw8','ibw9','if0','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9']#,'Rectilinearity','Planarity','MaxEigenvalue']
-      #self.opdict['feat_list'] = ['Dur','Rectilinearity','Planarity','MaxEigenvalue']
+      #self.opdict['feat_filename'] = 'ijen_%02d%02d.csv'%(date.tm_mday,date.tm_mon)
+      self.opdict['feat_filename'] = 'ijen_redac.csv'
+      #self.opdict['feat_list'] = ['AsDec','Bandwidth','CentralF','Centroid_time','Dur','Ene20-30','Ene5-10','Ene0-5','F_low','F_up','Growth','IFslope','Kurto','MeanPredF','NbPeaks','PredF','RappMaxMean','RappMaxMeanTF','Skewness','sPredF','TimeMaxSpec','Width','ibw0','ibw1','ibw2','ibw3','ibw4','ibw5','ibw6','ibw7','ibw8','ibw9','if0','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9']
+      self.opdict['feat_list'] = ['CentralF','Centroid_time','Dur','Ene0-5','F_up','Growth','IFslope','Kurto','MeanPredF','RappMaxMean','RappMaxMeanTF','Skewness','TimeMaxSpec','Width','if0','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9']
+      #self.opdict['feat_list_reclass'] = ['CentralF','Centroid_time','Dur','Ene0-5','F_up','Growth','Kurto','RappMaxMean','Skewness','TimeMaxSpec','ibw0','ibw1','ibw2','ibw3','ibw4','ibw5','ibw6','ibw7','ibw8','ibw9','if0','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9']
 
     if opt == 'hash':
       # Hashing
@@ -47,12 +49,13 @@ class Options(object):
 
     self.opdict['feat_filepath'] = '%s/features/%s'%(self.opdict['outdir'],self.opdict['feat_filename'])
     self.opdict['label_filename'] = '%s/Ijen_class_all.csv'%self.opdict['libdir']
+    #self.opdict['label_filename'] = '%s/examples.csv'%self.opdict['libdir']
 
-    self.opdict['result_file'] = 'results_%s_%s'%(self.opdict['feat_filename'].split('.')[0],self.opdict['method'])
-    self.opdict['result_path'] = '%s/%s'%(self.opdict['outdir'],self.opdict['result_file'])
+    self.opdict['result_file'] = 'results_%s_%s-red'%(self.opdict['feat_filename'].split('.')[0],self.opdict['method'])
+    self.opdict['result_path'] = '%s/%s/%s'%(self.opdict['outdir'],self.opdict['method'].upper(),self.opdict['result_file'])
 
     self.opdict['class_auto_file'] = 'auto_class_%s_%s.csv'%(self.opdict['result_file'].split('_')[2],self.opdict['method'])
-    self.opdict['class_auto_path'] = '%s/%s'%(self.opdict['outdir'],self.opdict['class_auto_file'])
+    self.opdict['class_auto_path'] = '%s/%s/%s'%(self.opdict['outdir'],self.opdict['method'].upper(),self.opdict['class_auto_file'])
 
     self.opdict['types'] = None
 
@@ -174,8 +177,9 @@ class Options(object):
 
     self.gaussians = {}
     for feat in self.opdict['feat_list']:
-      #vec = np.linspace(self.x.min()[feat],self.x.max()[feat],200)
-      vec = np.linspace(self.x.mean()[feat]-self.x.std()[feat],self.x.mean()[feat]+self.x.std()[feat],200)
+      vec = np.linspace(self.x.min()[feat],self.x.max()[feat],200)
+      #vec = np.linspace(self.x.min()[feat]+self.x.std()[feat],self.x.max()[feat]-self.x.std()[feat],200)
+      #vec = np.linspace(self.x.mean()[feat]-self.x.std()[feat],self.x.mean()[feat]+self.x.std()[feat],200)
 
       self.gaussians[feat] = {}
       self.gaussians[feat]['vec'] = vec
@@ -268,9 +272,11 @@ class MultiOptions(Options):
     self.y = self.y.reindex(columns=['Date','Type'])
 
     # Do not select all classes
-    #ind1 = self.y[self.y.Type=='Tremor'].index
-    #ind2 = self.y[self.y.Type=='VulkanikB'].index
+    #ind1 = self.y[self.y.Type=='VulkanikB'].index
+    #ind2 = self.y[self.y.Type=='Tremor'].index
+    #ind3 = self.y[self.y.Type=='Tektonik'].index
     #ind = ind1.append(ind2)
+    #ind = ind.append(ind3)
     #self.y = self.y.reindex(index=ind)
 
     list_keys = self.x.index
@@ -299,21 +305,6 @@ class MultiOptions(Options):
           self.xs[k] = self.x.reindex(index=keys)
           self.xs[k].index = list_ev_uniq[ind]
           self.ys[k].index = self.xs[k].index
-
-          if list(self.ys[k]['Type'].values):
-            self.ys[k][self.ys[k].Type=='HarmonikTremor'] = 'Tremor'
-            self.ys[k][self.ys[k].Type=='TremorHarmonik'] = 'Tremor'
-            self.ys[k][self.ys[k].Type=='Tremorharmonik'] = 'Tremor'
-            self.ys[k][self.ys[k].Type=='TremorLow'] = 'Tremor'
-            self.ys[k][self.ys[k].Type=='HembusanTremor'] = 'Hembusan'
-            self.ys[k][self.ys[k].Type=='LF'] = 'LowFrequency'
-            self.ys[k][self.ys[k].Type=='Longoran'] = 'Longsoran'
-            self.ys[k][self.ys[k].Type=='Longsoran/Ggr'] = 'Longsoran'
-            self.ys[k][self.ys[k].Type=='TektonikJauh/MMIII'] = 'TektonikJauh'
-            self.ys[k][self.ys[k].Type=='TektonikJauhMMIII'] = 'TektonikJauh'
-            self.ys[k][self.ys[k].Type=='TektonikJauhMMIIV'] = 'TektonikJauh'
-            self.ys[k][self.ys[k].Type=='TektonikLokalMMIIII'] = 'TektonikLokal'
-            self.ys[k][self.ys[k].Type=='TektonilLokal'] = 'TektonikLokal'
 
           k = k+1
 

@@ -54,17 +54,39 @@ def classifier(opt):
 
     K = len(opt.types)
 
+    if len(opt.opdict['stations']) == 1 and opt.opdict['boot'] > 1:
+      if os.path.exists(opt.opdict['train_file']):
+        import cPickle
+        with open(opt.opdict['train_file'],'rb') as file:
+          my_depickler = cPickle.Unpickler(file)
+          TRAIN_Y = my_depickler.load()
+          file.close()
+      else:
+        TRAIN_Y = []
+
     for b in range(opt.opdict['boot']):
       print "\n-------------------- # iter: %d --------------------\n"%(b+1)
 
+      subsubdic = {}
+
       y_test = y_ref.copy()
 
-      if marker_sta == 0:
-        y_train = create_training_set(y_ref,opt.numt)
-        list_ev_train = y_train.index
+      if len(opt.opdict['stations']) == 1 and opt.opdict['boot'] > 1:
+        if len(TRAIN_Y) > b:
+          y_train = y_ref.reindex(index=TRAIN_Y[b])
+          y_train = y_train.dropna(how='any')
+        else:
+          y_train = create_training_set(y_ref,opt.numt)
+          list_ev_train = y_train.index        
+          TRAIN_Y.append(list(y_train.index))
+
       else:
-        y_train = y_ref.reindex(index=list_ev_train)
-        y_train = y_train.dropna(how='any')
+        if marker_sta == 0:
+          y_train = create_training_set(y_ref,opt.numt)
+          list_ev_train = y_train.index
+        else:
+          y_train = y_ref.reindex(index=list_ev_train)
+          y_train = y_train.dropna(how='any')
 
       y = y_train.copy()
 
@@ -86,7 +108,7 @@ def classifier(opt):
         print "Training set: Incoherence in x and y dimensions"
         sys.exit()
 
-      subdic['list_ev'] = np.array(y_test.index)
+      subsubdic['list_ev'] = np.array(y_test.index)
 
       x_test.index = range(x_test.shape[0])
       y_test.index = range(y_test.shape[0])
@@ -103,14 +125,14 @@ def classifier(opt):
         print "********** EXTRACTION 1-BY-1 **********"
         from extraction import one_by_one
         savefile = '%s/1B1_%s_%s'%(opt.opdict['outdir'],opt.opdict['feat_filename'].split('.')[0],opt.trad[isc][0])
-        one_by_one(x_test,y_test,opt.types,opt.numt,set['Otime'],savefile,boot=10,method='svm')
+        one_by_one(x_test,y_test,opt.types,opt.numt,set['Otime'],savefile,boot=10,method='lr')
         continue
 
       elif opt.opdict['method'] == 'ova':
         print "********** EXTRACTION 1-VS-ALL **********"
         from extraction import one_vs_all
         savefile = '%s/OVA_%s_%s'%(opt.opdict['outdir'],opt.opdict['feat_filename'].split('.')[0],opt.trad[isc][0])
-        one_vs_all(x_test,y_test,opt.types,opt.numt,set['Otime'],savefile,boot=10,method='svm')
+        one_vs_all(x_test,y_test,opt.types,opt.numt,set['Otime'],savefile,boot=10,method='lr')
         continue
 
       elif opt.opdict['method'] == 'svm':
@@ -128,7 +150,7 @@ def classifier(opt):
           print i, opt.types[i], len(np.where(y_train.values[:,0]==i)[0]), len(np.where(CLASS_train==i)[0])
         print "\n"
         if opt.opdict['boot'] == 1:
-          confusion(y_train,CLASS_train,opt.st,'training','LogReg',plot=opt.opdict['plot_confusion'])
+          confusion(y_train,CLASS_train,opt.st,'Training','Logistic regression',plot=opt.opdict['plot_confusion'])
           if opt.opdict['plot_confusion'] and opt.opdict['save_confusion']:
             plt.savefig('%s/figures/training_%s.png'%(opt.opdict['outdir'],opt.opdict['result_file'][8:]))
 
@@ -137,18 +159,19 @@ def classifier(opt):
           print i, opt.types[i], len(np.where(y_test.values[:,0]==i)[0]), len(np.where(CLASS_test==i)[0])
         print "\n"
         if opt.opdict['boot'] == 1:
-          confusion(y_test,CLASS_test,opt.st,'test','LogReg',plot=opt.opdict['plot_confusion'])
+          confusion(y_test,CLASS_test,opt.st,'Test','Logistic regression',plot=opt.opdict['plot_confusion'])
           if opt.opdict['plot_confusion']:
             if opt.opdict['save_confusion']:
               plt.savefig('%s/figures/test_%s.png'%(opt.opdict['outdir'],opt.opdict['result_file'][8:]))
             plt.show()
 
-      subdic['%'] = pourcentages
+      subsubdic['%'] = pourcentages
       trad_CLASS_test = []
       for i in CLASS_test:
         i = int(i)
         trad_CLASS_test.append(opt.types[i])
-      subdic['classification'] = trad_CLASS_test
+      subsubdic['classification'] = trad_CLASS_test
+      subdic[b] = subsubdic
 
     dic_results[opt.trad[isc]] = subdic
 
@@ -157,6 +180,12 @@ def classifier(opt):
     my_pickler = cPickle.Pickler(file)
     my_pickler.dump(dic_results)
     file.close()
+
+  if not os.path.exists(opt.opdict['train_file']):
+    with open(opt.opdict['train_file'],'w') as file:
+      my_pickler = cPickle.Pickler(file)
+      my_pickler.dump(TRAIN_Y)
+      file.close()
 
 # ================================================================
 
@@ -209,14 +238,14 @@ def confusion(y,LR_train,l,set,method,plot=False,output=False):
           plt.text(i,j,"%.2f"%cmat[j,i],color=col)
         else:
           plt.text(i,j,"%d"%cmat[j,i],color=col)
-    plt.title('Confusion matrix - %s - %s'%(set,method))
+    plt.title('%s set - %s'%(set,method))
     plt.xlabel('Prediction')
 
     plt.ylabel('Observation')
-    #plt.xticks(range(len(l)),l)
-    #plt.yticks(range(len(l)),l)
+    if len(l) <= 3:
+      plt.xticks(range(len(l)),l)
+      plt.yticks(range(len(l)),l)
     plt.colorbar()
-    #plt.show()
   if output:
     return cmat
 # ================================================================
@@ -262,7 +291,7 @@ def implement_svm(x_train,x_test,y_train,y_test,types,opdict):
   for i in range(len(np.unique(y_train.values))):
     print i, types[i], len(np.where(y_train.values[:,0]==i)[0]), len(np.where(y_train_SVM==i)[0])
   if opdict['boot'] == 1:
-    confusion(y_train,y_train_SVM,types,'training','SVM',plot=opdict['plot_confusion'])
+    confusion(y_train,y_train_SVM,types,'Training','SVM',plot=opdict['plot_confusion'])
     if opdict['plot_confusion'] and opdict['save_confusion']:
       plt.savefig('%s/figures/training_%s.png'%(opdict['outdir'],opdict['result_file'][8:]))
 
@@ -273,7 +302,7 @@ def implement_svm(x_train,x_test,y_train,y_test,types,opdict):
   for i in range(len(np.unique(y_train.values))):
     print i, types[i], len(np.where(y_test.values[:,0]==i)[0]), len(np.where(y_test_SVM==i)[0])
   if opdict['boot'] == 1:
-    confusion(y_test,y_test_SVM,types,'test','SVM',plot=opdict['plot_confusion'])
+    confusion(y_test,y_test_SVM,types,'Test','SVM',plot=opdict['plot_confusion'])
     if opdict['plot_confusion']:
       if opdict['save_confusion']:
         plt.savefig('%s/figures/test_%s.png'%(opdict['outdir'],opdict['result_file'][8:]))
@@ -300,14 +329,14 @@ def class_final(opt):
 
   list_ev = []
   for key in sorted(dic):
-    list_ev = list_ev + list(dic[key]['list_ev'])
+    list_ev = list_ev + list(dic[key][0]['list_ev'])
   list_ev = np.array(list_ev)
   list_ev_all = np.unique(list_ev)
 
   df = pd.DataFrame(index=list_ev_all,columns=sorted(dic),dtype=str)
   for key in sorted(dic):
-    for iev,event in enumerate(dic[key]['list_ev']):
-      df[key][event] = dic[key]['classification'][iev]
+    for iev,event in enumerate(dic[key][0]['list_ev']):
+      df[key][event] = dic[key][0]['classification'][iev]
 
   struct = pd.DataFrame(index=list_ev_all,columns=['Type','Nb','NbDiff','%'],dtype=str)
   for iev in range(len(df.index)):
@@ -341,10 +370,12 @@ def final_result(opt):
   """
   manual = opt.opdict['label_filename']
   auto = opt.opdict['class_auto_path']
+  print manual
   print auto
 
   a = pd.read_csv(auto,index_col=False)
   a = a.reindex(columns=['Type'])
+  a.Type[a.Type=='LowFrequency'] = 'LF'
 
   m = pd.read_csv(manual,index_col=False)
   m = m.reindex(columns=['Type'],index=a.index)
@@ -360,7 +391,7 @@ def final_result(opt):
   list_auto = a.values.ravel()
   sim = np.where(list_man==list_auto)[0]
   list_auto_sim = list_auto[sim]
-  print "% of well classified events :", len(sim)*100./N
+  print "%% of well classified events : %.2f"%(len(sim)*100./N)
   print "\n"
 
   types = np.unique(list_auto)
@@ -379,3 +410,56 @@ def final_result(opt):
     l2 = len(np.where(list_auto==t)[0])
     print "%s : manual = %d vs auto = %d"%(t,l1,l2)
 
+# ================================================================
+def stats(opt):
+
+  filename = opt.opdict['feat_filepath']
+  df = pd.read_csv(filename,index_col=False)
+
+  dic = {}
+  for sta in opt.opdict['stations']:
+    dic[sta] = 0
+
+  for key in df.index:
+    stakey = key.split(',')[1].replace(" ","")
+    stakey = stakey.replace("'","")
+    if key.split(',')[2] == " 'Z')":
+      dic[stakey] = dic[stakey]+1
+  print dic
+  sys.exit()
+
+# ================================================================
+def plot_test_vs_train(opt):
+  """
+  For multiple training set draws
+  """
+  import cPickle
+  path = opt.opdict['outdir']
+  filenames = ['LR/results_ijen_redac_lr','SVM/results_ijen_redac_svm','LR/results_ijen_redac_lr-reclass','SVM/results_ijen_redac_svm-reclass']
+
+  fig = plt.figure()
+  fig.set_facecolor('white')
+  colors = ['b','c','m','y','g','r']
+  markers = ['*','o','h','v','d','s']
+  k = 0
+  for filename in filenames:
+    filename = os.path.join(path,filename)
+    with open(filename,'r') as file:
+      my_depickler = cPickle.Unpickler(file)
+      dic = my_depickler.load()
+      file.close()
+
+    DIC = dic[sorted(dic)[0]]
+ 
+    p_tr,p_test = [],[]
+    for i in sorted(DIC):
+      p_tr.append(DIC[i]['%'][0])
+      p_test.append(DIC[i]['%'][1])
+    plt.plot(p_tr,p_test,marker=markers[k],color=colors[k],lw=0)
+    k = k+1
+  plt.plot([0,100],[0,100],'k--')
+  plt.xlim([60,100])
+  plt.ylim([60,100])
+  plt.xlabel('% training set')
+  plt.ylabel('% test set')
+  plt.show()
