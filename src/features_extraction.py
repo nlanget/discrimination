@@ -182,7 +182,13 @@ def read_data_for_features_extraction(save=False):
   If option 'save' is set, then save the pandas DataFrame as a .csv file
   """
   from options import MultiOptions
-  opt = MultiOptions(opt='norm')
+  opt = MultiOptions(opt='hash')
+
+  if save:
+    if os.path.exists(opt.opdict['feat_filepath']):
+      print "WARNING !! File %s already exists"%opt.opdict['feat_filepath']
+      print "Check if you really want to replace it..." 
+      sys.exit()
 
   list_features = opt.opdict['feat_list']
   df = pd.DataFrame(columns=list_features)
@@ -324,7 +330,7 @@ def extract_norm_features(list_features,date,file,dic,plot=False):
       if 'Centroid_time' in list_features:
         # Centroid time
         from waveform_features import centroid_time
-        dic['Centroid_time'] = centroid_time(s.tr[s.i1:s.i2],s.dt,s.TF,s.ponset,plot=False)
+        dic['Centroid_time'] = centroid_time(s.tr[s.i1:s.i2],s.dt,s.TF,s.ponset,tend=s.tend,plot=False)
 
       if 'RappMaxMeanTF' in list_features:
         # Max over mean ratio of the amplitude spectrum
@@ -340,7 +346,7 @@ def extract_norm_features(list_features,date,file,dic,plot=False):
         for i in range(len(vals)):
           dic['if%d'%i] = vals[i]
 
-      if ('InstantaneousBw' in list_features) or ('Norm_envelope' in list_features):
+      if ('ibw0' in list_features) or ('Norm_envelope' in list_features):
         # Average of the instantaneous frequency and normalized envelope
         from waveform_features import instant_bw
         vals, Nenv = instant_bw(s.tr[s.i1:s.i2],s.tr_env[s.i1:s.i2],s.dt,s.TF,s.ponset,s.tend,plot=False)
@@ -400,11 +406,11 @@ def extract_hash_features(list_features,date,file,dic,permut_file,plot=False):
 
   full_tr = s.tr
   grad = s.tr_grad
-  q = [200.,.2,1]
+  q = [100.,.8,1]
   (full_spectro,f,full_time,end) = spectrogram(full_tr,param=q)
   ponset = ponset_stack(full_tr,grad,full_time,plot=plot)
   
-  idebut = ponset-int(5*full_spectro.shape[1]/full_time[-1])
+  idebut = ponset-int(2*full_spectro.shape[1]/full_time[-1])
   print ponset, idebut
   if idebut < 0:
     idebut = 0
@@ -423,19 +429,20 @@ def extract_hash_features(list_features,date,file,dic,permut_file,plot=False):
       vec_bin[m*i+j] = haar_bin[i,j]
   
   # HASH TABLES
-  pp = 500 
-  if not os.path.isfile(permut_file):
+  pp = 500
+  p_file = '%s_%d'%(permut_file,full_spectro.shape[0])
+  if not os.path.isfile(p_file):
     print "Permutation"
     from fingerprint_functions import define_permutation
     import cPickle
     permut = define_permutation(len(vec_bin),pp)
-    with open(permut_file,'wb') as file:
+    with open(p_file,'wb') as file:
       my_pickler = cPickle.Pickler(file)
       my_pickler.dump(permut)
       file.close()
   else:
     import cPickle
-    with open(permut_file,'rb') as file:
+    with open(p_file,'rb') as file:
       my_depickler = cPickle.Unpickler(file)
       permut = my_depickler.load()
       file.close()
