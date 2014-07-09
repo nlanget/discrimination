@@ -286,8 +286,8 @@ def nearest_pow2(x):
 
 # *******************************************************************************
 
-def echantillon():
-  datadir = '/media/disk/CLASSIFICATION/ijen'
+def plotSampleWF():
+  datadir = '../data/Ijen/ID/IJEN/EHZ.D'
   catname = '../lib/Ijen/Ijen_reclass_all.csv'
   df = pd.read_csv(catname)
   df = df.dropna(how='any')
@@ -295,26 +295,69 @@ def echantillon():
   df = df.reindex(index=df[df.Type!='n'].index)
 
   tuniq = np.unique(df.Type.values)
+  print tuniq
   for i in range(len(tuniq)):
     df_type = df[df.Type==tuniq[i]]
     permut = np.random.permutation(df_type.index)
-    permut = permut[:10]
     fig = plt.figure(figsize=(10,12))
     fig.set_facecolor('white')
+    num = 0
     for ij,j in enumerate(permut):
-      date = utcdatetime.UTCDateTime(df.Date_UTC[j])
+      if num >= 10:
+        break
+      date = utcdatetime.UTCDateTime(str(df.Date[j]))
       files = glob.glob('%s/*%d%02d%02d_%02d%02d%02d*'%(datadir,date.year,date.month,date.day,date.hour,date.minute,date.second))
       files.sort()
       if len(files) > 0:
+        print date
         file = files[0]
         st = read(file)
         st.filter('bandpass',freqmin=1,freqmax=10)
 
-        ax = fig.add_subplot(len(permut),1,ij+1)
+        ax = fig.add_subplot(10,1,num+1)
         ax.plot(st[0],'k')
         ax.set_axis_off()
+        num = num + 1
     fig.suptitle(tuniq[i])
-    plt.savefig('/home/nadege/Desktop/%s_2.png'%tuniq[i])
+    #plt.savefig('/home/nadege/Desktop/reclass_%s.png'%tuniq[i])
+  plt.show()
+
+# *******************************************************************************
+
+def plotOneSampleWF():
+  datadir = '../data/Ijen/ID/IJEN/EHZ.D'
+  catname = '../lib/Ijen/Ijen_class_all.csv'
+  df = pd.read_csv(catname)
+  df = df.dropna(how='any')
+  df = df.reindex(index=df[df.Type!='?'].index)
+  df = df.reindex(index=df[df.Type!='n'].index)
+
+  tuniq = np.unique(df.Type.values)
+  print tuniq
+  fig = plt.figure(figsize=(12,12))
+  fig.set_facecolor('white')
+  for i in range(len(tuniq)):
+    df_type = df[df.Type==tuniq[i]]
+    permut = np.random.permutation(df_type.index)
+    marker = 1
+    j = 0
+    while marker:
+      p = permut[j]
+      j = j+1
+      date = utcdatetime.UTCDateTime(str(df.Date[p]))
+      files = glob.glob('%s/*%d%02d%02d_%02d%02d%02d*'%(datadir,date.year,date.month,date.day,date.hour,date.minute,date.second))
+      files.sort()
+      if len(files) > 0:
+        marker = 0
+        file = files[0]
+        st = read(file)
+        st.filter('bandpass',freqmin=1,freqmax=10)
+
+        ax = fig.add_subplot(len(tuniq),1,i+1)
+        ax.plot(st[0],'k')
+        ax.text(.05,.9,tuniq[i],transform=ax.transAxes)
+        ax.set_axis_off()
+  plt.savefig('/home/nadege/Desktop/sample_waveforms.png')
   plt.show()
 
 
@@ -322,7 +365,8 @@ if __name__ == '__main__':
   #common_events_catalogs()
   #plot_catalogs()
   #common_events_myClass()
-  classif_auto()
+  #classif_auto()
   #spectral_content('/home/nadege/Desktop/IJEN_catalogues/test_extraction.csv','/home/nadege/Desktop/NEW_CLASS/Cat_POS/POS')
-  #echantillon()
+  #plotSampleWF()
+  plotOneSampleWF()
 
