@@ -262,8 +262,8 @@ def plot_rates(DIC):
   """
   fig = plt.figure()
   fig.set_facecolor("white")
-  colors = ['b','k','b','c','m','y','g','r']
-  markers = ['*','o','h','v','d','s','s','d']
+  colors = ['b','c','m','c','k','y','g','r']
+  markers = ['*','o','h','v','d','s','d','h']
   k = 0
   for ikey,key in enumerate(sorted(DIC[0])):
     if key != "i_train":
@@ -283,6 +283,7 @@ def plot_rates(DIC):
   plt.plot([0,100],[0,100],'k--')
   plt.xlabel('% training set')
   plt.ylabel('% test set')
+  #plt.savefig('../results/Ijen/figures/OBO_test-vs-train_lr.png')
   plt.show()
   #boot_tr = np.reshape(boot_tr,(len(DIC),len(DIC[0])))
   #boot_test = np.reshape(boot_test,(len(DIC),len(DIC[0])))
@@ -502,8 +503,8 @@ def plot_diagrams(DIC):
         classname = cl
         if classname == 'VulkanikB':
           classname = 'VB'
-        if classname == 'Tremor':
-          classname = 'T'
+        if classname == 'VulkanikA':
+          classname = 'VA'
         plt.pie([valok,100-valok],explode=(.05,0),labels=(classname,'R'),autopct='%1.1f%%',colors=('w',(.5,.5,.5)))
 
         fracs = [tup[1]*1./(dic['nb']-dic['nb_common']) for tup in dic['nb_other'] if tup[1]!=0]
@@ -511,7 +512,17 @@ def plot_diagrams(DIC):
         if 'VulkanikB' in labels:
           labels[labels=='VulkanikB'] = 'VB'
         if 'Tremor' in labels:
-          labels[labels=='Tremor'] = 'T'
+          labels[labels=='Tremor'] = 'Tr'
+        if 'VulkanikA' in labels:
+          labels[labels=='VulkanikA'] = 'VA'
+        if 'Tektonik' in labels:
+          labels[labels=='Tektonik'] = 'Tecto'
+        if 'Hembusan' in labels:
+          labels[labels=='Hembusan'] = 'Hem'
+        if 'Longsoran' in labels:
+          labels[labels=='Longsoran'] = 'Eb'
+        if 'Hibrid' in labels:
+          labels[labels=='Hibrid'] = 'Hy'
         plt.subplot(grid[row,col+1],aspect=1)
         plt.pie(fracs,labels=labels,autopct='%1.1f%%')
     plt.suptitle('Extraction of %s'%cl)
@@ -825,8 +836,8 @@ def read_extraction_results(filename):
   #search_repetition(DIC) # statistics on multiclassified events (One-vs-All only)
   #stats_unclass(DIC) # statistics on unclassified events
   #class_histograms(DIC) # plot extraction results as histograms
-  plot_diagrams(DIC) # plot extraction results as diagrams
-  #plot_rates(DIC) # plot extraction results as training set vs test set
+  #plot_diagrams(DIC) # plot extraction results as diagrams
+  plot_rates(DIC) # plot extraction results as training set vs test set
   #plot_training(DIC)
   #plot_pdf_extract(DIC)
   #event_classes(DIC)
