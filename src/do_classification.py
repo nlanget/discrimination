@@ -14,8 +14,6 @@ def classifier(opt):
   Classification of the different types of events.
   opt is an object of the class Options()
   """
-
-
   opt.tri()
 
   X = opt.x
@@ -124,15 +122,15 @@ def classifier(opt):
         # EXTRACTEURS
         print "********** EXTRACTION 1-BY-1 **********"
         from extraction import one_by_one
-        savefile = '%s/1B1_%s_%s'%(opt.opdict['outdir'],opt.opdict['feat_filename'].split('.')[0],opt.trad[isc][0])
-        one_by_one(x_test,y_test,opt.types,opt.numt,set['Otime'],savefile,boot=10,method='lr')
+        savefile = '%s/1B1_%s_%s-red'%(opt.opdict['outdir'],opt.opdict['feat_filename'].split('.')[0],opt.trad[isc][0])
+        one_by_one(x_test,y_test,opt.types,opt.numt,set['Otime'],savefile,boot=10,method='svm')
         continue
 
       elif opt.opdict['method'] == 'ova':
         print "********** EXTRACTION 1-VS-ALL **********"
         from extraction import one_vs_all
-        savefile = '%s/OVA_%s_%s'%(opt.opdict['outdir'],opt.opdict['feat_filename'].split('.')[0],opt.trad[isc][0])
-        one_vs_all(x_test,y_test,opt.types,opt.numt,set['Otime'],savefile,boot=10,method='lr')
+        savefile = '%s/OVA_%s_%s-red'%(opt.opdict['outdir'],opt.opdict['feat_filename'].split('.')[0],opt.trad[isc][0])
+        one_vs_all(x_test,y_test,opt.types,opt.numt,set['Otime'],savefile,boot=10,method='svm')
         continue
 
       elif opt.opdict['method'] == 'svm':
@@ -150,7 +148,7 @@ def classifier(opt):
           print i, opt.types[i], len(np.where(y_train.values[:,0]==i)[0]), len(np.where(CLASS_train==i)[0])
         print "\n"
         if opt.opdict['boot'] == 1:
-          confusion(y_train,CLASS_train,opt.st,'Training','Logistic regression',plot=opt.opdict['plot_confusion'])
+          confusion(y_train,CLASS_train,opt.types,'Training','Logistic regression',plot=opt.opdict['plot_confusion'])
           if opt.opdict['plot_confusion'] and opt.opdict['save_confusion']:
             plt.savefig('%s/figures/training_%s.png'%(opt.opdict['outdir'],opt.opdict['result_file'][8:]))
 
@@ -159,7 +157,7 @@ def classifier(opt):
           print i, opt.types[i], len(np.where(y_test.values[:,0]==i)[0]), len(np.where(CLASS_test==i)[0])
         print "\n"
         if opt.opdict['boot'] == 1:
-          confusion(y_test,CLASS_test,opt.st,'Test','Logistic regression',plot=opt.opdict['plot_confusion'])
+          confusion(y_test,CLASS_test,opt.types,'Test','Logistic regression',plot=opt.opdict['plot_confusion'])
           if opt.opdict['plot_confusion']:
             if opt.opdict['save_confusion']:
               plt.savefig('%s/figures/test_%s.png'%(opt.opdict['outdir'],opt.opdict['result_file'][8:]))
@@ -175,13 +173,15 @@ def classifier(opt):
 
     dic_results[opt.trad[isc]] = subdic
 
+  dic_results['features'] = opt.opdict['feat_list']
+
   import cPickle
   with open(opt.opdict['result_path'],'w') as file:
     my_pickler = cPickle.Pickler(file)
     my_pickler.dump(dic_results)
     file.close()
 
-  if not os.path.exists(opt.opdict['train_file']):
+  if not os.path.exists(opt.opdict['train_file']) and opt.opdict['boot'] > 1:
     with open(opt.opdict['train_file'],'w') as file:
       my_pickler = cPickle.Pickler(file)
       my_pickler.dump(TRAIN_Y)
@@ -216,12 +216,12 @@ def create_training_set(y_ref,numt):
   return y_train
 
 # ================================================================
-def confusion(y,LR_train,l,set,method,plot=False,output=False):
+def confusion(y,y_auto,l,set,method,plot=False,output=False):
   """
   Computes the confusion matrix
   """
   from sklearn.metrics import confusion_matrix
-  cmat = confusion_matrix(y.values[:,0],LR_train)
+  cmat = confusion_matrix(y.values[:,0],y_auto)
   cmat = np.array(cmat,dtype=float)
   for i in range(cmat.shape[0]):
     cmat[i,:] = cmat[i,:]*100./len(np.where(y.values[:,0]==i)[0])
@@ -237,37 +237,15 @@ def confusion(y,LR_train,l,set,method,plot=False,output=False):
         if cmat.shape[0] <= 4:
           plt.text(i,j,"%.2f"%cmat[j,i],color=col)
         else:
-          plt.text(i,j,"%d"%cmat[j,i],color=col)
-    plt.title('%s set - %s'%(set,method))
+          plt.text(i,j,"%d"%np.around(cmat[j,i]),color=col)
+    plt.title('%s set - %s'%(set,method.upper()))
     plt.xlabel('Prediction')
-
     plt.ylabel('Observation')
-    if len(l) <= 3:
+    if len(l) <= 4:
       plt.xticks(range(len(l)),l)
       plt.yticks(range(len(l)),l)
-    plt.colorbar()
   if output:
     return cmat
-# ================================================================
-def plot_clustering(x,x_data,y_train,y_clus,K):
-
-  for i in range(K):
-    print "# class %d = %d"%(i,len(np.where(y_train==i)[0]))
-
-  if x.shape[1] >= 2:
-    fig = plt.figure()
-    fig.set_facecolor('white')
-    plt.scatter(x.values[:,0],x.values[:,1],c=y_train,cmap=plt.cm.gray)
-    plt.title('Training set')
-    plt.xlabel(x.columns[0])
-    plt.ylabel(x.columns[1])
-
-    fig = plt.figure()
-    fig.set_facecolor('white')
-    plt.scatter(x_data.values[:,0],x_data.values[:,1],c=y_clus,cmap=plt.cm.gray)
-    plt.title('Test set')
-    plt.xlabel(x_data.columns[0])
-    plt.ylabel(x_data.columns[1])
 # ================================================================
 def implement_svm(x_train,x_test,y_train,y_test,types,opdict):
   # do grid search
@@ -329,12 +307,16 @@ def class_final(opt):
 
   list_ev = []
   for key in sorted(dic):
+    if key == 'features':
+      continue
     list_ev = list_ev + list(dic[key][0]['list_ev'])
   list_ev = np.array(list_ev)
   list_ev_all = np.unique(list_ev)
 
   df = pd.DataFrame(index=list_ev_all,columns=sorted(dic),dtype=str)
   for key in sorted(dic):
+    if key == 'features':
+      continue
     for iev,event in enumerate(dic[key][0]['list_ev']):
       df[key][event] = dic[key][0]['classification'][iev]
 
@@ -409,6 +391,45 @@ def final_result(opt):
     l1 = len(np.where(list_man==t)[0])
     l2 = len(np.where(list_auto==t)[0])
     print "%s : manual = %d vs auto = %d"%(t,l1,l2)
+# ================================================================
+def plot_confusion_only(opt):
+  """
+  Reads the result file and plots the corresponding confusion matrix.
+  """
+
+  opt.tri()
+
+  manual = opt.opdict['label_filename']
+  auto = opt.opdict['class_auto_path']
+
+  print auto
+  print manual
+
+  a = pd.read_csv(auto,index_col=False)
+  a = a.reindex(columns=['Type'])
+  a.Type[a.Type=='LowFrequency'] = 'LF'
+
+  m = pd.read_csv(manual,index_col=False)
+  m = m.reindex(columns=['Type'],index=a.index)
+
+  m = m.dropna(how='any')
+  a = a.reindex(index=m.index)
+
+  for i in range(len(m.values)):
+    m.values[i][0] = m.values[i][0].replace(" ","")
+
+  opt.classname2number()
+  for i in opt.numt:
+    m['Type'][m.Type==opt.types[i]] = i
+    a['Type'][a.Type==opt.types[i]] = i
+  a = a[a.Type!='?']
+  m = m.reindex(index=a.index)
+
+  confusion(m,a.values[:,0],opt.types,'test',opt.opdict['method'],plot=True)
+  if opt.opdict['save_confusion']:
+    plt.savefig('%s/figures/test_%s.png'%(opt.opdict['outdir'],opt.opdict['result_file'][8:]))
+  plt.show()
+
 
 # ================================================================
 def stats(opt):
@@ -429,18 +450,19 @@ def stats(opt):
   sys.exit()
 
 # ================================================================
-def plot_test_vs_train(opt):
+def plot_test_vs_train():
   """
   For multiple training set draws
   """
   import cPickle
-  path = opt.opdict['outdir']
-  filenames = ['LR/results_ijen_redac_lr','SVM/results_ijen_redac_svm','LR/results_ijen_redac_lr-reclass','SVM/results_ijen_redac_svm-reclass']
+  path = '../results/Ijen'
+  filenames = ['LR/results_ijen_redac_lr','LR/results_ijen_redac_lr-reclass','LR/results_ijen_redac_lr-2c','LR/results_ijen_redac_lr-red','SVM/results_ijen_redac_svm','SVM/results_ijen_redac_svm-reclass','SVM/results_ijen_redac_svm-2c','SVM/results_ijen_redac_svm-red','SVM/results_ijen_redac_svm-red2','SVM/results_ijen_redac_svm-reclass-red','SVM/results_ijen_redac_svm_lin']
+  labels = ['LR','LR reclass','LR VB+Tr','LR 8 feat','SVM','SVM reclass','SVM VB+Tr','SVM 30 feat','SVM 8 feat','SVM reclass feat','SVM lin']
 
   fig = plt.figure()
   fig.set_facecolor('white')
-  colors = ['b','c','m','y','g','r']
-  markers = ['*','o','h','v','d','s']
+  colors = ['b','c','m','y','g','r','b','c','m','y','g','r']
+  markers = ['*','o','h','v','d','s','o','v','s','*','h','d']
   k = 0
   for filename in filenames:
     filename = os.path.join(path,filename)
@@ -455,11 +477,17 @@ def plot_test_vs_train(opt):
     for i in sorted(DIC):
       p_tr.append(DIC[i]['%'][0])
       p_test.append(DIC[i]['%'][1])
-    plt.plot(p_tr,p_test,marker=markers[k],color=colors[k],lw=0)
+    plt.plot(p_tr,p_test,marker=markers[k],color=colors[k],lw=0,label=labels[k])
     k = k+1
+  plt.legend(numpoints=1,loc='upper left')
   plt.plot([0,100],[0,100],'k--')
   plt.xlim([60,100])
   plt.ylim([60,100])
   plt.xlabel('% training set')
   plt.ylabel('% test set')
+  plt.savefig('../results/Ijen/figures/svm_vs_lr.png')
   plt.show()
+
+
+if __name__ == '__main__':
+  plot_test_vs_train()
