@@ -26,12 +26,12 @@ class Options(object):
 
     # Define options for classification functions
     self.opdict['method'] = 'svm' # could be 'lr' (logistic regression),'svm' (Support Vector Machine from scikit.learn package),'ova' (1-vs-all extractor), '1b1' (1-by-1 extractor)
-    self.opdict['boot'] = 10 # number of iterations (a new training set is generated at each 'iteration')
+    self.opdict['boot'] = 1 # number of iterations (a new training set is generated at each 'iteration')
     self.opdict['train_file'] = '%s/train_%d'%(self.opdict['libdir'],self.opdict['boot'])
     self.opdict['plot_pdf'] = False # display the pdfs of the features
     self.opdict['save_pdf'] = False
     self.opdict['plot_confusion'] = True # display the confusion matrices
-    self.opdict['save_confusion'] = False
+    self.opdict['save_confusion'] = True
 
     self.opdict['option'] = opt
 
@@ -43,6 +43,7 @@ class Options(object):
       #self.opdict['feat_filename'] = 'ijen_redac.csv'
       self.opdict['feat_filename'] = 'ijen_3006.csv'
       #self.opdict['feat_list'] = ['AsDec','Bandwidth','CentralF','Centroid_time','Dur','Ene20-30','Ene5-10','Ene0-5','F_low','F_up','Growth','IFslope','Kurto','MeanPredF','NbPeaks','PredF','RappMaxMean','RappMaxMeanTF','Skewness','sPredF','TimeMaxSpec','Width','ibw0','ibw1','ibw2','ibw3','ibw4','ibw5','ibw6','ibw7','ibw8','ibw9','if0','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9']
+      #self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Kurto','RappMaxMean','Skewness','TimeMaxSpec']
       self.opdict['feat_list'] = ['Dur','F_up','Growth','Kurto','RappMaxMean','RappMaxMeanTF','TimeMaxSpec','Width']
       #self.opdict['feat_list'] = ['CentralF','Centroid_time','Dur','Ene0-5','F_up','Growth','IFslope','Kurto','MeanPredF','RappMaxMean','RappMaxMeanTF','Skewness','TimeMaxSpec','Width','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9']
       #self.opdict['feat_list_reclass'] = ['CentralF','Centroid_time','Dur','Ene0-5','F_up','Growth','Kurto','RappMaxMean','Skewness','TimeMaxSpec','ibw0','ibw1','ibw2','ibw3','ibw4','ibw5','ibw6','ibw7','ibw8','ibw9','if0','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9']
@@ -53,11 +54,10 @@ class Options(object):
       self.opdict['feat_list'] = map(str,range(50))
 
     self.opdict['feat_filepath'] = '%s/features/%s'%(self.opdict['outdir'],self.opdict['feat_filename'])
-    self.opdict['label_filename'] = '%s/Ijen_reclass_all.csv'%self.opdict['libdir']
+    self.opdict['label_filename'] = '%s/Ijen_3class_all.csv'%self.opdict['libdir']
     #self.opdict['label_filename'] = '%s/examples.csv'%self.opdict['libdir']
 
-    #self.opdict['result_file'] = 'results_ijen_3006-reclass-2c?_svm'
-    self.opdict['result_file'] = 'results_%s_%s_reclass_%dc_%df'%(self.opdict['feat_filename'].split('.')[0],self.opdict['method'],len(self.opdict['Types']),len(self.opdict['feat_list']))
+    self.opdict['result_file'] = 'results_%s_%s_3class_%dc_%df'%(self.opdict['feat_filename'].split('.')[0],self.opdict['method'],len(self.opdict['Types']),len(self.opdict['feat_list']))
     self.opdict['result_path'] = '%s/%s/%s'%(self.opdict['outdir'],self.opdict['method'].upper(),self.opdict['result_file'])
 
     self.opdict['types'] = None
@@ -243,7 +243,7 @@ class Options(object):
 
     """
     Plots only one pdf, for a given feature.
-    Possibility to plot a given point on it : coord is a tuple (manual class,feature value,automatic class)
+    Possibility to plot a given point on it : coord is a numpy array [manual class,feature values,automatic class]
     """
     if not hasattr(self,'gaussians'):
       self.compute_pdfs()
@@ -266,6 +266,7 @@ class Options(object):
       #plt.plot(coord[1,:],self.gaussians[feat][coord[2,0]][ind],'ko')
     plt.title(feat)
     plt.legend(labels,numpoints=1)
+    #plt.savefig('%s/figures/Indet_%s_%s.png'%(self.opdict['outdir'],coord[2,0],feat))
     plt.show()
 
 
@@ -344,9 +345,10 @@ class MultiOptions(Options):
     """
     Returns the features of all events for a given station and a given component.
     """
-    feats = self.raw_df
+    feats = self.read_featfile()
     feats = feats.reindex(columns=self.opdict['feat_list'])
-    types = self.manuals
+    types = self.read_classification()
+    types.index = types.Date
 
     list_index, list_event = [],[]
     for key in feats.index:
