@@ -18,19 +18,19 @@ class Options(object):
     self.opdict['channels'] = ['HHZ','HHE','HHN','EHZ','EHE','EHN','BHZ','BHE','BHN']
 
     #self.opdict['Types'] = ['Hembusan','Hibrid','LF','Longsoran','Tektonik','Tremor','VulkanikA','VulkanikB']
-    self.opdict['Types'] = ['Tremor','VulkanikB']
+    self.opdict['Types'] = ['Tremor','VulkanikB','?']
 
     self.opdict['datadir'] = os.path.join('../data',self.opdict['dir'],self.opdict['network'])
     self.opdict['libdir'] = os.path.join('../lib',self.opdict['dir'])
     self.opdict['outdir'] = os.path.join('../results',self.opdict['dir'])
 
     # Define options for classification functions
-    self.opdict['method'] = 'lr' # could be 'lr' (logistic regression),'svm' (Support Vector Machine from scikit.learn package),'ova' (1-vs-all extractor), '1b1' (1-by-1 extractor)
+    self.opdict['method'] = 'svm' # could be 'lr' (logistic regression),'svm' (Support Vector Machine from scikit.learn package),'ova' (1-vs-all extractor), '1b1' (1-by-1 extractor)
     self.opdict['boot'] = 10 # number of iterations (a new training set is generated at each 'iteration')
     self.opdict['train_file'] = '%s/train_%d'%(self.opdict['libdir'],self.opdict['boot'])
     self.opdict['plot_pdf'] = False # display the pdfs of the features
     self.opdict['save_pdf'] = False
-    self.opdict['plot_confusion'] = False # display the confusion matrices
+    self.opdict['plot_confusion'] = True # display the confusion matrices
     self.opdict['save_confusion'] = False
 
     self.opdict['option'] = opt
@@ -40,8 +40,8 @@ class Options(object):
     if opt == 'norm':
       # Features "normales"
       #self.opdict['feat_filename'] = 'ijen_%02d%02d.csv'%(date.tm_mday,date.tm_mon)
-      self.opdict['feat_filename'] = 'ijen_redac.csv'
-      #self.opdict['feat_filename'] = 'ijen_3006.csv'
+      #self.opdict['feat_filename'] = 'ijen_redac.csv'
+      self.opdict['feat_filename'] = 'ijen_3006.csv'
       #self.opdict['feat_list'] = ['AsDec','Bandwidth','CentralF','Centroid_time','Dur','Ene20-30','Ene5-10','Ene0-5','F_low','F_up','Growth','IFslope','Kurto','MeanPredF','NbPeaks','PredF','RappMaxMean','RappMaxMeanTF','Skewness','sPredF','TimeMaxSpec','Width','ibw0','ibw1','ibw2','ibw3','ibw4','ibw5','ibw6','ibw7','ibw8','ibw9','if0','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9']
       self.opdict['feat_list'] = ['Dur','F_up','Growth','Kurto','RappMaxMean','RappMaxMeanTF','TimeMaxSpec','Width']
       #self.opdict['feat_list'] = ['CentralF','Centroid_time','Dur','Ene0-5','F_up','Growth','IFslope','Kurto','MeanPredF','RappMaxMean','RappMaxMeanTF','Skewness','TimeMaxSpec','Width','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9']
@@ -53,14 +53,12 @@ class Options(object):
       self.opdict['feat_list'] = map(str,range(50))
 
     self.opdict['feat_filepath'] = '%s/features/%s'%(self.opdict['outdir'],self.opdict['feat_filename'])
-    self.opdict['label_filename'] = '%s/Ijen_class_all.csv'%self.opdict['libdir']
+    self.opdict['label_filename'] = '%s/Ijen_reclass_all.csv'%self.opdict['libdir']
     #self.opdict['label_filename'] = '%s/examples.csv'%self.opdict['libdir']
 
-    self.opdict['result_file'] = 'results_%s_%s_%dc_%df'%(self.opdict['feat_filename'].split('.')[0],self.opdict['method'],len(self.opdict['Types']),len(self.opdict['feat_list']))
+    #self.opdict['result_file'] = 'results_ijen_3006-reclass-2c?_svm'
+    self.opdict['result_file'] = 'results_%s_%s_reclass_%dc_%df'%(self.opdict['feat_filename'].split('.')[0],self.opdict['method'],len(self.opdict['Types']),len(self.opdict['feat_list']))
     self.opdict['result_path'] = '%s/%s/%s'%(self.opdict['outdir'],self.opdict['method'].upper(),self.opdict['result_file'])
-
-    self.opdict['class_auto_file'] = 'auto_class_%s_%s.csv'%(self.opdict['result_file'].split('_')[2],self.opdict['method'])
-    self.opdict['class_auto_path'] = '%s/%s/%s'%(self.opdict['outdir'],self.opdict['method'].upper(),self.opdict['class_auto_file'])
 
     self.opdict['types'] = None
 
@@ -109,10 +107,16 @@ class Options(object):
 
 
   def read_featfile(self):
+    """
+    Reads the file containing event features
+    """
     return pd.read_csv(self.opdict['feat_filepath'],index_col=False)
 
 
   def read_classification(self):
+    """
+    Reads the file with manual classification
+    """
     return pd.read_csv(self.opdict['label_filename'])
 
 
@@ -138,6 +142,9 @@ class Options(object):
 
 
   def classname2number(self):
+    """
+    Associates numbers to event types.
+    """
     self.types = np.unique(self.y.values)
     self.st = self.opdict['types']
     if not self.st: 
@@ -234,6 +241,7 @@ class Options(object):
 
     """
     Plots only one pdf, for a given feature.
+    Possibility to plot a given point on it : coord is a tuple (manual class,feature value,automatic class)
     """
 
     if not hasattr(self,'gaussians'):
@@ -252,9 +260,10 @@ class Options(object):
         lstyle = '-'
       plt.plot(self.gaussians[feat]['vec'],self.gaussians[feat][t],ls=lstyle)
     if coord:
-      ind  = np.argmin(np.abs(self.gaussians[feat]['vec']-coord[1][0]))
-      plt.plot(coord[1],self.gaussians[feat][coord[0]][ind],'ro')
-      plt.plot(coord[1],self.gaussians[feat][coord[2]][ind],'ko')
+      for c in coord:
+        ind  = np.argmin(np.abs(self.gaussians[feat]['vec']-c[1][0]))
+        plt.plot(c[1],self.gaussians[feat][c[0]][ind],'ro')
+        plt.plot(c[1],self.gaussians[feat][c[2]][ind],'ko')
     plt.title(feat)
     plt.legend(labels,numpoints=1)
     plt.show()
@@ -313,6 +322,23 @@ class MultiOptions(Options):
           k = k+1
 
     self.trad = trad
+
+  def count_number_of_events(self):
+    """
+    Counts and displays the number of events available at each station.
+    """
+    df = self.read_featfile()
+
+    dic = {}
+    for sta in self.opdict['stations']:
+      dic[sta] = 0
+
+    for key in df.index:
+      stakey = key.split(',')[1].replace(" ","")
+      stakey = stakey.replace("'","")
+      if key.split(',')[2] == " 'Z')" and stakey in opt.opdict['stations']:
+        dic[stakey] = dic[stakey]+1
+    print dic
 
 
 class TestOptions(MultiOptions):
