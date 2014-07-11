@@ -15,7 +15,7 @@ class Options(object):
     self.opdict['network'] = 'ID'
     self.opdict['stations'] = ['IJEN']
     #self.opdict['stations'] = ['DAM','IBLW','IGEN','IJEN','IMLB','IPAL','IPLA','KWUI','MLLR','POS','POSI','PSG','PUN','RAUN','TRWI']
-    self.opdict['channels'] = ['HHZ','HHE','HHN','EHZ','EHE','EHN','BHZ','BHE','BHN']
+    self.opdict['channels'] = ['Z','N','E']
 
     #self.opdict['Types'] = ['Hembusan','Hibrid','LF','Longsoran','Tektonik','Tremor','VulkanikA','VulkanikB']
     self.opdict['Types'] = ['Tremor','VulkanikB','?']
@@ -82,6 +82,8 @@ class Options(object):
 
     def _set_y(self,new_y):
       self._y = new_y
+
+
 
     x = property(_get_x,_set_x)
     y = property(_get_y,_set_y)
@@ -182,10 +184,10 @@ class Options(object):
 
     dic={}
     for i,t in enumerate(self.types):
-      if type(self.y.values[0,0]) == int:
-        dic[t] = self.x[self.y.values[:,0] == i]
-      elif type(self.y.values[0,0]) == str:
-        dic[t] = self.x[self.y.values[:,0] == t]
+      if type(self.y.Type.values[0]) == int:
+        dic[t] = self.x[self.y.Type == i]
+      elif type(self.y.Type.values[0]) == str:
+        dic[t] = self.x[self.y.Type == t]
 
     self.gaussians = {}
     for feat in self.opdict['feat_list']:
@@ -243,14 +245,13 @@ class Options(object):
     Plots only one pdf, for a given feature.
     Possibility to plot a given point on it : coord is a tuple (manual class,feature value,automatic class)
     """
-
     if not hasattr(self,'gaussians'):
       self.compute_pdfs()
 
-    labels = self.types[:]
-    if coord:
+    labels = list(self.types[:])
+    if list(coord):
       labels.append('manual')
-      labels.append('auto')
+      #labels.append('auto')
     fig = plt.figure()
     fig.set_facecolor('white')
     for it,t in enumerate(self.types):
@@ -259,11 +260,10 @@ class Options(object):
       else:
         lstyle = '-'
       plt.plot(self.gaussians[feat]['vec'],self.gaussians[feat][t],ls=lstyle)
-    if coord:
-      for c in coord:
-        ind  = np.argmin(np.abs(self.gaussians[feat]['vec']-c[1][0]))
-        plt.plot(c[1],self.gaussians[feat][c[0]][ind],'ro')
-        plt.plot(c[1],self.gaussians[feat][c[2]][ind],'ko')
+    if list(coord):
+      ind  = [np.argmin(np.abs(self.gaussians[feat]['vec']-c)) for c in coord[1,:]]
+      plt.plot(coord[1,:],self.gaussians[feat][coord[0,0]][ind],'ro')
+      #plt.plot(coord[1,:],self.gaussians[feat][coord[2,0]][ind],'ko')
     plt.title(feat)
     plt.legend(labels,numpoints=1)
     plt.show()
@@ -273,10 +273,9 @@ class MultiOptions(Options):
 
   def __init__(self,opt):
     Options.__init__(self,opt)
+    self.data_for_LR()
 
   def tri(self):
-
-    self.data_for_LR()
 
     self.x = self.raw_df.copy()
     self.y = self.manuals.copy()
@@ -303,7 +302,7 @@ class MultiOptions(Options):
     k = 0
 
     for sta in self.opdict['stations']:
-      for comp in ['Z','N','E']:
+      for comp in self.opdict['channels']:
         ind = []
         for iev,event in enumerate(list_ev_uniq):
           if "(%s, '%s', '%s')"%(event,sta,comp) in list_keys:
@@ -341,6 +340,34 @@ class MultiOptions(Options):
     print dic
 
 
+  def features_onesta(self,sta,comp):
+    """
+    Returns the features of all events for a given station and a given component.
+    """
+    feats = self.raw_df
+    feats = feats.reindex(columns=self.opdict['feat_list'])
+    types = self.manuals
+
+    list_index, list_event = [],[]
+    for key in feats.index:
+      stakey = key.split(',')[1].replace(" ","")
+      stakey = stakey.replace("'","")
+      if stakey == sta:
+        compkey = key.split(',')[2].replace(" ","")
+        compkey = compkey.replace("'","")
+        compkey = compkey[:-1]
+        if compkey == comp:
+          list_index.append(key)
+          event = key.split(',')[0][1:]
+          list_event.append(event)
+    feats = feats.reindex(index=list_index)
+    types = types.reindex(index=map(int,list_event))
+    feats.index = types.index
+    feats = feats.dropna(how='any')
+    types = types.reindex(index=feats.index)
+    return feats,types
+
+
 class TestOptions(MultiOptions):
 
   def __init__(self):
@@ -348,7 +375,7 @@ class TestOptions(MultiOptions):
     self.opdict = {}
     self.opdict['dir'] = 'Test'
     self.opdict['stations'] = ['IJEN','KWUI']
-    self.opdict['channels'] = ['HHZ','HHE','HHN','EHZ','EHE','EHN','BHZ','BHE','BHN']
+    self.opdict['channels'] = ['Z','N','E']
 
     self.opdict['libdir'] = os.path.join('../lib',self.opdict['dir'])
     self.opdict['outdir'] = os.path.join('../results',self.opdict['dir'])

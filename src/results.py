@@ -27,6 +27,8 @@ class AnalyseResults(MultiOptions):
     self.opdict['feat_list'] = dic['features']
     del dic['features']
     self.results = dic
+    self.opdict['stations'] = [key[0] for key in sorted(dic)]
+    self.opdict['channels'] = [key[1] for key in sorted(dic)]
 
 
   def concatenate_results(self):
@@ -119,8 +121,6 @@ class AnalyseResults(MultiOptions):
     print "\n"
 
     types = np.unique(list_auto)
-    print np.unique(list_auto)
-    print np.unique(list_man)
     print "\nPercentages of well-classified events"
     for t in types:
       if t != '?':
