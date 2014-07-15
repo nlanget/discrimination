@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from LR_functions import comparison
 from do_classification import confusion, create_training_set
 
-def one_by_one(x_test_ref0,y_test_ref0,types,numt,otimes_ref,file,boot=1,method='lr'):
+def one_by_one(opt,x_test_ref0,y_test_ref0,otimes_ref,boot=1,method='lr'):
 
   """
   Extract one class after each other by order of importance. The events which are 
@@ -18,12 +18,23 @@ def one_by_one(x_test_ref0,y_test_ref0,types,numt,otimes_ref,file,boot=1,method=
   method = 'lr' for Logistic Regression / 'svm' for SVM
   """
 
-  import cPickle
   from LR_functions import do_all_logistic_regression
 
+  types = opt.types
+  numt = opt.numt
+
+
   len_numt = len(numt)
+  # Dictionary for results
   DIC = {}
   DIC['features'] = x_test_ref0.columns 
+
+  EXT = {}
+  for num_ext in range(len_numt):
+    EXT[num_ext] = {}
+    EXT[num_ext]['nb_tot'] = []
+    for t in numt:
+      EXT[num_ext]['nb_%s'%types[t]] = []
 
   for b in range(boot):
 
@@ -59,6 +70,11 @@ def one_by_one(x_test_ref0,y_test_ref0,types,numt,otimes_ref,file,boot=1,method=
 
       y_train = y_train_ref.copy()
       y_test = y_test_ref.copy()
+
+      EXT[n]['nb_tot'].append(len(x_test))
+      for t in numt:
+        EXT[n]['nb_%s'%types[t]].append(len(y_test[y_test.Type==t]))
+
       y_train[y_train_ref.Type==n] = 0
       y_test[y_test_ref.Type==n] = 0
       y_train[y_train_ref.Type!=n] = 1
@@ -132,23 +148,25 @@ def one_by_one(x_test_ref0,y_test_ref0,types,numt,otimes_ref,file,boot=1,method=
 
     DIC[b] = dic
 
+  file = opt.opdict['result_path']
   print "One-by-One results stored in %s"%file
-  with open(file,'wb') as test:
-    my_pickler=cPickle.Pickler(test)
-    my_pickler.dump(DIC)
-    test.close()
+  opt.write_binary_file(file,DIC)
+
+  file = '%s/stats_OBO'%os.path.dirname(opt.opdict['result_path'])
+  opt.write_binary_file(file,EXT)
 
 # ================================================================
 
-def one_vs_all(x_test,y_test_ref,types,numt,otimes_ref,file,boot=1,method='lr'):
+def one_vs_all(opt,x_test,y_test_ref,otimes_ref,boot=1,method='lr'):
 
   """
   Extract one class among the whole data.
   """
 
-  import cPickle
   from LR_functions import do_all_logistic_regression
 
+  types = opt.types
+  numt = opt.numt
   len_numt = len(numt)
 
   DIC = {}
@@ -237,11 +255,9 @@ def one_vs_all(x_test,y_test_ref,types,numt,otimes_ref,file,boot=1,method='lr'):
 
     DIC[b] = dic
 
+  file = opt.opdict['result_path']
   print "One-vs-All results stored in %s"%file
-  with open(file,'wb') as test:
-    my_pickler=cPickle.Pickler(test)
-    my_pickler.dump(DIC)
-    test.close()
+  opt.write_binary_file(file,DIC)
 
 # ================================================================
 
@@ -283,7 +299,7 @@ def plot_rates(DIC):
   plt.plot([0,100],[0,100],'k--')
   plt.xlabel('% training set')
   plt.ylabel('% test set')
-  #plt.savefig('../results/Ijen/figures/OBO_test-vs-train_lr.png')
+  plt.savefig('../results/Ijen/figures/1B1_test-vs-train_svm-red.png')
   plt.show()
   #boot_tr = np.reshape(boot_tr,(len(DIC),len(DIC[0])))
   #boot_test = np.reshape(boot_test,(len(DIC),len(DIC[0])))
@@ -454,7 +470,7 @@ def plot_features_vs(DIC):
 
 # ================================================================
 
-def plot_diagrams(DIC):
+def plot_diagrams_draw(DIC):
   """
   Le titre de la figure correspond à la classe extraite automatiquement 
   avec le nombre d'événements.
@@ -526,6 +542,78 @@ def plot_diagrams(DIC):
         plt.subplot(grid[row,col+1],aspect=1)
         plt.pie(fracs,labels=labels,autopct='%1.1f%%')
     plt.suptitle('Extraction of %s'%cl)
+
+  plt.show()
+# ================================================================
+
+def plot_diagrams_one_draw(DIC):
+  """
+  Même chose que plot_diagrams_draw, mais affiche sur la même figure 
+  les résultats de toutes les classes pour un tirage donné.
+  Note : nombre de classes limité aux 4 principales !!
+  """
+  types = sorted(DIC[0])
+  if 'i_train' in types:
+    types.remove('i_train')
+  if len(types) > 4:
+    types = ['Tektonik','Tremor','VulkanikB','VulkanikA']
+  N = np.array(range(len(types)-1))
+
+  colors_all = create_color_scale(types)
+  width = 0.1
+  for tir in sorted(DIC):
+    if tir == 'features':
+      continue
+
+    fig = plt.figure(figsize=(12,7))
+    fig.set_facecolor('white')
+    from matplotlib.gridspec import GridSpec
+    nbl,nbc = 2,2
+    grid = GridSpec(nbl,nbc*2)
+    for icl, cl in enumerate(types):
+      t = np.setxor1d(np.array(types),np.array([cl]))
+      dic = DIC[tir][cl]
+
+      if dic['nb'] == 0:
+        continue
+
+      num = icl%nbc + icl + icl/nbc * nbc
+      row = icl/nbc
+      col = icl%nbc * 2
+
+      valok = dic['rate_%s'%cl][1]
+      plt.subplot(grid[row,col],aspect=1)
+      classname = cl
+      if classname == 'VulkanikB':
+        classname = 'VB'
+      if classname == 'VulkanikA':
+        classname = 'VA'
+      plt.pie([valok,100-valok],explode=(.05,0),labels=(classname,'R'),autopct='%1.1f%%',colors=('w',(.5,.5,.5)))
+
+      fracs = [tup[1]*1./(dic['nb']-dic['nb_common']) for tup in dic['nb_other'] if tup[1]!=0]
+      labels = np.array([tup[0] for tup in dic['nb_other'] if tup[1]!=0])
+
+      if 'VulkanikB' in labels:
+        labels[labels=='VulkanikB'] = 'VB'
+      if 'Tremor' in labels:
+        labels[labels=='Tremor'] = 'Tr'
+      if 'VulkanikA' in labels:
+        labels[labels=='VulkanikA'] = 'VA'
+      if 'Tektonik' in labels:
+        labels[labels=='Tektonik'] = 'Tecto'
+      if 'Hembusan' in labels:
+        labels[labels=='Hembusan'] = 'Hem'
+      if 'Longsoran' in labels:
+        labels[labels=='Longsoran'] = 'Eb'
+      if 'Hibrid' in labels:
+        labels[labels=='Hibrid'] = 'Hy'
+      plt.subplot(grid[row,col+1],aspect=1)
+      plt.pie(fracs,labels=labels,autopct='%1.1f%%')
+    plt.figtext(.1,.87,'(a) Extraction of tectonics')
+    plt.figtext(.55,.87,'(b) Extraction of tremors')
+    plt.figtext(.1,.43,'(c) Extraction of VB')
+    plt.figtext(.55,.43,'(d) Extraction of VA')
+    plt.savefig('../results/Ijen/figures/OBO_SVM_tir%d.png'%tir)
 
   plt.show()
 
@@ -766,7 +854,7 @@ def event_classes(DIC,save=False):
         st[0].plot()
         for feat in opt.opdict['feat_list']:
           if feat != 'NbPeaks':
-            opt.plot_one_pdf(feat,(mant,a[feat].values,final_cl))
+            opt.plot_one_pdf(feat,[(mant,a[feat].values,final_cl)])
         if save:
           final_cl = str(raw_input("\t Quelle classe ? "))
         print "\n"
@@ -836,8 +924,9 @@ def read_extraction_results(filename):
   #search_repetition(DIC) # statistics on multiclassified events (One-vs-All only)
   #stats_unclass(DIC) # statistics on unclassified events
   #class_histograms(DIC) # plot extraction results as histograms
-  #plot_diagrams(DIC) # plot extraction results as diagrams
-  plot_rates(DIC) # plot extraction results as training set vs test set
+  #plot_diagrams_draw(DIC) # plot extraction results as diagrams
+  #plot_diagrams_one_draw(DIC)
+  #plot_rates(DIC) # plot extraction results as training set vs test set
   #plot_training(DIC)
   #plot_pdf_extract(DIC)
   #event_classes(DIC)
@@ -846,4 +935,4 @@ def read_extraction_results(filename):
 
 # ================================================================
 if __name__ == '__main__' :
-  read_extraction_results()
+  read_extraction_results('../results/Ijen/1B1/1B1_ijen_redac_IJEN_svm')

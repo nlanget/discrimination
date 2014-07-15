@@ -118,15 +118,13 @@ def classifier(opt):
         # EXTRACTEURS
         print "********** EXTRACTION 1-BY-1 **********"
         from extraction import one_by_one
-        savefile = '%s/1B1_%s_%s-red'%(opt.opdict['outdir'],opt.opdict['feat_filename'].split('.')[0],opt.trad[isc][0])
-        one_by_one(x_test,y_test,opt.types,opt.numt,set['Otime'],savefile,boot=10,method='svm')
+        one_by_one(opt,x_test,y_test,set['Otime'],boot=10,method='svm')
         continue
 
       elif opt.opdict['method'] == 'ova':
         print "********** EXTRACTION 1-VS-ALL **********"
         from extraction import one_vs_all
-        savefile = '%s/OVA_%s_%s-red'%(opt.opdict['outdir'],opt.opdict['feat_filename'].split('.')[0],opt.trad[isc][0])
-        one_vs_all(x_test,y_test,opt.types,opt.numt,set['Otime'],savefile,boot=10,method='svm')
+        one_vs_all(opt,x_test,y_test,set['Otime'],boot=10,method='svm')
         continue
 
       elif opt.opdict['method'] == 'svm':

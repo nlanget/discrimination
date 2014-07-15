@@ -17,21 +17,21 @@ class Options(object):
     #self.opdict['stations'] = ['DAM','IBLW','IGEN','IJEN','IMLB','IPAL','IPLA','KWUI','MLLR','POS','POSI','PSG','PUN','RAUN','TRWI']
     self.opdict['channels'] = ['Z','N','E']
 
-    #self.opdict['Types'] = ['Hembusan','Hibrid','LF','Longsoran','Tektonik','Tremor','VulkanikA','VulkanikB']
-    self.opdict['Types'] = ['Tremor','VulkanikB','?']
+    self.opdict['Types'] = ['Hembusan','Hibrid','LF','Longsoran','Tektonik','Tremor','VulkanikA','VulkanikB']
+    #self.opdict['Types'] = ['Tremor','VulkanikB','?']
 
     self.opdict['datadir'] = os.path.join('../data',self.opdict['dir'],self.opdict['network'])
     self.opdict['libdir'] = os.path.join('../lib',self.opdict['dir'])
     self.opdict['outdir'] = os.path.join('../results',self.opdict['dir'])
 
     # Define options for classification functions
-    self.opdict['method'] = 'svm' # could be 'lr' (logistic regression),'svm' (Support Vector Machine from scikit.learn package),'ova' (1-vs-all extractor), '1b1' (1-by-1 extractor)
+    self.opdict['method'] = '1b1' # could be 'lr' (logistic regression),'svm' (Support Vector Machine from scikit.learn package),'ova' (1-vs-all extractor), '1b1' (1-by-1 extractor)
     self.opdict['boot'] = 1 # number of iterations (a new training set is generated at each 'iteration')
     self.opdict['train_file'] = '%s/train_%d'%(self.opdict['libdir'],self.opdict['boot'])
     self.opdict['plot_pdf'] = False # display the pdfs of the features
     self.opdict['save_pdf'] = False
-    self.opdict['plot_confusion'] = True # display the confusion matrices
-    self.opdict['save_confusion'] = True
+    self.opdict['plot_confusion'] = False # display the confusion matrices
+    self.opdict['save_confusion'] = False
 
     self.opdict['option'] = opt
 
@@ -54,10 +54,13 @@ class Options(object):
       self.opdict['feat_list'] = map(str,range(50))
 
     self.opdict['feat_filepath'] = '%s/features/%s'%(self.opdict['outdir'],self.opdict['feat_filename'])
-    self.opdict['label_filename'] = '%s/Ijen_3class_all.csv'%self.opdict['libdir']
+    self.opdict['label_filename'] = '%s/Ijen_class_all.csv'%self.opdict['libdir']
     #self.opdict['label_filename'] = '%s/examples.csv'%self.opdict['libdir']
 
-    self.opdict['result_file'] = 'results_%s_%s_3class_%dc_%df'%(self.opdict['feat_filename'].split('.')[0],self.opdict['method'],len(self.opdict['Types']),len(self.opdict['feat_list']))
+    if self.opdict['method'] == 'lr' or self.opdict['method'] == 'svm':
+      self.opdict['result_file'] = 'results_%s_%s_3class_%dc_%df'%(self.opdict['feat_filename'].split('.')[0],self.opdict['method'],len(self.opdict['Types']),len(self.opdict['feat_list']))
+    else:
+      self.opdict['result_file'] = '%s_%s_%s'%(self.opdict['method'].upper(),self.opdict['feat_filename'].split('.')[0],self.opdict['stations'][0])
     self.opdict['result_path'] = '%s/%s/%s'%(self.opdict['outdir'],self.opdict['method'].upper(),self.opdict['result_file'])
 
     self.opdict['types'] = None
@@ -135,14 +138,14 @@ class Options(object):
 
 
   def write_binary_file(self,filename,dic):
-  """
-  Writes in a binary file.
-  """
-  import cPickle
-  with open(filename,'w') as file:
-    my_pickler = cPickle.Pickler(file)
-    my_pickler.dump(dic)
-    file.close()
+    """
+    Writes in a binary file.
+    """
+    import cPickle
+    with open(filename,'w') as file:
+      my_pickler = cPickle.Pickler(file)
+      my_pickler.dump(dic)
+      file.close()
 
 
   def write_x_and_y(self):
