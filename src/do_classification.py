@@ -54,11 +54,7 @@ def classifier(opt):
 
     if len(opt.opdict['stations']) == 1 and opt.opdict['boot'] > 1:
       if os.path.exists(opt.opdict['train_file']):
-        import cPickle
-        with open(opt.opdict['train_file'],'rb') as file:
-          my_depickler = cPickle.Unpickler(file)
-          TRAIN_Y = my_depickler.load()
-          file.close()
+        TRAIN_Y = opt.read_binary_file(opt.opdict['train_file'])
       else:
         TRAIN_Y = []
 
@@ -175,17 +171,10 @@ def classifier(opt):
 
   dic_results['features'] = opt.opdict['feat_list']
 
-  import cPickle
-  with open(opt.opdict['result_path'],'w') as file:
-    my_pickler = cPickle.Pickler(file)
-    my_pickler.dump(dic_results)
-    file.close()
+  opt.write_binary_file(opt.opdict['result_path'],dic_results)
 
   if not os.path.exists(opt.opdict['train_file']) and opt.opdict['boot'] > 1:
-    with open(opt.opdict['train_file'],'w') as file:
-      my_pickler = cPickle.Pickler(file)
-      my_pickler.dump(TRAIN_Y)
-      file.close()
+    opt.write_binary_file(opt.opdict['train_file'],TRAIN_Y)
 
 # ================================================================
 

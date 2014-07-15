@@ -122,6 +122,29 @@ class Options(object):
     return pd.read_csv(self.opdict['label_filename'])
 
 
+  def read_binary_file(self,filename):
+    """
+    Reads a binary file.
+    """
+    import cPickle
+    with open(filename,'rb') as file:
+      my_depickler = cPickle.Unpickler(file)
+      dic = my_depickler.load()
+      file.close()
+    return dic
+
+
+  def write_binary_file(self,filename,dic):
+  """
+  Writes in a binary file.
+  """
+  import cPickle
+  with open(filename,'w') as file:
+    my_pickler = cPickle.Pickler(file)
+    my_pickler.dump(dic)
+    file.close()
+
+
   def write_x_and_y(self):
     self.x = self.raw_df.copy()
     self.y = self.manuals.copy()
