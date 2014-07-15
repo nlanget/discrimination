@@ -83,7 +83,7 @@ def plot_waveforms(opt):
 
 # ================================================================
 
-def plot_compare_pdfs():
+def compare_pdfs_reclass():
   """
   Affiche et compare les pdfs avant et après reclassification automatique.
   """
@@ -120,6 +120,52 @@ def plot_compare_pdfs():
         plt.legend()
         plt.show()
       
+# ================================================================
+
+def compare_pdfs_train():
+  """
+  Affiche et compare les pdfs des différents training sets.
+  """
+  from options import MultiOptions
+  opt = MultiOptions(opt='norm')
+
+  opt.opdict['stations'] = ['IJEN']
+  opt.opdict['channels'] = ['Z']
+  opt.opdict['Types'] = ['Tremor','VulkanikB','?']
+ 
+  opt.opdict['train_file'] = '%s/train_10'%(opt.opdict['libdir'])
+  opt.opdict['label_filename'] = '%s/Ijen_reclass_all.csv'%opt.opdict['libdir']
+
+  train = opt.read_binary_file(opt.opdict['train_file'])
+  nb_tir = len(train)
+
+  for sta in opt.opdict['stations']:
+    for comp in opt.opdict['channels']:
+      opt.x, opt.y = opt.features_onesta(sta,comp)
+
+  X = opt.x
+  Y = opt.y
+  c = ['r','b','g']
+  lines = ['-','--','-.',':','-','--','-.',':','*','v']
+  features = opt.opdict['feat_list']
+  for feat in features:
+    print feat
+    opt.opdict['feat_list'] = [feat]
+    fig = plt.figure()
+    fig.set_facecolor('white')
+    for tir in range(nb_tir):
+      tr = map(int,train[tir])
+      opt.x = X.reindex(index=tr,columns=[feat])
+      opt.y = Y.reindex(index=tr)
+      opt.classname2number()
+      opt.compute_pdfs()
+      g = opt.gaussians
+
+      for it,t in enumerate(opt.types):
+        plt.plot(g[feat]['vec'],g[feat][t],ls=lines[tir],color=c[it])
+    plt.title(feat)
+    plt.legend(opt.types)
+    plt.show()
 
 # ================================================================
 
@@ -175,4 +221,5 @@ if __name__ == '__main__':
   #new_catalogue(res)
   #plot_on_pdf(res)
   #plot_waveforms(res)
-  plot_compare_pdfs()
+  #compare_pdfs_reclass()
+  compare_pdfs_train()
