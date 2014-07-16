@@ -117,13 +117,11 @@ def classifier(opt):
       if opt.opdict['method'] == '1b1':
         # EXTRACTEURS
         print "********** EXTRACTION 1-BY-1 **********"
-        from extraction import one_by_one
         one_by_one(opt,x_test,y_test,set['Otime'],boot=10,method='svm')
         continue
 
       elif opt.opdict['method'] == 'ova':
         print "********** EXTRACTION 1-VS-ALL **********"
-        from extraction import one_vs_all
         one_vs_all(opt,x_test,y_test,set['Otime'],boot=10,method='svm')
         continue
 
@@ -203,6 +201,7 @@ def create_training_set(y_ref,numt):
   return y_train
 
 # ================================================================
+
 def confusion(y,y_auto,l,set,method,plot=False,output=False):
   """
   Computes the confusion matrix
@@ -233,7 +232,9 @@ def confusion(y,y_auto,l,set,method,plot=False,output=False):
       plt.yticks(range(len(l)),l)
   if output:
     return cmat
+
 # ================================================================
+
 def implement_svm(x_train,x_test,y_train,y_test,types,opdict):
   # do grid search
   from sklearn.grid_search import GridSearchCV
@@ -274,3 +275,253 @@ def implement_svm(x_train,x_test,y_train,y_test,types,opdict):
       plt.show()
   return y_test_SVM,(p_tr,p_test)
 
+# ================================================================
+
+def one_by_one(opt,x_test_ref0,y_test_ref0,otimes_ref,boot=1,method='lr'):
+
+  """
+  Extract one class after each other by order of importance. The events which are 
+  classified are deleted from the next extraction.
+  boot = number of training sets to be generated
+  method = 'lr' for Logistic Regression / 'svm' for SVM
+  """
+
+  from LR_functions import do_all_logistic_regression
+
+  types = opt.types
+  numt = opt.numt
+
+  len_numt = len(numt)
+  # Dictionary for results
+  DIC = {}
+  DIC['features'] = x_test_ref0.columns 
+
+  EXT = {}
+  for num_ext in range(len_numt):
+    EXT[num_ext] = {}
+    EXT[num_ext]['nb_tot'] = []
+    for t in numt:
+      EXT[num_ext]['nb_%s'%types[t]] = []
+
+  for b in range(boot):
+
+    otimes = map(str,list(otimes_ref.values))
+    otimes = np.array(otimes)
+
+    x_test = x_test_ref0.copy()
+    y_test_ref = y_test_ref0.copy()
+
+    print "\n\tONE BY ONE EXTRACTION ------ iteration %d"%b
+    dic = {}
+
+    for n in range(len_numt):
+
+      sub_dic={}
+      y_train_ref = create_training_set(y_test_ref,numt)
+      x_train = x_test.reindex(index=map(int,y_train_ref.index))
+      sub_dic["i_train"] = otimes[map(int,list(y_train_ref.index))]
+      y_train_ref.index = range(y_train_ref.shape[0])
+      x_train.index = range(x_train.shape[0])
+
+      if x_train.shape[0] != y_train_ref.shape[0]:
+        print "Training set: Incoherence in x and y dimensions"
+        sys.exit()
+
+      if x_test.shape[0] != y_test_ref.shape[0]:
+        print "Test set: Incoherence in x and y dimensions"
+        sys.exit()
+
+      if len(otimes) != len(y_test_ref):
+        print "Warning !! Check lengths !"
+        sys.exit()
+
+      y_train = y_train_ref.copy()
+      y_test = y_test_ref.copy()
+
+      EXT[n]['nb_tot'].append(len(x_test))
+      for t in numt:
+        EXT[n]['nb_%s'%types[t]].append(len(y_test[y_test.Type==t]))
+
+      y_train[y_train_ref.Type==n] = 0
+      y_test[y_test_ref.Type==n] = 0
+      y_train[y_train_ref.Type!=n] = 1
+      y_test[y_test_ref.Type!=n] = 1
+
+      t = [types[n],'Rest']
+      print y_train.shape[0], y_test.shape[0]
+
+      print "----------- %s vs all -----------"%types[n]
+
+      if method == 'lr':
+        print "Logistic Regression\n"
+        LR_train,theta,LR_test,wtr = do_all_logistic_regression(x_train,y_train,x_test,y_test,output=True)
+      elif method == 'svm':
+        kern = 'nonlinear'
+        print "SVM\n"
+        from sklearn.grid_search import GridSearchCV
+        from sklearn import svm
+        C_range = 10.0 ** np.arange(-2, 5)
+        if kern == 'linear':
+          param_grid = dict(C=C_range)
+          grid = GridSearchCV(svm.LinearSVC(), param_grid=param_grid, n_jobs=-1)
+        else:
+          gamma_range = 10.0 ** np.arange(-3,3)
+          param_grid = dict(gamma=gamma_range, C=C_range)
+          grid = GridSearchCV(svm.SVC(kernel='rbf'), param_grid=param_grid, n_jobs=-1)
+        grid.fit(x_train.values, y_train.values.ravel())
+        LR_train = grid.best_estimator_.predict(x_train)
+        LR_test = grid.best_estimator_.predict(x_test)
+
+      print "\t Training set"
+      for i in range(2):
+        print i, t[i], len(np.where(y_train.values[:,0]==i)[0]), len(np.where(LR_train==i)[0])
+      print "\n"
+      cmat_train = confusion(y_train,LR_train,types,'training','LogReg',plot=False,output=True)
+
+      print "\t Test set"
+      for i in range(2):
+        print i, t[i], len(np.where(y_test.values[:,0]==i)[0]), len(np.where(LR_test==i)[0])
+      print "\n"
+      cmat_test = confusion(y_test,LR_test,types,'test','LogReg',plot=False,output=True)
+
+      # Fill the dictionary
+      i_com = np.where((y_test.values.ravel()-LR_test)==0)[0]
+      i_lr = np.where(LR_test==0)[0]
+      i_ok_class = np.intersect1d(i_com,i_lr) # events classified in the class of interest by the LR and identical to the manual classification
+
+      sub_dic["nb"] = len(i_lr) # total number of events classified in the class of interest
+      sub_dic["nb_common"] = len(i_ok_class)
+      sub_dic["index_ok"] = otimes[i_ok_class]
+      sub_dic["nb_other"],sub_dic["i_other"] = [],[]
+      for k in range(len_numt):
+        if k != n:
+          i_other_man = list(y_test_ref[y_test_ref.Type==k].index)
+          ii = np.intersect1d(i_lr,i_other_man)
+          sub_dic["nb_other"].append((types[k],len(ii)))
+          sub_dic["i_other"].append((types[k],otimes[ii]))
+      sub_dic["rate_%s"%types[n]] = (cmat_train[0,0],cmat_test[0,0])
+      sub_dic["rate_rest"] = (cmat_train[1,1],cmat_test[1,1])
+      sub_dic["nb_manuals"] = ((types[n],len(y_test[y_test.Type==0])),('Rest',len(y_test[y_test.Type==1])))
+
+      i_ok = np.where(LR_test!=0)[0]
+      y_test_ref = y_test_ref.reindex(index=i_ok)
+      x_test = x_test.reindex(index=i_ok)
+      otimes = otimes[i_ok]
+
+      y_test_ref.index = range(y_test_ref.shape[0])
+      x_test.index = range(x_test.shape[0])
+
+      dic[types[n]] = sub_dic
+
+    DIC[b] = dic
+
+  file = opt.opdict['result_path']
+  print "One-by-One results stored in %s"%file
+  opt.write_binary_file(file,DIC)
+
+  file = '%s/stats_OBO'%os.path.dirname(opt.opdict['result_path'])
+  opt.write_binary_file(file,EXT)
+
+# ================================================================
+
+def one_vs_all(opt,x_test,y_test_ref,otimes_ref,boot=1,method='lr'):
+
+  """
+  Extract one class among the whole data.
+  """
+
+  from LR_functions import do_all_logistic_regression
+
+  types = opt.types
+  numt = opt.numt
+  len_numt = len(numt)
+
+  DIC = {}
+  DIC['features'] = x_test.columns
+  for b in range(boot):
+
+    print "\n\tONE VS ALL EXTRACTION ------ iteration %d"%b
+
+    dic = {}
+    otimes = map(str,list(otimes_ref.values))
+    otimes = np.array(otimes)
+
+    y_train_ref = create_training_set(y_test_ref,numt)
+    x_train = x_test.reindex(index=y_train_ref.index)
+    dic["i_train"] = otimes[map(int,list(y_train_ref.index))]
+    y_train_ref.index = range(y_train_ref.shape[0])
+    x_train.index = range(x_train.shape[0])
+
+    for n in range(len_numt):
+
+      y_train = y_train_ref.copy()
+      y_test = y_test_ref.copy()
+      y_train[y_train_ref.Type==n] = 0
+      y_test[y_test_ref.Type==n] = 0
+      y_train[y_train_ref.Type!=n] = 1
+      y_test[y_test_ref.Type!=n] = 1
+
+      print y_train.shape[0], y_test.shape[0]
+
+      print "----------- %s vs all -----------"%types[n]
+      print_type = [types[n],'All']
+
+      if method == 'lr':
+        print "Logistic Regression\n"
+        LR_train,theta,LR_test,wtr = do_all_logistic_regression(x_train,y_train,x_test,y_test,output=True)
+      elif method == 'svm':
+        kern = 'nonlinear'
+        print "SVM\n"
+        from sklearn.grid_search import GridSearchCV
+        from sklearn import svm
+        C_range = 10.0 ** np.arange(-2, 5)
+        if kern == 'linear':
+          param_grid = dict(C=C_range)
+          grid = GridSearchCV(svm.LinearSVC(), param_grid=param_grid, n_jobs=-1)
+        else:
+          gamma_range = 10.0 ** np.arange(-3,3)
+          param_grid = dict(gamma=gamma_range, C=C_range)
+          grid = GridSearchCV(svm.SVC(kernel='rbf'), param_grid=param_grid, n_jobs=-1)
+        grid.fit(x_train.values, y_train.values.ravel())
+        LR_train = grid.best_estimator_.predict(x_train)
+        LR_test = grid.best_estimator_.predict(x_test)
+
+      print "\t Training set"
+      for i in range(2):
+        print i, print_type[i], len(np.where(y_train.values[:,0]==i)[0]), len(np.where(LR_train==i)[0])
+      print "\n"
+      cmat_train = confusion(y_train,LR_train,types,'training','LogReg',plot=True,output=True)
+      plt.close()
+
+      print "\t Test set"
+      for i in range(2):
+        print i, print_type[i], len(np.where(y_test.values[:,0]==i)[0]), len(np.where(LR_test==i)[0])
+      print "\n"
+      cmat_test = confusion(y_test,LR_test,types,'test','LogReg',plot=True,output=True)
+      plt.close()
+
+      # Fill the dictionary
+      sub_dic={}
+      i_com = np.where((y_test.values.ravel()-LR_test)==0)[0]
+      i_lr = np.where(LR_test==0)[0]
+      i_ok_class = np.intersect1d(i_com,i_lr) # events classified in the class of interest by the LR and identical to the manual classification
+      sub_dic["nb"] = len(i_lr) # total number of events classified in the class of interest
+      sub_dic["nb_common"] = len(i_ok_class) # total number of well classified events
+      sub_dic["index_ok"] = otimes[i_ok_class] # index of well classified events
+      sub_dic["nb_other"],sub_dic["i_other"] = [],[]
+      for k in range(len_numt):
+        if k != n:
+          i_other_man = list(y_test_ref[y_test_ref.Type==k].index)
+          ii = np.intersect1d(i_lr,i_other_man)
+          sub_dic["nb_other"].append((types[k],len(ii))) # number of events belonging to another class
+          sub_dic["i_other"].append((types[k],otimes[ii])) # index of events belonging to another class
+      sub_dic["rate_%s"%types[n]] = (cmat_train[0,0],cmat_test[0,0]) # % success rate of the extracted class
+      sub_dic["rate_rest"] = (cmat_train[1,1],cmat_test[1,1]) # % success rate of the rest
+      sub_dic["nb_manuals"] = ((types[n],len(y_test[y_test.Type==0])),('Rest',len(y_test[y_test.Type==1])))
+      dic[types[n]] = sub_dic
+
+    DIC[b] = dic
+
+  file = opt.opdict['result_path']
+  print "One-vs-All results stored in %s"%file
+  opt.write_binary_file(file,DIC)
