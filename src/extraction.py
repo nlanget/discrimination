@@ -9,256 +9,6 @@ import matplotlib.pyplot as plt
 from LR_functions import comparison
 from do_classification import confusion, create_training_set
 
-def one_by_one(opt,x_test_ref0,y_test_ref0,otimes_ref,boot=1,method='lr'):
-
-  """
-  Extract one class after each other by order of importance. The events which are 
-  classified are deleted from the next extraction.
-  boot = number of training sets to be generated
-  method = 'lr' for Logistic Regression / 'svm' for SVM
-  """
-
-  from LR_functions import do_all_logistic_regression
-
-  types = opt.types
-  numt = opt.numt
-
-
-  len_numt = len(numt)
-  # Dictionary for results
-  DIC = {}
-  DIC['features'] = x_test_ref0.columns 
-
-  EXT = {}
-  for num_ext in range(len_numt):
-    EXT[num_ext] = {}
-    EXT[num_ext]['nb_tot'] = []
-    for t in numt:
-      EXT[num_ext]['nb_%s'%types[t]] = []
-
-  for b in range(boot):
-
-    otimes = map(str,list(otimes_ref.values))
-    otimes = np.array(otimes)
-
-    x_test = x_test_ref0.copy()
-    y_test_ref = y_test_ref0.copy()
-
-    print "\n\tONE BY ONE EXTRACTION ------ iteration %d"%b
-    dic = {}
-
-    for n in range(len_numt):
-
-      sub_dic={}
-      y_train_ref = create_training_set(y_test_ref,numt)
-      x_train = x_test.reindex(index=map(int,y_train_ref.index))
-      sub_dic["i_train"] = otimes[map(int,list(y_train_ref.index))]
-      y_train_ref.index = range(y_train_ref.shape[0])
-      x_train.index = range(x_train.shape[0])
-
-      if x_train.shape[0] != y_train_ref.shape[0]:
-        print "Training set: Incoherence in x and y dimensions"
-        sys.exit()
-
-      if x_test.shape[0] != y_test_ref.shape[0]:
-        print "Test set: Incoherence in x and y dimensions"
-        sys.exit()
-
-      if len(otimes) != len(y_test_ref):
-        print "Warning !! Check lengths !"
-        sys.exit()
-
-      y_train = y_train_ref.copy()
-      y_test = y_test_ref.copy()
-
-      EXT[n]['nb_tot'].append(len(x_test))
-      for t in numt:
-        EXT[n]['nb_%s'%types[t]].append(len(y_test[y_test.Type==t]))
-
-      y_train[y_train_ref.Type==n] = 0
-      y_test[y_test_ref.Type==n] = 0
-      y_train[y_train_ref.Type!=n] = 1
-      y_test[y_test_ref.Type!=n] = 1
-
-      t = [types[n],'Rest']
-      print y_train.shape[0], y_test.shape[0]
-
-      print "----------- %s vs all -----------"%types[n]
-
-      if method == 'lr':
-        print "Logistic Regression\n"
-        LR_train,theta,LR_test,wtr = do_all_logistic_regression(x_train,y_train,x_test,y_test,output=True)
-      elif method == 'svm':
-        kern = 'nonlinear'
-        print "SVM\n"
-        from sklearn.grid_search import GridSearchCV
-        from sklearn import svm
-        C_range = 10.0 ** np.arange(-2, 5)
-        if kern == 'linear':
-          param_grid = dict(C=C_range)
-          grid = GridSearchCV(svm.LinearSVC(), param_grid=param_grid, n_jobs=-1)
-        else:
-          gamma_range = 10.0 ** np.arange(-3,3)
-          param_grid = dict(gamma=gamma_range, C=C_range)
-          grid = GridSearchCV(svm.SVC(kernel='rbf'), param_grid=param_grid, n_jobs=-1)
-        grid.fit(x_train.values, y_train.values.ravel())
-        LR_train = grid.best_estimator_.predict(x_train)
-        LR_test = grid.best_estimator_.predict(x_test)
-
-      print "\t Training set"
-      for i in range(2):
-        print i, t[i], len(np.where(y_train.values[:,0]==i)[0]), len(np.where(LR_train==i)[0])
-      print "\n"
-      cmat_train = confusion(y_train,LR_train,types,'training','LogReg',plot=False,output=True)
-
-      print "\t Test set"
-      for i in range(2):
-        print i, t[i], len(np.where(y_test.values[:,0]==i)[0]), len(np.where(LR_test==i)[0])
-      print "\n"
-      cmat_test = confusion(y_test,LR_test,types,'test','LogReg',plot=False,output=True)
-
-      # Fill the dictionary
-      i_com = np.where((y_test.values.ravel()-LR_test)==0)[0]
-      i_lr = np.where(LR_test==0)[0]
-      i_ok_class = np.intersect1d(i_com,i_lr) # events classified in the class of interest by the LR and identical to the manual classification
-
-      sub_dic["nb"] = len(i_lr) # total number of events classified in the class of interest
-      sub_dic["nb_common"] = len(i_ok_class)
-      sub_dic["index_ok"] = otimes[i_ok_class]
-      sub_dic["nb_other"],sub_dic["i_other"] = [],[]
-      for k in range(len_numt):
-        if k != n:
-          i_other_man = list(y_test_ref[y_test_ref.Type==k].index)
-          ii = np.intersect1d(i_lr,i_other_man)
-          sub_dic["nb_other"].append((types[k],len(ii)))
-          sub_dic["i_other"].append((types[k],otimes[ii]))
-      sub_dic["rate_%s"%types[n]] = (cmat_train[0,0],cmat_test[0,0])
-      sub_dic["rate_rest"] = (cmat_train[1,1],cmat_test[1,1])
-      sub_dic["nb_manuals"] = ((types[n],len(y_test[y_test.Type==0])),('Rest',len(y_test[y_test.Type==1])))
-
-      i_ok = np.where(LR_test!=0)[0]
-      y_test_ref = y_test_ref.reindex(index=i_ok)
-      x_test = x_test.reindex(index=i_ok)
-      otimes = otimes[i_ok]
-
-      y_test_ref.index = range(y_test_ref.shape[0])
-      x_test.index = range(x_test.shape[0])
-
-      dic[types[n]] = sub_dic
-
-    DIC[b] = dic
-
-  file = opt.opdict['result_path']
-  print "One-by-One results stored in %s"%file
-  opt.write_binary_file(file,DIC)
-
-  file = '%s/stats_OBO'%os.path.dirname(opt.opdict['result_path'])
-  opt.write_binary_file(file,EXT)
-
-# ================================================================
-
-def one_vs_all(opt,x_test,y_test_ref,otimes_ref,boot=1,method='lr'):
-
-  """
-  Extract one class among the whole data.
-  """
-
-  from LR_functions import do_all_logistic_regression
-
-  types = opt.types
-  numt = opt.numt
-  len_numt = len(numt)
-
-  DIC = {}
-  DIC['features'] = x_test.columns
-  for b in range(boot):
-
-    print "\n\tONE VS ALL EXTRACTION ------ iteration %d"%b
-
-    dic = {}
-    otimes = map(str,list(otimes_ref.values))
-    otimes = np.array(otimes)
-
-    y_train_ref = create_training_set(y_test_ref,numt)
-    x_train = x_test.reindex(index=y_train_ref.index)
-    dic["i_train"] = otimes[map(int,list(y_train_ref.index))]
-    y_train_ref.index = range(y_train_ref.shape[0])
-    x_train.index = range(x_train.shape[0])
-
-    for n in range(len_numt):
-
-      y_train = y_train_ref.copy()
-      y_test = y_test_ref.copy()
-      y_train[y_train_ref.Type==n] = 0
-      y_test[y_test_ref.Type==n] = 0
-      y_train[y_train_ref.Type!=n] = 1
-      y_test[y_test_ref.Type!=n] = 1
-
-      print y_train.shape[0], y_test.shape[0]
-
-      print "----------- %s vs all -----------"%types[n]
-      print_type = [types[n],'All']
-
-      if method == 'lr':
-        print "Logistic Regression\n"
-        LR_train,theta,LR_test,wtr = do_all_logistic_regression(x_train,y_train,x_test,y_test,output=True)
-      elif method == 'svm':
-        kern = 'nonlinear'
-        print "SVM\n"
-        from sklearn.grid_search import GridSearchCV
-        from sklearn import svm
-        C_range = 10.0 ** np.arange(-2, 5)
-        if kern == 'linear':
-          param_grid = dict(C=C_range)
-          grid = GridSearchCV(svm.LinearSVC(), param_grid=param_grid, n_jobs=-1)
-        else:
-          gamma_range = 10.0 ** np.arange(-3,3)
-          param_grid = dict(gamma=gamma_range, C=C_range)
-          grid = GridSearchCV(svm.SVC(kernel='rbf'), param_grid=param_grid, n_jobs=-1)
-        grid.fit(x_train.values, y_train.values.ravel())
-        LR_train = grid.best_estimator_.predict(x_train)
-        LR_test = grid.best_estimator_.predict(x_test)
-
-      print "\t Training set"
-      for i in range(2):
-        print i, print_type[i], len(np.where(y_train.values[:,0]==i)[0]), len(np.where(LR_train==i)[0])
-      print "\n"
-      cmat_train = confusion(y_train,LR_train,types,'training','LogReg',plot=True,output=True)
-      plt.close()
-
-      print "\t Test set"
-      for i in range(2):
-        print i, print_type[i], len(np.where(y_test.values[:,0]==i)[0]), len(np.where(LR_test==i)[0])
-      print "\n"
-      cmat_test = confusion(y_test,LR_test,types,'test','LogReg',plot=True,output=True)
-      plt.close()
-
-      # Fill the dictionary
-      sub_dic={}
-      i_com = np.where((y_test.values.ravel()-LR_test)==0)[0]
-      i_lr = np.where(LR_test==0)[0]
-      i_ok_class = np.intersect1d(i_com,i_lr) # events classified in the class of interest by the LR and identical to the manual classification
-      sub_dic["nb"] = len(i_lr) # total number of events classified in the class of interest
-      sub_dic["nb_common"] = len(i_ok_class) # total number of well classified events
-      sub_dic["index_ok"] = otimes[i_ok_class] # index of well classified events
-      sub_dic["nb_other"],sub_dic["i_other"] = [],[]
-      for k in range(len_numt):
-        if k != n:
-          i_other_man = list(y_test_ref[y_test_ref.Type==k].index)
-          ii = np.intersect1d(i_lr,i_other_man)
-          sub_dic["nb_other"].append((types[k],len(ii))) # number of events belonging to another class
-          sub_dic["i_other"].append((types[k],otimes[ii])) # index of events belonging to another class
-      sub_dic["rate_%s"%types[n]] = (cmat_train[0,0],cmat_test[0,0]) # % success rate of the extracted class
-      sub_dic["rate_rest"] = (cmat_train[1,1],cmat_test[1,1]) # % success rate of the rest
-      sub_dic["nb_manuals"] = ((types[n],len(y_test[y_test.Type==0])),('Rest',len(y_test[y_test.Type==1])))
-      dic[types[n]] = sub_dic
-
-    DIC[b] = dic
-
-  file = opt.opdict['result_path']
-  print "One-vs-All results stored in %s"%file
-  opt.write_binary_file(file,DIC)
-
 # ================================================================
 
 def read_binary_file(filename):
@@ -470,155 +220,6 @@ def plot_features_vs(DIC):
 
 # ================================================================
 
-def plot_diagrams_draw(DIC):
-  """
-  Le titre de la figure correspond à la classe extraite automatiquement 
-  avec le nombre d'événements.
-  Chaque couple de diagrammes circulaires correspond à un tirage donné :
-    * le 1er donne le taux de bonne extraction de la classe considérée 
-  (par rapport au nombre total extrait)
-    * le 2ème montre la provenance (ie classes manuelles) des événements 
-  classés automatiquement dans la classe extraite mais qui n'ont pas la 
-  bonne classe d'origine (= reste).
-  """
-
-  types = sorted(DIC[0])
-  if 'i_train' in types:
-    types.remove('i_train')
-  print types
-  N = np.array(range(len(types)-1))
-
-  colors_all = create_color_scale(types)
-  width = 0.1
-  for icl,cl in enumerate(types):
-    t = np.setxor1d(np.array(types),np.array([cl]))
-    if 'LowFrequency' in t:
-      t[t=='LowFrequency'] = 'LF'
-    if 'HarmonikTremor' in t:
-      t[t=='HarmonikTremor'] = 'Tremor'
-    if 'TektonikLokal' in t:
-      t[t=='TektonikLokal'] = 'Tekto'
-    from matplotlib.gridspec import GridSpec
-    nbc,nbl = 3,4
-    grid = GridSpec(nbl,nbc*2)
-    fig = plt.figure(figsize=(18,12))
-    fig.set_facecolor('white')
-    for iter in sorted(DIC):
-      if iter != 'features':
-        dic = DIC[iter][cl]
-
-        if dic['nb'] == 0:
-          continue
-
-        num = iter%nbc + iter + iter/nbc * nbc
-        row = iter/nbc
-        col = iter%nbc * 2
-
-        valok = dic['rate_%s'%cl][1]
-        plt.subplot(grid[row,col],aspect=1)
-        classname = cl
-        if classname == 'VulkanikB':
-          classname = 'VB'
-        if classname == 'VulkanikA':
-          classname = 'VA'
-        plt.pie([valok,100-valok],explode=(.05,0),labels=(classname,'R'),autopct='%1.1f%%',colors=('w',(.5,.5,.5)))
-
-        fracs = [tup[1]*1./(dic['nb']-dic['nb_common']) for tup in dic['nb_other'] if tup[1]!=0]
-        labels = np.array([tup[0] for tup in dic['nb_other'] if tup[1]!=0])
-        if 'VulkanikB' in labels:
-          labels[labels=='VulkanikB'] = 'VB'
-        if 'Tremor' in labels:
-          labels[labels=='Tremor'] = 'Tr'
-        if 'VulkanikA' in labels:
-          labels[labels=='VulkanikA'] = 'VA'
-        if 'Tektonik' in labels:
-          labels[labels=='Tektonik'] = 'Tecto'
-        if 'Hembusan' in labels:
-          labels[labels=='Hembusan'] = 'Hem'
-        if 'Longsoran' in labels:
-          labels[labels=='Longsoran'] = 'Eb'
-        if 'Hibrid' in labels:
-          labels[labels=='Hibrid'] = 'Hy'
-        plt.subplot(grid[row,col+1],aspect=1)
-        plt.pie(fracs,labels=labels,autopct='%1.1f%%')
-    plt.suptitle('Extraction of %s'%cl)
-
-  plt.show()
-# ================================================================
-
-def plot_diagrams_one_draw(DIC):
-  """
-  Même chose que plot_diagrams_draw, mais affiche sur la même figure 
-  les résultats de toutes les classes pour un tirage donné.
-  Note : nombre de classes limité aux 4 principales !!
-  """
-  types = sorted(DIC[0])
-  if 'i_train' in types:
-    types.remove('i_train')
-  if len(types) > 4:
-    types = ['Tektonik','Tremor','VulkanikB','VulkanikA']
-  N = np.array(range(len(types)-1))
-
-  colors_all = create_color_scale(types)
-  width = 0.1
-  for tir in sorted(DIC):
-    if tir == 'features':
-      continue
-
-    fig = plt.figure(figsize=(12,7))
-    fig.set_facecolor('white')
-    from matplotlib.gridspec import GridSpec
-    nbl,nbc = 2,2
-    grid = GridSpec(nbl,nbc*2)
-    for icl, cl in enumerate(types):
-      t = np.setxor1d(np.array(types),np.array([cl]))
-      dic = DIC[tir][cl]
-
-      if dic['nb'] == 0:
-        continue
-
-      num = icl%nbc + icl + icl/nbc * nbc
-      row = icl/nbc
-      col = icl%nbc * 2
-
-      valok = dic['rate_%s'%cl][1]
-      plt.subplot(grid[row,col],aspect=1)
-      classname = cl
-      if classname == 'VulkanikB':
-        classname = 'VB'
-      if classname == 'VulkanikA':
-        classname = 'VA'
-      plt.pie([valok,100-valok],explode=(.05,0),labels=(classname,'R'),autopct='%1.1f%%',colors=('w',(.5,.5,.5)))
-
-      fracs = [tup[1]*1./(dic['nb']-dic['nb_common']) for tup in dic['nb_other'] if tup[1]!=0]
-      labels = np.array([tup[0] for tup in dic['nb_other'] if tup[1]!=0])
-
-      if 'VulkanikB' in labels:
-        labels[labels=='VulkanikB'] = 'VB'
-      if 'Tremor' in labels:
-        labels[labels=='Tremor'] = 'Tr'
-      if 'VulkanikA' in labels:
-        labels[labels=='VulkanikA'] = 'VA'
-      if 'Tektonik' in labels:
-        labels[labels=='Tektonik'] = 'Tecto'
-      if 'Hembusan' in labels:
-        labels[labels=='Hembusan'] = 'Hem'
-      if 'Longsoran' in labels:
-        labels[labels=='Longsoran'] = 'Eb'
-      if 'Hibrid' in labels:
-        labels[labels=='Hibrid'] = 'Hy'
-      plt.subplot(grid[row,col+1],aspect=1)
-      plt.pie(fracs,labels=labels,autopct='%1.1f%%')
-    plt.figtext(.1,.87,'(a) Extraction of tectonics')
-    plt.figtext(.55,.87,'(b) Extraction of tremors')
-    plt.figtext(.1,.43,'(c) Extraction of VB')
-    plt.figtext(.55,.43,'(d) Extraction of VA')
-    plt.savefig('../results/Ijen/figures/OBO_SVM_tir%d.png'%tir)
-
-  plt.show()
-
-# ================================================================
-
 def class_histograms(DIC):
   """
   Le titre de la figure correspond à la classe extraite automatiquement 
@@ -668,122 +269,6 @@ def class_histograms(DIC):
     ax.set_xticklabels(t)
     ax.set_ylabel("Number of events")
     ax.set_title("%s \n%s"%(cl,s_cl))
-
-  plt.show()
-
-# ================================================================
-
-def search_repetition(DIC):
-
-  df = pd.read_csv('../results/Ijen/ijen_0605_1sta.csv')
-  all = np.array(map(str,list(df[df.columns[0]])))
-  df.index = list(all)
-
-  df.EventType[df.EventType=='VulkanikA'] = 'VulkanikB'
-  types = df.EventType
-  types = types.dropna()
-  df = df.reindex(index=types.index)
-
-  N = np.array(range(len(np.unique(df.EventType))))
-  width = 0.1
-  colors = [(0,0,1),(1,0,0),(0,1,0),(1,1,0),(0,0,0),(0,1,1),(1,0,1),(1,1,1),(.8,.5,0),(0,.5,.5)]
-  max = 0
-
-  fig, ax = plt.subplots()
-  fig.set_facecolor('white')
-  for iter in sorted(DIC):
-    if iter != 'features':
-      rest = np.array([])
-      for cl in sorted(DIC[iter]):
-        if cl != 'i_train':
-          #N = np.array(range(len(DIC[iter][cl])+1))
-          for tup in DIC[iter][cl]['i_other']:
-            rest = np.hstack((rest,tup[1]))
-          rest = np.append(rest,DIC[iter][cl]['index_ok'])
-
-      rest_uniq,i_rest_uniq = np.unique(rest,return_index=True)
-      i_not_uniq = np.setxor1d(np.array(range(len(rest))),i_rest_uniq)
-      rest_not_uniq = rest[i_not_uniq]
-
-      notu_types = df.reindex(index=rest_not_uniq,columns=['EventType']).values
-      nb = [len(notu_types[notu_types==t]) for t in np.unique(df.EventType)]
-      rects = ax.bar(N+iter*width,nb,width,color=colors)
-      if np.max(nb) > max:
-        max = np.max(nb)
-
-  types = np.unique(df.EventType.values)
-  if 'HarmonikTremor' in types:
-    types[types=='HarmonikTremor'] = 'Tremor'
-  if 'LowFrequency' in types:
-    types[types=='LowFrequency'] = 'LF'
-  if 'TektonikLokal' in types:
-    types[types=='TektonikLokal'] = 'Tekto'
-  if 'VulkanikA' in types:
-    types[types=='VulkanikA'] = 'VA'
-  if 'VulkanikB' in types:
-    types[types=='VulkanikB'] = 'VB'
-  ax.set_xticks(N+(len(DIC)-1)/2*width)
-  ax.set_xticklabels(types)
-  ax.set_xlabel('Manual class of repeated events')
-  ax.set_ylabel('Number of repeated events')
-  ax.set_title("Repeated events")
-  
-  plt.show()
-
-# ================================================================
-
-def stats_unclass(DIC):
-  """
-  Classe d'appartenance d'origine (classification manuelle) des événements 
-  non classés à l'issue de l'extraction.
-  """
-
-  df = pd.read_csv('../results/Ijen/ijen_0605_1sta.csv')
-  all = np.array(map(str,list(df[df.columns[0]])))
-  df.index = list(all)
-
-  #df.EventType[df.EventType=='VulkanikA'] = 'VulkanikB'
-
-  tuniq = np.unique(df.EventType)
-
-  N = np.array(range(len(np.unique(tuniq))))
-  width = 0.1
-  colors = [(0,0,1),(1,0,0),(0,1,0),(1,1,0),(0,0,0),(0,1,1),(1,0,1),(1,1,1),(.8,.5,0),(0,0.5,0.5)]
-
-  fig, ax = plt.subplots()
-  fig.set_facecolor('white')
-  for iter in sorted(DIC):
-    if iter != 'features':
-      rest = np.array([])
-      for cl in sorted(DIC[iter]):
-        if cl != 'i_train':
-          for tup in DIC[iter][cl]['i_other']:
-            rest = np.hstack((rest,tup[1]))
-          rest = np.append(rest,DIC[iter][cl]['index_ok'])
-
-      rest_uniq = np.unique(rest)
-      unclass = np.setdiff1d(all,rest_uniq)
-      
-      unclass_types = df.reindex(index=unclass,columns=['EventType']).values
-      nb = [len(unclass_types[unclass_types==t]) for t in tuniq]
-      rects = ax.bar(N+iter*width,nb,width,color=colors)
-
-  types = tuniq.values
-  if 'HarmonikTremor' in types:
-    types[types=='HarmonikTremor'] = 'Tremor'
-  if 'LowFrequency' in types:
-    types[types=='LowFrequency'] = 'LF'
-  if 'TektonikLokal' in types:
-    types[types=='TektonikLokal'] = 'Tekto'
-  if 'VulkanikA' in types:
-    types[types=='VulkanikA'] = 'VA'
-  if 'VulkanikB' in types:
-    types[types=='VulkanikB'] = 'VB'
-  ax.set_xticks(N+(len(DIC)-1)/2*width)
-  ax.set_xticklabels(types)
-  ax.set_xlabel('Manual class of unclassified events')
-  ax.set_ylabel('Number of unclassified events')
-  ax.set_title("Unclassified events")
 
   plt.show()
 
@@ -871,24 +356,6 @@ def event_classes(DIC,save=False):
 
 # ================================================================
 
-def create_color_scale(clist):
-  all_colors = [(0,0,1),(1,0,0),(0,1,0),(1,1,0),(0,0,0),(0,1,1),(1,0,1),(1,1,1),(.8,.5,0),(0,0.5,0.5)]
-  colors = []
-  for ic,c in enumerate(clist):
-    colors.append((c,all_colors[ic]))
-  return colors
-
-
-def associate_color(tuplist,names):
-  colors = []
-  for tup in tuplist:
-    name = tup[0]
-    if name in names:
-      colors.append(tup[1])
-  return colors
-
-# ================================================================
-
 def search_and_reclass(DIC,cl):
   """
   Pour l'extraction One-vs-All.
@@ -916,23 +383,84 @@ def search_and_reclass(DIC,cl):
 
 # ================================================================
 
+def plot_curves(filename):
+  """
+  Evolution de la taille et de la composition du test set au cours 
+  des extractions pour la méthode "one-by-one".
+  """
+
+  EXT = read_binary_file(filename)
+  for key in sorted(EXT[0]):
+    all_nb = []
+    for num_ext in sorted(EXT):
+      all_nb.append(EXT[num_ext][key])
+
+    all_nb = np.array(all_nb)
+    fig = plt.figure()
+    fig.set_facecolor('white')
+    for i in range(all_nb.shape[1]):
+      plt.plot(range(len(EXT)),all_nb[:,i],'-')
+    plt.xlabel('Extraction number')
+    plt.ylabel('Number of events in the test set')
+    plt.title('%s'%key.split('_')[1])
+  plt.show()
+
+# ================================================================
+
+def plot_curves_bis(DIC,cl):
+  """
+  Evolution du nombre d'événements bien classés (ie communs au 
+  catalogue manuel) en fonction du nombre d'événements classés
+  pour une classe cl donnée.
+  """
+  nb, nb_com = [],[]
+  for tir in sorted(DIC):
+    if tir == 'features':
+      continue
+    dic = DIC[tir][cl]
+    nb.append(dic['nb'])
+    nb_com.append(dic['nb_common'])
+
+  fig = plt.figure()
+  fig.set_facecolor('white')
+  plt.plot(nb,nb_com,'kv')
+  nbmin = np.min(np.array(nb_com))
+  nbmax = np.max(np.array(nb))
+  print nbmin, nbmax
+  nbmin = np.around(nbmin/100.)*100
+  nbmax = np.around(nbmax/100.)*100
+  print nbmin, nbmax
+  plt.plot([nbmin,nbmax],[nbmin,nbmax],'k:')
+  #plt.plot([150,300],[130,230],'r:')
+  #plt.xlim([100,300])
+  #plt.ylim([100,300])
+  plt.xlabel('Number of classified events')
+  plt.ylabel('Number of common events')
+  plt.title(cl)
+  #plt.savefig('../results/Ijen/figures/evolution_VA.png')
+  plt.show()
+
+
+# ================================================================
+
 def read_extraction_results(filename):
+
+  from results import AnalyseResultsExtraction
+  res = AnalyseResultsExtraction(opt='norm')
 
   from obspy.core import utcdatetime,read
 
   DIC = read_binary_file(filename)
-  #search_repetition(DIC) # statistics on multiclassified events (One-vs-All only)
-  #stats_unclass(DIC) # statistics on unclassified events
   #class_histograms(DIC) # plot extraction results as histograms
-  #plot_diagrams_draw(DIC) # plot extraction results as diagrams
-  #plot_diagrams_one_draw(DIC)
   #plot_rates(DIC) # plot extraction results as training set vs test set
   #plot_training(DIC)
   #plot_pdf_extract(DIC)
   #event_classes(DIC)
   #search_and_reclass(DIC,'Tremor')
   #plot_features_vs(DIC)
+  #plot_curves_bis(DIC,'VulkanikB')
 
 # ================================================================
 if __name__ == '__main__' :
   read_extraction_results('../results/Ijen/1B1/1B1_ijen_redac_IJEN_svm')
+  #plot_curves('../results/Ijen/1B1/stats_OBO')
