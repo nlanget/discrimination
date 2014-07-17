@@ -177,12 +177,18 @@ class AnalyseResultsExtraction(MultiOptions):
         self.x, self.y = self.features_onesta(sta,comp)
         self.verify_index()
 
-        #self.unclass_histo()
-        #self.unclass_diagram()
+        self.composition_dataset()
+
         #self.plot_all_diagrams()
         self.plot_diagrams_one_draw()
+        #self.plot_pdf_extract()
+        self.unclass_histo()
+        self.unclass_diagram()
+        if 'unclass_all' in self.__dict__.keys():
+          self.analyse_unclass()
         if self.opdict['method'] == 'ova':
           self.search_repetition()
+          self.analyse_repeat()
 
 
   def unclass_histo(self):
@@ -196,6 +202,8 @@ class AnalyseResultsExtraction(MultiOptions):
     N = np.array(range(len(np.unique(tuniq))))
     width = 0.1
     colors = [(0,0,1),(1,0,0),(0,1,0),(1,1,0),(0,0,0),(0,1,1),(1,0,1),(1,1,1),(.8,.5,0),(0,0.5,0.5)]
+
+    self.unclass_all = np.array([])
 
     fig, ax = plt.subplots()
     fig.set_facecolor('white')
@@ -211,6 +219,7 @@ class AnalyseResultsExtraction(MultiOptions):
       rest_uniq = np.unique(rest)
       rest_uniq = np.array(map(int,list(rest_uniq)))
       unclass = np.setdiff1d(np.array(self.x.index),rest_uniq)
+      self.unclass_all = np.concatenate((self.unclass_all,unclass))
     
       unclass_types = self.y.reindex(index=unclass,columns=['Type']).values
       nb = [len(unclass_types[unclass_types==t]) for t in tuniq]
@@ -253,6 +262,8 @@ class AnalyseResultsExtraction(MultiOptions):
     width = 0.1
     colors = [(0,0,1),(1,0,0),(0,1,0),(1,1,0),(0,0,0),(0,1,1),(1,0,1),(1,1,1),(.8,.5,0),(0,0.5,0.5)]
 
+    self.unclass_all = np.array([])
+
     for iter in sorted(self.results):
       fig = plt.figure(figsize=(12,8))
       fig.set_facecolor('white')
@@ -268,7 +279,8 @@ class AnalyseResultsExtraction(MultiOptions):
       rest_uniq = np.unique(rest)
       rest_uniq = np.array(map(int,list(rest_uniq)))
       unclass = np.setdiff1d(np.array(self.x.index),rest_uniq)
-      
+      self.unclass_all = np.concatenate((self.unclass_all,unclass))      
+
       unclass_types = self.y.reindex(index=unclass,columns=['Type']).values
       nb = [len(unclass_types[unclass_types==t]) for t in types]
 
@@ -289,6 +301,66 @@ class AnalyseResultsExtraction(MultiOptions):
     plt.show()
 
 
+  def analyse_unclass(self):
+    """
+    Recherche les événements qui ne sont systématiquement pas classés.
+    Affiche le diagramme de répartition des classes manuelles.
+    Plotte les pdfs correspondantes (limitées aux 3 classes ayant le plus grand 
+    d'événements non classés).
+    """
+    from collections import Counter
+    dic = Counter(list(self.unclass_all))
+    ld = []
+    for d in dic.keys():
+      if dic[d] == 10:
+        ld.append(d)
+   
+    types = np.unique(self.y.Type.values)
+    unc_type = self.y.reindex(index=ld,columns=['Type']).values
+    nb = [len(unc_type[unc_type==t]) for t in types]
+    nb_dataset = [len(self.y[self.y.Type==t]) for t in types]
+
+    import matplotlib.pyplot as plt
+    from matplotlib.gridspec import GridSpec
+    grid = GridSpec(1,2)
+    fig = plt.figure(figsize=(12,5))
+    fig.set_facecolor('white')
+    plt.subplot(grid[0,0])
+    plt.pie(nb_dataset,labels=types,autopct='%1.1f%%')
+    plt.title('(a) Whole dataset')
+    plt.subplot(grid[0,1])
+    plt.pie(nb,labels=types,autopct='%1.1f%%')
+    plt.title('(b) Unclassified events')
+    #plt.savefig('../results/Ijen/figures/unclass_all.png')
+    plt.show()
+
+    self.types = types[np.argsort(nb)][-3:]
+    self.compute_pdfs()
+    g_ok = self.gaussians
+
+    X = self.x.copy()
+    Y = self.y.copy()
+    self.x = self.x.reindex(index=ld)
+    self.y = self.y.reindex(index=ld)
+    self.compute_pdfs()
+    g_unclass = self.gaussians
+
+    colors = ['r','g','b']
+    for feat in sorted(g_ok):
+      if feat == 'NbPeaks':
+        continue
+      fig = plt.figure()
+      fig.set_facecolor('white')
+      for it,t in enumerate(self.types):
+        plt.plot(g_ok[feat]['vec'],g_ok[feat][t],ls='-',c=colors[it],label=t)
+        plt.plot(g_unclass[feat]['vec'],g_unclass[feat][t],ls='--',c=colors[it])
+      plt.title(feat)
+      plt.legend()
+      plt.show()
+
+    self.x = X
+    self.y = Y
+
 
   def search_repetition(self):
     """
@@ -306,6 +378,7 @@ class AnalyseResultsExtraction(MultiOptions):
 
     fig,ax = plt.subplots()
     fig.set_facecolor('white')
+    self.repeat = np.array([])
     for iter in sorted(self.results):
       rest = np.array([])
       for cl in sorted(self.results[iter]):
@@ -318,8 +391,8 @@ class AnalyseResultsExtraction(MultiOptions):
       rest = np.array(map(int,list(rest)))
       rest_uniq,i_rest_uniq = np.unique(rest,return_index=True)
       i_not_uniq = np.setxor1d(np.array(range(len(rest))),i_rest_uniq)
-      print iter,len(rest),len(rest_uniq)
       rest_not_uniq = rest[i_not_uniq]
+      self.repeat = np.concatenate((self.repeat,rest_not_uniq))
 
       notu_types = self.y.reindex(index=rest_not_uniq,columns=['Type']).values
       nb = [len(notu_types[notu_types==t]) for t in np.unique(self.y.Type)]
@@ -339,6 +412,35 @@ class AnalyseResultsExtraction(MultiOptions):
     ax.set_title("Repeated events")
   
     plt.show()
+
+
+  def analyse_repeat(self):
+    """
+    Recherche les événements qui sont systématiquement classés plus d'une 
+    fois.
+    Affiche le diagramme de répartition des classes manuelles.
+    """
+    from collections import Counter
+    dic = Counter(list(self.repeat))
+    ld = []
+    for d in dic.keys():
+      if dic[d] == 10:
+        ld.append(d)
+
+    if len(ld) > 0:
+      types = np.unique(self.y.Type.values)
+      rep_type = self.y.reindex(index=ld,columns=['Type']).values
+      nb = [len(rep_type[rep_type==t]) for t in types]
+
+      import matplotlib.pyplot as plt
+      from matplotlib.gridspec import GridSpec
+      grid = GridSpec(1,1)
+      fig = plt.figure(figsize=(6,6))
+      fig.set_facecolor('white')
+      plt.subplot(grid[0,0])
+      plt.pie(nb,labels=types,autopct='%1.1f%%')
+      plt.title('Repeated events')
+      plt.show()
 
 
   def plot_all_diagrams(self):
@@ -483,15 +585,68 @@ class AnalyseResultsExtraction(MultiOptions):
     plt.show()
 
 
+  def plot_pdf_extract(self):
+    """
+    Plot des pdf des features pour :
+      - la classe extraite vs ce qui reste
+      - les différentes classes manuelles qui composent la classe extraite
+    """
+    X_ini = self.x.copy()
+    Y_ini = self.y.copy()
+    for tir in sorted(self.results):
+      print "TIRAGE",tir
+      for cl in sorted(self.results[tir]):
+        if cl == 'i_train':
+          continue
+        if self.results[tir][cl]['nb'] == 0:
+          continue
+        print '***',cl
+        # Ensemble des événements composant la classe extraite
+        index_ext = self.results[tir][cl]['index_ok']
+        for i in range(len(self.results[tir][cl]['i_other'])):
+          index_ext = np.concatenate((index_ext,self.results[tir][cl]['i_other'][i][1]))
+        index_ext = np.array(map(int,list(index_ext)))
+
+        # Classe extraite vs Reste
+        self.x = X_ini.copy()
+        self.y = Y_ini.copy()
+        self.y.Type[index_ext] = 0
+        self.y[self.y.Type!=0] = 1
+        self.verify_index()
+        self.types = [cl,'Rest']
+        #self.plot_all_pdfs()
+
+        # Classifications manuelles au sein de la classe extraite
+        #del self.gaussians
+        self.x = X_ini.reindex(index=index_ext)
+        self.y = Y_ini.reindex(index=index_ext)
+        self.verify_index()
+        self.y[self.y.Type==cl] = 0
+        k = 0
+        acl = [cl]
+        for i in range(len(self.results[tir][cl]['i_other'])):
+          clo = self.results[tir][cl]['i_other'][i][0]
+          if len(self.results[tir][cl]['i_other'][i][1]) > 1:
+            self.y[self.y.Type==clo] = k+1
+            acl.append(clo)
+            k = k+1
+        self.types = acl
+        self.plot_all_pdfs()
+
+    self.x = X_ini
+    self.y = Y_ini
+
+
+
 
 
 
 
 def create_color_scale(clist):
-  all_colors = [(0,0,1),(1,0,0),(0,1,0),(1,1,0),(0,0,0),(0,1,1),(1,0,1),(1,1,1),(.8,.5,0),(0,0.5,0.5)]
-  colors = []
+  all_colors = [(0,0,1),(1,0,0),(0,1,0),(1,1,0),(0,0,0),(0,1,1),(1,0,1),(.9,0,.5),(.8,.5,0),(0,0.5,0.5)]
+  colors = {}
   for ic,c in enumerate(clist):
-    colors.append((c,all_colors[ic]))
+    colors[c] = all_colors[ic]
   return colors
 
 

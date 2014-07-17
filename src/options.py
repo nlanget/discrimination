@@ -17,15 +17,15 @@ class Options(object):
     #self.opdict['stations'] = ['DAM','IBLW','IGEN','IJEN','IMLB','IPAL','IPLA','KWUI','MLLR','POS','POSI','PSG','PUN','RAUN','TRWI']
     self.opdict['channels'] = ['Z','N','E']
 
-    self.opdict['Types'] = ['Hembusan','Hibrid','LF','Longsoran','Tektonik','Tremor','VulkanikA','VulkanikB']
-    #self.opdict['Types'] = ['Tremor','VulkanikB','?']
+    #self.opdict['Types'] = ['Hembusan','Hibrid','LF','Longsoran','Tektonik','Tremor','VulkanikA','VulkanikB']
+    self.opdict['Types'] = ['Tremor','VulkanikB','?']
 
     self.opdict['datadir'] = os.path.join('../data',self.opdict['dir'],self.opdict['network'])
     self.opdict['libdir'] = os.path.join('../lib',self.opdict['dir'])
     self.opdict['outdir'] = os.path.join('../results',self.opdict['dir'])
 
     # Define options for classification functions
-    self.opdict['method'] = '1b1' # could be 'lr' (logistic regression),'svm' (Support Vector Machine from scikit.learn package),'ova' (1-vs-all extractor), '1b1' (1-by-1 extractor)
+    self.opdict['method'] = 'svm' # could be 'lr' (logistic regression),'svm' (Support Vector Machine from scikit.learn package),'ova' (1-vs-all extractor), '1b1' (1-by-1 extractor)
     self.opdict['boot'] = 1 # number of iterations (a new training set is generated at each 'iteration')
     self.opdict['train_file'] = '%s/train_%d'%(self.opdict['libdir'],self.opdict['boot'])
     self.opdict['plot_pdf'] = False # display the pdfs of the features
@@ -54,7 +54,7 @@ class Options(object):
       self.opdict['feat_list'] = map(str,range(50))
 
     self.opdict['feat_filepath'] = '%s/features/%s'%(self.opdict['outdir'],self.opdict['feat_filename'])
-    self.opdict['label_filename'] = '%s/Ijen_class_all.csv'%self.opdict['libdir']
+    self.opdict['label_filename'] = '%s/Ijen_3class_all.csv'%self.opdict['libdir']
     #self.opdict['label_filename'] = '%s/examples.csv'%self.opdict['libdir']
 
     if self.opdict['method'] == 'lr' or self.opdict['method'] == 'svm':
@@ -62,6 +62,9 @@ class Options(object):
     else:
       self.opdict['result_file'] = '%s_%s_%s'%(self.opdict['method'].upper(),self.opdict['feat_filename'].split('.')[0],self.opdict['stations'][0])
     self.opdict['result_path'] = '%s/%s/%s'%(self.opdict['outdir'],self.opdict['method'].upper(),self.opdict['result_file'])
+
+    #self.opdict['result_path'] = '../results/Ijen/1B1/1B1_ijen_redac_IJEN_svm'
+    #self.opdict['result_path'] = '../results/Ijen/OVA/OVA_ijen_redac_IJEN_svm-red'
 
     self.opdict['types'] = None
 
@@ -200,6 +203,25 @@ class Options(object):
     self.x = self.x.reindex(index=self.y.index)
 
 
+  def composition_dataset(self):
+    """
+    Plots the diagram with the different classes of the dataset.
+    """
+
+    self.types = np.unique(self.y.Type.values)
+    nb = []
+    print "COMPOSITION OF THE DATASET (%d events)"%len(self.y)
+    for t in self.types:
+      nb.append(len(self.y[self.y.Type==t]))
+      print t, nb[-1]
+
+    fig = plt.figure(figsize=(6,6))
+    fig.set_facecolor('white')
+    plt.pie(nb,labels=self.types,autopct='%1.1f%%')
+    plt.title('Dataset')
+    plt.show()
+
+
   def compute_pdfs(self):
 
     """
@@ -228,14 +250,13 @@ class Options(object):
         if len(dic[t][feat].values) > 1:
           if feat != 'NbPeaks':
             kde = gaussian_kde(dic[t][feat].values)      
-            a=np.cumsum(kde(vec))[-1]
+            a = np.cumsum(kde(vec))[-1]
             self.gaussians[feat][t] = kde(vec)/a
           else:
             self.gaussians[feat][t] = dic[t][feat].values
 
 
   def plot_all_pdfs(self,save=False):
-
     """
     Plots the pdfs.
     """
@@ -276,7 +297,7 @@ class Options(object):
 
     labels = list(self.types[:])
     if list(coord):
-      labels.append('manual')
+      labels.append('manual %s'%coord[2,0])
       #labels.append('auto')
     fig = plt.figure()
     fig.set_facecolor('white')
@@ -290,9 +311,10 @@ class Options(object):
       ind  = [np.argmin(np.abs(self.gaussians[feat]['vec']-c)) for c in coord[1,:]]
       plt.plot(coord[1,:],self.gaussians[feat][coord[0,0]][ind],'ro')
       #plt.plot(coord[1,:],self.gaussians[feat][coord[2,0]][ind],'ko')
+    plt.xlim([np.min(self.gaussians[feat]['vec']),np.max(self.gaussians[feat]['vec'])])
     plt.title(feat)
     plt.legend(labels,numpoints=1)
-    #plt.savefig('%s/figures/Indet_%s_%s.png'%(self.opdict['outdir'],coord[2,0],feat))
+    #plt.savefig('%s/figures/Indet_%s_%s_brut.png'%(self.opdict['outdir'],coord[2,0],feat))
     plt.show()
 
 

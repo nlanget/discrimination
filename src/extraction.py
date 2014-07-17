@@ -148,56 +148,6 @@ def plot_train_events(i_best,type):
 
 # ================================================================
 
-def plot_pdf_extract(DIC):
-  """
-  Plot des pdf des features pour :
-    - la classe extraite vs ce qui reste
-    - les différentes classes manuelles qui composent la classe extraite
-  """
-  from Ijen_extract_features import plot_pdf_feat
-  df_ref = pd.read_csv('../results/Ijen/ijen_0605_1sta.csv')
-  dates = df_ref[df_ref.columns[0]].values
-  df_ref.index = map(str,list(dates))
-  types = df_ref.reindex(columns=['EventType'])
-  df_ref = df_ref.reindex(columns=DIC['features'])
-
-  for tir in sorted(DIC):
-    if tir != 'features':
-      print "TIRAGE",tir
-      for cl in sorted(DIC[tir]):
-        if cl != 'i_train':
-          print '***',cl
-          # Ensemble des événements composant la classe extraite
-          index_ext = DIC[tir][cl]['index_ok']
-          for i in range(len(DIC[tir][cl]['i_other'])):
-            index_ext = np.concatenate((index_ext,DIC[tir][cl]['i_other'][i][1]))
-
-          # Classe extraite vs Reste
-          x_all = df_ref.copy()
-          y_all = types.copy()
-          y_all.EventType[index_ext] = 0
-          y_all[y_all.EventType!=0] = 1
-          x_all.index = range(len(x_all))
-          y_all.index = range(len(y_all))
-          plot_pdf_feat(x_all,y_all,[cl,'Rest'],save=False,output=False)
-
-          # Classifications manuelles au sein de la classe extraite
-          x_ext = df_ref.reindex(index=index_ext)
-          y_ext = types.reindex(index=index_ext)
-          x_ext.index = range(len(x_ext))
-          y_ext.index = range(len(y_ext))
-          y_ext[y_ext.EventType==cl] = 0
-          k = 0
-          acl = [cl]
-          for i in range(len(DIC[tir][cl]['i_other'])):
-            k = k+1
-            clo = DIC[tir][cl]['i_other'][i][0]
-            y_ext[y_ext.EventType==clo] = k
-            acl.append(clo)
-          plot_pdf_feat(x_ext,y_ext,acl,save=False,output=False)
-
-# ================================================================
-
 def plot_features_vs(DIC):
   """
   Plot des attributs les uns vs les autres pour voir s'ils sont corrélés.
@@ -454,7 +404,6 @@ def read_extraction_results(filename):
   #class_histograms(DIC) # plot extraction results as histograms
   #plot_rates(DIC) # plot extraction results as training set vs test set
   #plot_training(DIC)
-  #plot_pdf_extract(DIC)
   #event_classes(DIC)
   #search_and_reclass(DIC,'Tremor')
   #plot_features_vs(DIC)
