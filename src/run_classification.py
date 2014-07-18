@@ -17,12 +17,11 @@ def run_all():
   from options import MultiOptions
   opt = MultiOptions(opt='norm')
   
-  #classifier(opt)
+  classifier(opt)
 
-  if opt.opdict['method'] == 'lr' or opt.opdict['method'] == 'svm':
+  if opt.opdict['method'] == 'lr' or opt.opdict['method'] == 'svm' or opt.opdict['method'] == 'lrsk':
     from results import AnalyseResults
     res = AnalyseResults(opt='norm')
-    #stats(opt)
     if res.opdict['plot_confusion']:
       res.plot_confusion()
 

@@ -130,6 +130,11 @@ def classifier(opt):
         print "********** SVM **********"
         CLASS_test, pourcentages = implement_svm(x_train,x_test,y_train,y_test,opt.types,opt.opdict)
 
+      elif opt.opdict['method'] == 'lrsk':
+        # LOGISTIC REGRESSION (scikit learn)
+        print "********* Logistic regression (sklearn) **********"
+        CLASS_test, pourcentages = implement_lr_sklearn(x_train,x_test,y_train,y_test,opt.types,opt.opdict)
+
       elif opt.opdict['method'] == 'lr': 
         # LOGISTIC REGRESSION
         print "********* Logistic regression **********"
@@ -236,6 +241,9 @@ def confusion(y,y_auto,l,set,method,plot=False,output=False):
 # ================================================================
 
 def implement_svm(x_train,x_test,y_train,y_test,types,opdict):
+  """
+  Implements SVM from scikit learn package.
+  """
   # do grid search
   from sklearn.grid_search import GridSearchCV
   from sklearn import svm
@@ -274,6 +282,49 @@ def implement_svm(x_train,x_test,y_train,y_test,types,opdict):
         plt.savefig('%s/figures/test_%s.png'%(opdict['outdir'],opdict['result_file'][8:]))
       plt.show()
   return y_test_SVM,(p_tr,p_test)
+
+# ================================================================
+
+def implement_lr_sklearn(x_train,x_test,y_train,y_test,types,opdict):
+  """
+  Implements logistic regression from scikit learn package.
+  """
+  from sklearn.grid_search import GridSearchCV
+  from sklearn.linear_model import LogisticRegression
+
+  print "doing grid search"
+  C_range = 10.0 ** np.arange(-2, 5)
+  param_grid = dict(C=C_range)
+  grid = GridSearchCV(LogisticRegression(), param_grid=param_grid, n_jobs=-1)
+  grid.fit(x_train.values, y_train.values.ravel())
+  print "The best classifier is: ", grid.best_estimator_
+  y_train_LR = grid.best_estimator_.predict(x_train)
+  y_test_LR = grid.best_estimator_.predict(x_test)
+
+  print "\t *Training set"
+  diff = y_train.values.ravel() - y_train_LR
+  p_tr = float(len(np.where(diff==0)[0]))/y_train.shape[0]*100
+  print "Correct classification: %.2f%%"%p_tr
+  for i in range(len(np.unique(y_train.values))):
+    print i, types[i], len(np.where(y_train.values[:,0]==i)[0]), len(np.where(y_train_LR==i)[0])
+  if opdict['boot'] == 1:
+    confusion(y_train,y_train_LR,types,'Training','LR',plot=opdict['plot_confusion'])
+    if opdict['plot_confusion'] and opdict['save_confusion']:
+      plt.savefig('%s/figures/training_%s.png'%(opdict['outdir'],opdict['result_file'][8:]))
+
+  print "\t *Test set"
+  diff = y_test.values.ravel() - y_test_LR
+  p_test = float(len(np.where(diff==0)[0]))/y_test.shape[0]*100
+  print "Correct classification: %.2f%%"%p_test
+  for i in range(len(np.unique(y_train.values))):
+    print i, types[i], len(np.where(y_test.values[:,0]==i)[0]), len(np.where(y_test_LR==i)[0])
+  if opdict['boot'] == 1:
+    confusion(y_test,y_test_LR,types,'Test','LR',plot=opdict['plot_confusion'])
+    if opdict['plot_confusion']:
+      if opdict['save_confusion']:
+        plt.savefig('%s/figures/test_%s.png'%(opdict['outdir'],opdict['result_file'][8:]))
+      plt.show()
+  return y_test_LR,(p_tr,p_test)
 
 # ================================================================
 
