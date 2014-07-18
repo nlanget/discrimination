@@ -104,12 +104,12 @@ def gradient_descent(CF,theta,opt=1,verbose=False):
     opt = 1: learning rate alpha is optimized at each iteration
     Default is opt = 0
   """
-  eps=10**-4
-  alpha=0.5
-  prev_cost=1000
-  cost=0
-  diff=np.abs(prev_cost-cost)
-  min_cost=[]
+  eps = 10**-4
+  alpha = 0.5
+  prev_cost = 1000
+  cost = 0
+  diff = np.abs(prev_cost-cost)
+  min_cost = []
   while diff > eps:
     cost, delta = CF.cost_and_gradient(theta)
     min_cost.append(cost)
@@ -120,16 +120,16 @@ def gradient_descent(CF,theta,opt=1,verbose=False):
 
     if opt == 1:
       # Update alpha at each iteration (convergence fastened) 
-      A=np.empty((CF.n,CF.n))
+      A = np.empty((CF.n,CF.n))
       for i in range(CF.n):
         for j in range(i,CF.n):
-          A[i,j]=np.dot(x[i,:],x[j,:])
-          A[j,i]=A[i,j]
-      A=1./CF.m*A
-      alpha=np.dot(delta,delta)/(np.dot(delta,np.dot(A,delta)))
+          A[i,j] = np.dot(x[i,:],x[j,:])
+          A[j,i] = A[i,j]
+      A = 1./CF.m*A
+      alpha = np.dot(delta,delta)/(np.dot(delta,np.dot(A,delta)))
 
-    diff=np.abs(prev_cost-cost)
-    prev_cost=cost
+    diff = np.abs(prev_cost-cost)
+    prev_cost = cost
 
     if verbose:
       if CF.n == 2:
@@ -167,7 +167,7 @@ def logistic_reg(x,y,theta,l=0,verbose=0,method='g'):
     sys.exit()
 
   for k in range(1,K+1):
-    theta[k]=np.array(theta[k],dtype=float)
+    theta[k] = np.array(theta[k],dtype=float)
     CF = CostFunction(x,y.values[:,k-1],l)
 
     if verbose:
@@ -180,7 +180,7 @@ def logistic_reg(x,y,theta,l=0,verbose=0,method='g'):
       if n == 3:
         plot_db_3d(x,y[k],theta[k],lim=3,title='Initial decision boundary')
 
-    stop=10**-3
+    stop = 10**-3
     if method == 'cg':
       # Conjugate gradient
       from scipy.optimize import fmin_cg
@@ -192,16 +192,16 @@ def logistic_reg(x,y,theta,l=0,verbose=0,method='g'):
     elif method == 'g':
       # Gradient descent
       theta[k],min_cost = gradient_descent(CF,theta[k],opt=0)
-      allvecs=None
-   
+      allvecs = None
+  
     if verbose:
       if allvecs: 
-        min_cost=[]
+        min_cost = []
         for vec in allvecs:
           min_cost.append(CF.compute_cost(vec))
       nb_iter = len(min_cost)
       plot_cost_function(nb_iter,min_cost)
-      #plt.show()
+      plt.show()
 
   if verbose:
     if n == 1 and K == 1:
@@ -230,49 +230,44 @@ def degree_and_regularization(xtest,ytest,xcv,ycv,xtrain,ytrain,verbose=False):
   Looks for the best polynomial degree (model selection) and lambda (regularization)
   xtest, ytest, xcv, ycv, xtrain, ytrain are pandas DataFrame
   """
-  n=xtest.shape[1] # number of features
-  K=ytest.shape[1] # number of classes
-  mtest=xtest.shape[0] # size of test set
-  mcv=xcv.shape[0] # size of cross-validation set
-  mtraining=xtrain.shape[0] # size of training set
+  n = xtest.shape[1] # number of features
+  K = ytest.shape[1] # number of classes
+  mtest = xtest.shape[0] # size of test set
+  mcv = xcv.shape[0] # size of cross-validation set
+  mtraining = xtrain.shape[0] # size of training set
 
   # Polynomial degrees vector
-  DEG_MAX=1
-  degrees=np.array(range(1,DEG_MAX+1),dtype=int)
-  # Lambda vector
-  #lambdas=np.arange(0,1.,0.1)
-  #lambdas=[0,.1,.5]
-  lambdas=[0]
+  DEG_MAX = 1
+  degrees = np.array(range(1,DEG_MAX+1),dtype=int)
+  # Lambda vector (regulariztion coefficient)
+  lambdas = [0]
+  lambdas = list(10.0 ** np.arange(-2, 5))
 
-  all_theta={}
+  all_theta = {}
 
-  list_j_cv,list_j_test,list_j_train={},{},{}
-  min_cv=np.zeros(K)+10**3
-  best_dl=np.empty([K,2])
-  #best_dl=np.zeros([K,2])
-  #best_dl[:,0]=degrees[0]
-  #best_dl[:,1]=lambdas[0]
+  list_j_cv,list_j_test,list_j_train = {},{},{}
+  min_cv = np.zeros(K)+10**3
+  best_dl = np.empty([K,2])
 
   # loop on polynomial degree
   for deg in degrees:
-    xtest_deg=poly(deg,xtest)
-    xcv_deg=poly(deg,xcv)
-    xtrain_deg=poly(deg,xtrain)
+    xtest_deg = poly(deg,xtest)
+    xcv_deg = poly(deg,xcv)
+    xtrain_deg = poly(deg,xtrain)
 
     # loop on lambda
     for l in lambdas:
-      theta={}
+      theta = {}
       for k in range(1,K+1):
-        theta[k]=np.random.rand(xtrain_deg.shape[1]+1)
+        theta[k] = np.random.rand(xtrain_deg.shape[1]+1)
 
       theta = logistic_reg(xtrain_deg,ytrain,theta,l=l,verbose=0)
-      all_theta[deg,l]=theta
+      all_theta[deg,l] = theta
       if verbose:
         print deg,l,theta
 
-      list_j_cv[deg,l],list_j_test[deg,l],list_j_train[deg,l]=[],[],[]
+      list_j_cv[deg,l],list_j_test[deg,l],list_j_train[deg,l] = [],[],[]
       for k in range(1,K+1):
-
         CF_cv = CostFunction(xcv_deg,ycv[k],l)
         j_cv = CF_cv.compute_cost(theta[k])
         CF_train = CostFunction(xtrain_deg,ytrain[k],l)
@@ -285,13 +280,14 @@ def degree_and_regularization(xtest,ytest,xcv,ycv,xtrain,ytrain,verbose=False):
         list_j_train[deg,l].append(j_train)
 
         if j_cv < min_cv[k-1]:
-          best_dl[k-1,:]=[deg,l]
-          min_cv[k-1]=j_cv
+          best_dl[k-1,:] = [deg,l]
+          min_cv[k-1] = j_cv
 
-  theta={}
+  theta = {}
   for k in range(1,K+1):
-    theta[k]=all_theta[best_dl[k-1][0],best_dl[k-1][1]][k]
+    theta[k] = all_theta[best_dl[k-1][0],best_dl[k-1][1]][k]
 
+  verbose = True
   if verbose:
     print best_dl
     print theta
@@ -301,13 +297,25 @@ def degree_and_regularization(xtest,ytest,xcv,ycv,xtrain,ytrain,verbose=False):
         plot_deg_vs_lambda(k,degrees,lambdas,list_j_cv,best_dl[k-1],min_cv[k-1])
         plot_deg_vs_lambda(k,degrees,lambdas,list_j_train,best_dl[k-1],min_cv[k-1])
       plt.show()
+    elif len(degrees) > 1 and len(lambdas) == 1:
+      for k in range(1,K+1):
+        plot_j_cv = [list_j_cv[(deg,l)][k-1] for deg,l in sorted(list_j_cv)]
+        plot_j_train = [list_j_train[(deg,l)][k-1] for deg,l in sorted(list_j_train)]
+        plot_learning_curves(k,degrees,lambdas[0],plot_j_cv,plot_j_train,'Polynomial degree')
+      plt.show()
+    elif len(degrees) == 1 and len(lambdas) > 1:
+      for k in range(1,K+1):
+        plot_j_cv = [list_j_cv[(deg,l)][k-1] for deg,l in sorted(list_j_cv)]
+        plot_j_train = [list_j_train[(deg,l)][k-1] for deg,l in sorted(list_j_train)]
+        plot_learning_curves(k,lambdas,degrees[0],plot_j_cv,plot_j_train,'Lambda')
+      plt.show()
 
   return best_dl,theta
 
 # ---------------------------------------------------
 
 def misclassification_error(y,y_pred,t):
-  err=0
+  err = 0
   for i in range(len(y)):
     if y_pred[i] >= t and y[i] == 0:
       err+=1
@@ -325,21 +333,21 @@ def test_hyp(xtest,theta,threshold=0.5,deg=None,verbose=0):
   xtest is a pandas DataFrame
   """
 
-  K=len(theta)
+  K = len(theta)
   if deg == None:
-    deg=np.ones(K)
+    deg = np.ones(K)
 
-  hyp=[]
-  a=xtest.copy()
+  hyp = []
+  a = xtest.copy()
   for i in range(1,K+1):
-    a=poly(int(deg[i-1]),xtest)
-    a=features_mat(a)
+    a = poly(int(deg[i-1]),xtest)
+    a = features_mat(a)
     hyp.append(g(np.dot(theta[i].reshape(1,len(theta[i])),a))[0])
 
   if K >= 2:
-    hyp=np.array(hyp).transpose()
+    hyp = np.array(hyp).transpose()
 
-  x_class=[]
+  x_class = []
   for i in range(xtest.shape[0]):
     if K >= 2:
       x_class.append(np.argmax(hyp[i]))
@@ -359,7 +367,7 @@ def test_hyp(xtest,theta,threshold=0.5,deg=None,verbose=0):
 
   return np.array(x_class)
 
- --------------------------------------------------
+# --------------------------------------------------
 
 def comparison(y_predict,y_actual):
   """
@@ -394,14 +402,14 @@ def precision_and_recall(x,y,theta,verbose=False):
   x is a pandas DataFrame
   y is a np.array
   """
-  thresholds=np.arange(0.05,1,0.05)
-  P,R,f1_score=[],[],[]
+  thresholds = np.arange(0.05,1,0.05)
+  P,R,f1_score = [],[],[]
   if not type(theta) is dict:
-    theta={1:theta}
+    theta = {1:theta}
   for t in thresholds:
     predict = test_hyp(x,theta,threshold=t,verbose=0)
 
-    false_pos,false_neg,true_pos=comparison(predict,y)
+    false_pos,false_neg,true_pos = comparison(predict,y)
 
     if true_pos:
       precision = np.float(true_pos)/(true_pos+false_pos) # amongst all predicted VTs, proportion of VTs which actually are VT
@@ -418,7 +426,7 @@ def precision_and_recall(x,y,theta,verbose=False):
   if verbose:
     print "threshold", best_t
     # Plot recall vs precision
-    fig=plt.figure()
+    fig = plt.figure()
     fig.set_facecolor('white')
     plt.plot(R,P,'r')
     plt.xlim((-0.01,1.01))
@@ -484,9 +492,9 @@ def evaluation(x,y,wtr=np.array([]),learn=False,verbose=False):
   x, y are pandas DataFrame
   If learn = True, then learning curves are computed and displayed
   """ 
-  m=x.shape[0] # size of the training set
-  n=x.shape[1] # number of features
-  K=y.shape[1] # number of classes
+  m = x.shape[0] # size of the training set
+  n = x.shape[1] # number of features
+  K = y.shape[1] # number of classes
 
   # Separation of the training set in: training/CV/test sets for learning curves calculation
   if list(wtr):
@@ -494,28 +502,27 @@ def evaluation(x,y,wtr=np.array([]),learn=False,verbose=False):
   else:
     xcv,ycv,xtest,ytest,xtrain,ytrain,wtr = data_sets(x,y,verbose=False)
 
-  mcv=xcv.shape[0]
-  mtest=xtest.shape[0]
-  mtraining=xtrain.shape[0]
+  mcv = xcv.shape[0]
+  mtest = xtest.shape[0]
+  mtraining = xtrain.shape[0]
 
   # Determination of the best hypothesis function
   best_dl,theta = degree_and_regularization(xtest,ytest,xcv,ycv,xtrain,ytrain,verbose=verbose)
  
   # Misclassification error on test set
-  dic_xtest,dic_xcv,dic_xtrain,dic_x={},{},{},{}
-  err,best_threshold={},{}
+  dic_xtest,dic_xcv,dic_xtrain,dic_x = {},{},{},{}
+  err,best_threshold = {},{}
   for k in range(1,K+1):
-    degree=int(best_dl[k-1][0])
-    l=best_dl[k-1][1]
+    degree = int(best_dl[k-1][0])
+    l = best_dl[k-1][1]
 
-    dic_x[k]=poly(degree,x)
-    dic_xtest[k]=poly(degree,xtest)
-    dic_xcv[k]=poly(degree,xcv)
-    dic_xtrain[k]=poly(degree,xtrain)
+    dic_x[k] = poly(degree,x)
+    dic_xtest[k] = poly(degree,xtest)
+    dic_xcv[k] = poly(degree,xcv)
+    dic_xtrain[k] = poly(degree,xtrain)
 
     # Determination of the best prediction threshold
     best_threshold[k] = precision_and_recall(dic_xcv[k],ycv[k].values,theta[k])
-    #best_threshold[k] = 0.5
 
     CF_test = CostFunction(dic_xtest[k],ytest[k],l)
     y_test_pred = CF_test.predict_y(theta[k])
@@ -523,15 +530,17 @@ def evaluation(x,y,wtr=np.array([]),learn=False,verbose=False):
   print "MISCLASSIFICATION TEST ERROR", err
 
   # Learning curves
+  learn = True
   if learn:
+    print "Computing learning curves......."
     verbose = True
     list_j_cv,list_j_train={},{}
-    c={}
+    c = {}
     for k in range(1,K+1):
-      list_j_cv[k],list_j_train[k]=[],[]
-      l=best_dl[k-1][1]
+      list_j_cv[k],list_j_train[k] = [],[]
+      l = best_dl[k-1][1]
 
-      t={1:theta[k]}
+      t = {1:theta[k]}
 
       for i in range(1,mcv):
         a = dic_xcv[k].reindex(index=range(i))
@@ -547,7 +556,7 @@ def evaluation(x,y,wtr=np.array([]),learn=False,verbose=False):
         list_j_train[k].append(j_train)
 
       if verbose:
-        fig=plt.figure()
+        fig = plt.figure()
         fig.set_facecolor('white')
         plt.plot(range(1,mcv),list_j_cv[k],'b')
         plt.plot(range(1,mcv),list_j_train[k],'r')
@@ -555,6 +564,7 @@ def evaluation(x,y,wtr=np.array([]),learn=False,verbose=False):
         plt.ylabel('Cost function')
         plt.legend(('Jcv','Jtrain'),'upper left')
         plt.title('Class %d'%k)
+        plt.show()
 
         if len(dic_x[k]) == 2:
           plot_db(dic_x[k],y[k].values,theta[k])
@@ -594,8 +604,8 @@ def do_all_logistic_regression(x,y_all,x_testset,y_testset=None,norm=True,verbos
   if y_testset:
     y_testset.index = range(len(y_testset.index))
 
-  x_unnorm=x.copy()
-  x_test_unnorm=x_testset.copy()
+  x_unnorm = x.copy()
+  x_test_unnorm = x_testset.copy()
 
   # For multiclass: separation of values in y for "one-vs-all" strategy
   K = len(np.unique(y_all.values)) # Number of classes
@@ -647,17 +657,17 @@ def do_all_logistic_regression(x,y_all,x_testset,y_testset=None,norm=True,verbos
 
   #verbose=True
   if verbose and x.shape[1] < 5:
-    list_key=x_unnorm.columns
+    list_key = x_unnorm.columns
     for i,key1 in enumerate(list_key):
       for key2 in list_key[i+1:]:
-        fig=plt.figure()
+        fig = plt.figure()
         fig.set_facecolor('white')
         plt.scatter(x_unnorm[key1],x_unnorm[key2],c=y.values[:,0],cmap=plt.cm.gray)
         plt.xlabel(key1)
         plt.ylabel(key2)
         plt.title('Training set')
 
-        fig=plt.figure()
+        fig = plt.figure()
         fig.set_facecolor('white')
         plt.scatter(x_test_unnorm[key1],x_test_unnorm[key2],c=y_pred,cmap=plt.cm.gray)
         if y_testset:
