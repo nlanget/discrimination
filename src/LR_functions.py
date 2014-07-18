@@ -12,15 +12,10 @@ def g(x):
   """
   Sigmoid function
   """
-  #x[0] = map(np.float64,x[0])
-  #print type(x),x.shape, type(x[0,10]), x[0,10]
-  #ap = np.array([])
-  #for i in range(len(x[0])):
-  #  ap = np.append(ap,1./(1+np.exp(-x[0,i])))
-  #print ap.shape, ap[:5]
-  #print (1./(1+np.exp(-x))).shape, (1./(1+np.exp(-x)))[0,:5]
   return 1./(1+np.exp(-x))
+
 # ---------------------------------------------------
+
 def features_mat(x):
   """
   Add the bias term to the matrix
@@ -29,7 +24,9 @@ def features_mat(x):
   x_all = np.ones(m)
   x_all = np.vstack((x_all,x.T.values))
   return x_all
+
 # ---------------------------------------------------
+
 def normalize(x,x_data):
   """
   Normalizes x and x_data
@@ -40,7 +37,9 @@ def normalize(x,x_data):
   x = (x - av) / r
   x_data = (x_data - av) / r
   return x, x_data
+
 # ---------------------------------------------------
+
 class CostFunction():
 
   def __init__(self,x,y,l):
@@ -94,7 +93,9 @@ class CostFunction():
     gradient = 1./self.m*np.dot(self.x_mat,y_pred-self.y)
 
     return jVal, gradient
+
 # ---------------------------------------------------
+
 def gradient_descent(CF,theta,opt=1,verbose=False):
   """
   Gradient descent
@@ -103,7 +104,7 @@ def gradient_descent(CF,theta,opt=1,verbose=False):
     opt = 1: learning rate alpha is optimized at each iteration
     Default is opt = 0
   """
-  eps=10**-6
+  eps=10**-4
   alpha=0.5
   prev_cost=1000
   cost=0
@@ -138,7 +139,9 @@ def gradient_descent(CF,theta,opt=1,verbose=False):
       plt.show()
 
   return theta, min_cost
+
 # ---------------------------------------------------
+
 def logistic_reg(x,y,theta,l=0,verbose=0,method='g'):
   """
   Determines theta vector for a given polynomial degree and lambda
@@ -219,7 +222,9 @@ def logistic_reg(x,y,theta,l=0,verbose=0,method='g'):
     plt.show()
 
   return theta
+
 # ---------------------------------------------------
+
 def degree_and_regularization(xtest,ytest,xcv,ycv,xtrain,ytrain,verbose=False):
   """
   Looks for the best polynomial degree (model selection) and lambda (regularization)
@@ -298,19 +303,9 @@ def degree_and_regularization(xtest,ytest,xcv,ycv,xtrain,ytrain,verbose=False):
       plt.show()
 
   return best_dl,theta
+
 # ---------------------------------------------------
-def dic2mat(degrees,lambdas,jlist,i_class):
-  mat=np.empty([len(lambdas),len(degrees)])
-  if not type(degrees) == np.ndarray:
-    degrees=np.array(degrees)
-  if not type(lambdas) == np.ndarray:
-    lambdas=np.array(lambdas)
-  for key_d, key_l in tuple(jlist.keys()):
-    id=np.where(degrees==key_d)[0]
-    il=np.where(lambdas==key_l)[0]
-    mat[il,id]=jlist[key_d,key_l][i_class-1]
-  return mat
-# ---------------------------------------------------
+
 def misclassification_error(y,y_pred,t):
   err=0
   for i in range(len(y)):
@@ -321,7 +316,9 @@ def misclassification_error(y,y_pred,t):
     else:
       err+=0
   return 1./len(y)*err
+
 # ---------------------------------------------------
+
 def test_hyp(xtest,theta,threshold=0.5,deg=None,verbose=0):
   """
   Returns a classification vector for a given test set after the hypothesis function was determined on the training set
@@ -361,7 +358,9 @@ def test_hyp(xtest,theta,threshold=0.5,deg=None,verbose=0):
       plt.show()
 
   return np.array(x_class)
-# --------------------------------------------------
+
+ --------------------------------------------------
+
 def comparison(y_predict,y_actual):
   """
   Compares the prediction with the true classification
@@ -385,7 +384,9 @@ def comparison(y_predict,y_actual):
       true_pos+=1 # well classified VTs
 
   return false_pos,false_neg,true_pos
+
 # ---------------------------------------------------
+
 def precision_and_recall(x,y,theta,verbose=False):
   """
   Precision and recall: try different prediction thresholds
@@ -426,7 +427,9 @@ def precision_and_recall(x,y,theta,verbose=False):
     plt.ylabel('Precision')
 
   return best_t
+
 # ---------------------------------------------------
+
 def data_sets(x,y,wtr=None,verbose=False):
   """
   Randomly generates training/cross-validation/test sets
@@ -474,83 +477,7 @@ def data_sets(x,y,wtr=None,verbose=False):
   return retlist
 
 # ---------------------------------------------------
-def old_data_sets(x,y,wtr=np.array([]),verbose=False):
-  """
-  Randomly generates training/cross-validation/test sets
-  x, y are pandas DataFrame
-  """
-  m = x.shape[0] # size of the training set
-  n = x.shape[1] # number of features
-  K = y.shape[1] # number of classes
 
-  mtraining = int(0.6*m)
-  mtest = int(0.2*m)
-  mcv = int(0.2*m)
-
-  xtest = x.copy()
-  ytest = y.copy()
-
-  if list(wtr):
-    tr_wtr = wtr[wtr!=0]
-    tr_wtr = pd.DataFrame(tr_wtr)
-    tr_wtr['i'] = tr_wtr.index
-    tr_wtr.index = xtest.index
-    new_wtr = pd.DataFrame()
-
-  xtrain, xcv = x.copy().reindex(index=[]), x.copy().reindex(index=[])
-  ytrain, ycv = pd.DataFrame(), pd.DataFrame()
-  for i in range(mtraining+mcv):
-    r = int(np.floor(np.random.rand()*xtest.shape[0]))
-    sx = xtest.reindex(index=[r])
-    sy = ytest.reindex(index=[r])
-    a = range(xtest.shape[0])
-    a.remove(r)
-    if i < mtraining:
-      xtrain = xtrain.append(sx,ignore_index=True)
-      ytrain = ytrain.append(sy,ignore_index=True)
-      if list(wtr):
-        swtr = tr_wtr.reindex(index=[r])
-        new_wtr = new_wtr.append(swtr,ignore_index=True)
-        tr_wtr = tr_wtr.reindex(index=a)
-        tr_wtr.index = range(tr_wtr.shape[0])
-
-    elif mtraining <= i < mtraining + mtest:
-      xcv = xcv.append(sx,ignore_index=True)
-      ycv = ycv.append(sy,ignore_index=True)
-
-    xtest = xtest.reindex(index=a)
-    ytest = ytest.reindex(index=a)
-
-    xtest.index = range(xtest.shape[0])
-    ytest.index = range(ytest.shape[0])
-
-  marker = 0
-  if list(wtr):
-    marker = 1
-    wtr[new_wtr['i'].values] = 2
-
-  ytrain.index = range(ytrain.shape[0])
-  ycv.index = range(ycv.shape[0])
-  ytest.index = range(ytest.shape[0])
-
-  if verbose:
-    if n > 1:
-      fig = plt.figure()
-      fig.set_facecolor('white')
-      plt.plot(xtrain.values[:,0],xtrain.values[:,1],'ko')
-      plt.plot(xcv.values[:,0],xcv.values[:,1],'yo')
-      plt.plot(xtest.values[:,0],xtest.values[:,1],'ro')
-      plt.xlabel(x.columns[0])
-      plt.ylabel(x.columns[1])
-      plt.legend(('Training set','CV set','Test set'),numpoints=1)#,'upper left')
-      plt.show()
-
-  retlist = xcv,ycv,xtest,ytest,xtrain,ytrain
-  if marker == 1:
-    retlist = retlist + (wtr,)
-
-  return retlist
-# ---------------------------------------------------
 def evaluation(x,y,wtr=np.array([]),learn=False,verbose=False):
   """
   Returns the best theta vector as well as the polynomial degree, lambda and the prediction threshold
@@ -648,40 +575,6 @@ def bad_class(x_test,list_i):
   x_bad = x_test.copy()
   x_bad = x_bad.reindex(index=list_i)
   return x_bad
-# ---------------------------------------------------
-def scikit_learn(x,y,x_data):
-  """
-  Uses scikit learn LogisticRegression class
-  """
-  from sklearn.linear_model import LogisticRegression
-  x=features_mat(x)
-  x_data=features_mat(x_data)
-  LR=LogisticRegression()
-  LR.fit(x.T,y.values[:,0])
-  return LR.predict(x_data.T)
-# ---------------------------------------------------
-def sl_svm(x,y,x_data,opt=None):
-  """
-  Uses scikit learn Support Vector Machine modules
-  """
-  from sklearn import svm
-  x=features_mat(x)
-  x_data=features_mat(x_data)
-  if opt == None:
-    clf = svm.SVC()
-  elif opt == 'nu':
-    clf = svm.NuSVC()
-  elif opt == 'lin':
-    clf = svm.LinearSVC()
-  clf.fit(x.T,y.values[:,0])
-  return clf.predict(x_data.T)
-# ---------------------------------------------------
-def create_synthetics(npts,sig_x,sig_y,theta,mean):
-  a=np.cos(theta)**2/(2*sig_x**2)+np.sin(theta)**2/(2*sig_y**2)
-  b=-np.sin(2*theta)/(4*sig_x**2)+np.sin(2*theta)/(4*sig_y**2)
-  c=np.sin(theta)**2/(2*sig_x**2)+np.cos(theta)**2/(2*sig_y**2)
-  cov=[[a,b],[b,c]]
-  return np.random.multivariate_normal(mean,cov,npts)
 # ---------------------------------------------------
 def do_all_logistic_regression(x,y_all,x_testset,y_testset=None,norm=True,verbose=False,output=False,perc=False,wtr=np.array([])):
   """
@@ -787,110 +680,3 @@ def do_all_logistic_regression(x,y_all,x_testset,y_testset=None,norm=True,verbos
   if list(wtr):
     retlist = retlist + (wtr,)
   return retlist
-# ---------------------------------------------------
-def testing_logistic_regression():
-
-  dataset=3
-
-  if dataset == 1:
-    # Data set 1
-    from math import pi
-    nbpts=500
-    s1=create_synthetics(nbpts,4,2,-pi/6,[0,0])
-    s2=create_synthetics(nbpts,2,7,0,[.75,-.5])
-
-    x={}
-    x[1]=np.concatenate((s1[:,0],s2[:,0]))
-    x[2]=np.concatenate((s1[:,1],s2[:,1]))
-    x = pd.DataFrame(x)
-    m = x.shape[0]
-
-    y={}
-    y[1]=np.concatenate((np.zeros(m/2,dtype=int),np.ones(m/2,dtype=int)))
-    y = pd.DataFrame(y)
-
-    x_data={}
-    nbpts=500
-    s1=create_synthetics(nbpts,4,2,-pi/6,[0,0])
-    s2=create_synthetics(nbpts,2,7,0,[.75,-.5])
-    x_data[1]=np.concatenate((s1[:,0],s2[:,0]))
-    x_data[2]=np.concatenate((s1[:,1],s2[:,1]))
-    x_data = pd.DataFrame(x_data)
-    do_all_logistic_regression(x,y,x_data,verbose=True)
-
-  if dataset == 2:
-    # Data set 2
-    nbpts=500
-    bias=50
-
-    x={}
-    x[1]=np.random.rand(nbpts)
-    x[2]=np.random.rand(nbpts)
-    x = pd.DataFrame(x)
-
-    x_data={}
-    x_data[1]=np.random.rand(nbpts)
-    x_data[2]=np.random.rand(nbpts)
-    x_data = pd.DataFrame(x_data)
-
-    y={}
-    y[1]=np.empty(nbpts)
-    for i in range(len(x[1])):
-      if i < nbpts-bias:
-        if x[1][i] > x[2][i]:
-          y[1][i]=0
-        else:
-          y[1][i]=1
-      else:
-        if x[1][i] > x[2][i]:
-          y[1][i]=1
-        else:
-          y[1][i]=0
-    y = pd.DataFrame(y)
-    do_all_logistic_regression(x,y,x_data,verbose=True)
-
-  if dataset == 3:
-
-    from sklearn.datasets import load_iris
-    x_sl=load_iris()
-    x={}
-    for i,key in enumerate(x_sl['feature_names']):
-      x[key]=x_sl['data'][:,i]
-
-    y=x_sl['target']
-
-    x = pd.DataFrame(x)
-    y = pd.DataFrame(y)
-    x_data=x.copy()
-    y_data=y.copy()
-    do_all_logistic_regression(x,y,x,y,verbose=False)
-
-  sys.exit()
-
-  y_pred=scikit_learn(x,y,x_data)
-  fig = plt.figure()
-  fig.set_facecolor('white')
-  plt.scatter(x_data[1],x_data[2],c=y_pred,cmap=plt.cm.gray)
-  plt.title('Prediction: scikit learn')
-
-  y_pred=sl_svm(x,y,x_data)
-  fig = plt.figure()
-  fig.set_facecolor('white')
-  plt.scatter(x_data[1],x_data[2],c=y_pred,cmap=plt.cm.gray)
-  plt.title('Prediction: scikit learn with SVM')
-
-  y_pred=sl_svm(x,y,x_data,'lin')
-  fig = plt.figure()
-  fig.set_facecolor('white')
-  plt.scatter(x_data[1],x_data[2],c=y_pred,cmap=plt.cm.gray)
-  plt.title('Prediction: scikit learn with Linear SVM')
-
-  y_pred=sl_svm(x,y,x_data,'nu')
-  fig = plt.figure()
-  fig.set_facecolor('white')
-  plt.scatter(x_data[1],x_data[2],c=y_pred,cmap=plt.cm.gray)
-  plt.title('Prediction: scikit learn with NuSVM')
-  plt.show()
-
-if __name__ == '__main__' :
-  testing_logistic_regression()
