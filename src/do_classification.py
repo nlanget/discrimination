@@ -14,6 +14,7 @@ def classifier(opt):
   Classification of the different types of events.
   opt is an object of the class Options()
   """
+  opt.data_for_LR()
   opt.tri()
 
   X = opt.x
@@ -172,7 +173,8 @@ def classifier(opt):
 
   dic_results['features'] = opt.opdict['feat_list']
 
-  opt.write_binary_file(opt.opdict['result_path'],dic_results)
+  if opt.opdict['method'] == 'lr' or opt.opdict['method'] == 'lrsk' or opt.opdict['method'] == 'svm':
+    opt.write_binary_file(opt.opdict['result_path'],dic_results)
 
   if not os.path.exists(opt.opdict['train_file']) and opt.opdict['boot'] > 1:
     opt.write_binary_file(opt.opdict['train_file'],TRAIN_Y)
