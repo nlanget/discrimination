@@ -129,7 +129,7 @@ def classifier(opt):
       elif opt.opdict['method'] == 'svm':
         # SVM
         print "********** SVM **********"
-        CLASS_test, pourcentages = implement_svm(x_train,x_test,y_train,y_test,opt.types,opt.opdict)
+        CLASS_test, pourcentages = implement_svm(x_train,x_test,y_train,y_test,opt.types,opt.opdict,kern='NonLin')
 
       elif opt.opdict['method'] == 'lrsk':
         # LOGISTIC REGRESSION (scikit learn)
@@ -203,8 +203,28 @@ def create_training_set(y_ref,numt):
       len_runiq = len(r_uniq)
       r = np.hstack((r_uniq,np.floor(len(a)*np.random.rand(nb-len_runiq))))
     list_index = np.hstack((list_index,list(a.index[list(r)])))
-  y_train.index = list_index
+  y_train.index = map(int,list_index)
+  return y_train
 
+# ================================================================
+
+def create_training_set_fix(y_ref,numt):
+  """
+  Generates a training set randomly from the test set.
+  The number of events in each class is the same. 
+  """
+  nb = 400
+  y = y_ref.copy()
+  y_train = pd.DataFrame(columns=y.columns)
+  list_index = np.array([])
+  for i in numt:
+    a = y[y.Type==i]
+    if len(a) < 3:
+      continue
+    aperm = np.random.permutation(a.index)
+    aperm = aperm[:nb]
+    list_index = np.hstack((list_index,list(aperm)))
+  y_train = y.reindex(index=map(int,list_index))
   return y_train
 
 # ================================================================
@@ -242,7 +262,7 @@ def confusion(y,y_auto,l,set,method,plot=False,output=False):
 
 # ================================================================
 
-def implement_svm(x_train,x_test,y_train,y_test,types,opdict):
+def implement_svm(x_train,x_test,y_train,y_test,types,opdict,kern='NonLin'):
   """
   Implements SVM from scikit learn package.
   """
@@ -251,12 +271,17 @@ def implement_svm(x_train,x_test,y_train,y_test,types,opdict):
   from sklearn import svm
   print "doing grid search"
   C_range = 10.0 ** np.arange(-2, 5)
-  gamma_range = 10.0 ** np.arange(-3,3)
-  param_grid = dict(gamma=gamma_range, C=C_range)
-  grid = GridSearchCV(svm.SVC(), param_grid=param_grid, n_jobs=-1)
+  if kern == 'NonLin':
+    gamma_range = 10.0 ** np.arange(-3,3)
+    param_grid = dict(gamma=gamma_range, C=C_range)
+    grid = GridSearchCV(svm.SVC(), param_grid=param_grid, n_jobs=-1)
+  elif kern == 'Lin':
+    param_grid = dict(C=C_range)
+    grid = GridSearchCV(svm.LinearSVC(), param_grid=param_grid, n_jobs=-1)
   grid.fit(x_train.values, y_train.values.ravel())
   print "The best classifier is: ", grid.best_estimator_
-  print "Number of support vectors for each class: ", grid.best_estimator_.n_support_
+  if kern == 'NonLin':
+    print "Number of support vectors for each class: ", grid.best_estimator_.n_support_
   y_train_SVM = grid.best_estimator_.predict(x_train)
   y_test_SVM = grid.best_estimator_.predict(x_test)
 
