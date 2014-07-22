@@ -64,9 +64,12 @@ def classifier(opt):
         print "********** KMean **********"
         CLASS_test = implement_kmean(x_test,K)
 
-      plot_diagrams(CLASS_test,y_test)
-      #results_histo(CLASS_test,y_test)
-      results_diagrams(CLASS_test,y_test)
+      if K > 4:
+        plot_diagrams(CLASS_test,y_test)
+        #results_histo(CLASS_test,y_test)
+        results_diagrams(CLASS_test,y_test)
+      else:
+        all_diagrams(CLASS_test,y_test)
 
       opt.x = x_test
       opt.y = y_test
@@ -119,6 +122,7 @@ def plot_diagrams(y_auto,y_man):
   import matplotlib.pyplot as plt
   nb_class = len(np.unique(y_auto.Type.values))
   types = np.unique(y_man.Type.values)
+  colors = ['yellowgreen', 'gold', 'lightskyblue', 'lightcoral','lightgreen','khaki','plum','powderblue']
 
   nb_auto = [len(y_auto[y_auto.Type==it]) for it in range(nb_class)]
   nb_man = [len(y_man[y_man.Type==t]) for t in types]
@@ -126,9 +130,10 @@ def plot_diagrams(y_auto,y_man):
   fig = plt.figure(figsize=(9,4))
   fig.set_facecolor('white')
   plt.subplot(121,title='Manual classes')
-  plt.pie(nb_man,labels=types,autopct='%1.1f%%')
+  plt.pie(nb_man,labels=types,autopct='%1.1f%%',colors=colors)
   plt.subplot(122,title='Automatic classes')
-  plt.pie(nb_auto,labels=range(nb_class),autopct='%1.1f%%')
+  plt.pie(nb_auto,labels=range(nb_class),autopct='%1.1f%%',colors=colors)
+  #plt.savefig('../results/Ijen/figures/Unsupervised/unsup_all.png')
   plt.show()
 
 # ================================================================
@@ -187,6 +192,7 @@ def results_diagrams(y_auto,y_man):
   nb_class = len(np.unique(y_auto.Type.values))
   types = np.unique(y_man.Type.values)
   len_class = len(types)
+  colors = ['yellowgreen', 'gold', 'lightskyblue', 'lightcoral','lightgreen','khaki','plum','powderblue']
 
   if nb_class <= 4:
     nb_l, nb_c = 1, nb_class
@@ -205,7 +211,7 @@ def results_diagrams(y_auto,y_man):
   if 'Hembusan' in labels:
     labels[labels=='Hembusan'] = 'Hem.'
 
-  fig = plt.figure(figsize=(5*nb_c,5*nb_l))
+  fig = plt.figure(figsize=(5*nb_c,4.5*nb_l))
   fig.set_facecolor('white')
   grid = GridSpec(nb_l,nb_c)
   for i in range(nb_class):
@@ -221,8 +227,9 @@ def results_diagrams(y_auto,y_man):
     else:
       nl, nc = 1, i-4
     plt.subplot(grid[nl,nc],title='Class %d'%i)
-    plt.pie(nbs,labels=labels,autopct='%1.1f%%')
+    plt.pie(nbs,labels=labels,autopct='%1.1f%%',colors=colors)
 
+  #plt.savefig('../results/Ijen/figures/Unsupervised/unsup_details.png')
   plt.show()
 
 # ================================================================
@@ -242,4 +249,65 @@ def plot_and_compare_pdfs(g1,g2):
         plt.plot(g2[feat]['vec'],g2[feat][t],ls='--',color=c[-it-1],label='Class %d'%t)
     plt.title(feat)
     plt.legend()
+    #plt.savefig('../results/Ijen/figures/Unsupervised/pdf_%s.png'%feat)
     plt.show()
+
+# ================================================================
+
+def all_diagrams(y_auto,y_man):
+  """
+  Combines plot_diagrams and results_diagrams on the same figure 
+  when the number of classes is < 5.
+  """
+
+  import matplotlib.pyplot as plt
+  from matplotlib.gridspec import GridSpec
+
+  nb_class = len(np.unique(y_auto.Type.values))
+  types = np.unique(y_man.Type.values)
+  len_class = len(types)
+
+  colors = ['yellowgreen', 'gold', 'lightskyblue', 'lightcoral']
+
+  nb_auto = [len(y_auto[y_auto.Type==it]) for it in range(nb_class)]
+  nb_man = [len(y_man[y_man.Type==t]) for t in types]
+
+  nb_l, nb_c = 2, len_class*2
+  grid = GridSpec(nb_l,nb_c)
+  fig = plt.figure(figsize=(12,8))
+  fig.set_facecolor('white')
+  plt.subplot(grid[0,:nb_c/2],title='Manual classes')
+  plt.pie(nb_man,labels=types,autopct='%1.1f%%',colors=colors)
+  plt.axis("equal")
+  plt.subplot(grid[0,nb_c/2:],title='Automatic classes')
+  plt.pie(nb_auto,labels=range(nb_class),autopct='%1.1f%%',colors=colors)
+  plt.axis("equal")
+
+  labels = types.copy()
+  if 'VulkanikB' in labels:
+    labels[labels=='VulkanikB'] = 'VB'
+  if 'VulkanikA' in labels:
+    labels[labels=='VulkanikA'] = 'VA'
+  if 'Tektonik' in labels:
+    labels[labels=='Tektonik'] = 'Tecto'
+  if 'Longsoran' in labels:
+    labels[labels=='Longsoran'] = 'Eb'
+  if 'Hembusan' in labels:
+    labels[labels=='Hembusan'] = 'Hem.'
+
+  for i in range(nb_class):
+    a = y_auto[y_auto.values.ravel()==i]
+    b = y_man.reindex(index=a.index,columns=['Type'])
+    print i, len(a)
+
+    nbs = [len(b[b.values.ravel()==j]) for j in types]
+    print nbs
+
+    plt.subplot(grid[1,2*i:2*i+2],title='Class %d'%i)
+    plt.pie(nbs,labels=labels,autopct='%1.1f%%',colors=colors)
+    plt.axis("equal")
+
+  plt.figtext(.1,.95,'(a)',fontsize=16)
+  plt.figtext(.1,.5,'(b)',fontsize=16)
+  #plt.savefig('../results/Ijen/figures/Unsupervised/unsup_diagrams.png')
+  plt.show()
