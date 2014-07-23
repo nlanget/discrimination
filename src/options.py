@@ -17,8 +17,8 @@ class Options(object):
     #self.opdict['stations'] = ['DAM','IBLW','IGEN','IJEN','IMLB','IPAL','IPLA','KWUI','MLLR','POS','POSI','PSG','PUN','RAUN','TRWI']
     self.opdict['channels'] = ['Z','N','E']
 
-    #self.opdict['Types'] = ['Hembusan','Hibrid','LF','Longsoran','Tektonik','Tremor','VulkanikA','VulkanikB']
-    self.opdict['Types'] = ['Tremor','VulkanikB','?']
+    self.opdict['Types'] = ['Hembusan','Hibrid','LF','Longsoran','Tektonik','Tremor','VulkanikA','VulkanikB']
+    #self.opdict['Types'] = ['Tremor','VulkanikB','?']
 
     self.opdict['datadir'] = os.path.join('../data',self.opdict['dir'],self.opdict['network'])
     self.opdict['libdir'] = os.path.join('../lib',self.opdict['dir'])
@@ -40,7 +40,6 @@ class Options(object):
     if opt == 'norm':
       # Features "normales"
       #self.opdict['feat_filename'] = 'ijen_%02d%02d.csv'%(date.tm_mday,date.tm_mon)
-      #self.opdict['feat_filename'] = 'ijen_redac.csv'
       self.opdict['feat_filename'] = 'ijen_3006.csv'
       #self.opdict['feat_list'] = ['AsDec','Bandwidth','CentralF','Centroid_time','Dur','Ene20-30','Ene5-10','Ene0-5','F_low','F_up','Growth','IFslope','Kurto','MeanPredF','NbPeaks','PredF','RappMaxMean','RappMaxMeanTF','Skewness','sPredF','TimeMaxSpec','Width','ibw0','ibw1','ibw2','ibw3','ibw4','ibw5','ibw6','ibw7','ibw8','ibw9','if0','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9']
       self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Growth','Kurto','RappMaxMean','RappMaxMeanTF','Skewness','TimeMaxSpec','Width']
@@ -55,12 +54,13 @@ class Options(object):
       self.opdict['feat_list'] = map(str,range(50))
 
     self.opdict['feat_filepath'] = '%s/features/%s'%(self.opdict['outdir'],self.opdict['feat_filename'])
-    self.opdict['label_filename'] = '%s/Ijen_reclass_all.csv'%self.opdict['libdir']
+    self.opdict['label_filename'] = '%s/Ijen_class_all.csv'%self.opdict['libdir']
 
     if self.opdict['method'] == 'lr' or self.opdict['method'] == 'svm' or self.opdict['method'] == 'lrsk':
-      self.opdict['result_file'] = 'results_%s_%s_%dc_%df'%(self.opdict['feat_filename'].split('.')[0],self.opdict['method'],len(self.opdict['Types']),len(self.opdict['feat_list']))
+      self.opdict['result_file'] = 'results_%s_%dc_%df'%(self.opdict['method'],len(self.opdict['Types']),len(self.opdict['feat_list']))
     else:
-      self.opdict['result_file'] = '%s_%s_%s_reclass'%(self.opdict['method'].upper(),self.opdict['feat_filename'].split('.')[0],self.opdict['stations'][0])
+      #self.opdict['result_file'] = '%s_%s_reclass'%(self.opdict['method'].upper(),self.opdict['stations'][0])
+      self.opdict['result_file'] = '1B1_IJEN_svm'
     self.opdict['result_path'] = '%s/%s/%s'%(self.opdict['outdir'],self.opdict['method'].upper(),self.opdict['result_file'])
 
     self.opdict['types'] = None
@@ -212,9 +212,10 @@ class Options(object):
       nb.append(len(self.y[self.y.Type==t]))
       print t, nb[-1]
 
+    colors = ['yellowgreen', 'gold', 'lightskyblue', 'lightcoral','lightgreen','khaki','plum','powderblue']
     fig = plt.figure(figsize=(6,6))
     fig.set_facecolor('white')
-    plt.pie(nb,labels=self.types,autopct='%1.1f%%')
+    plt.pie(nb,labels=self.types,autopct='%1.1f%%',colors=colors)
     plt.title('Dataset')
     plt.show()
 

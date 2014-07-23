@@ -26,6 +26,7 @@ class AnalyseResults(MultiOptions):
     self.opdict['feat_list'] = dic['features']
     del dic['features']
     self.results = dic
+    print sorted(dic)
     self.opdict['stations'] = [key[0] for key in sorted(dic)]
     self.opdict['channels'] = [key[1] for key in sorted(dic)]
 
@@ -177,12 +178,15 @@ class AnalyseResultsExtraction(MultiOptions):
         self.x, self.y = self.features_onesta(sta,comp)
         self.verify_index()
 
+        if len(self.x) == 0:
+          continue
+
         self.composition_dataset()
 
-        #self.plot_all_diagrams()
+        self.plot_all_diagrams()
         self.plot_diagrams_one_draw()
         #self.plot_pdf_extract()
-        self.unclass_histo()
+        #self.unclass_histo()
         self.unclass_diagram()
         if 'unclass_all' in self.__dict__.keys():
           self.analyse_unclass()
@@ -260,7 +264,7 @@ class AnalyseResultsExtraction(MultiOptions):
     types = np.unique(self.y.Type.values)
     N = np.array(range(len(np.unique(types))))
     width = 0.1
-    colors = [(0,0,1),(1,0,0),(0,1,0),(1,1,0),(0,0,0),(0,1,1),(1,0,1),(1,1,1),(.8,.5,0),(0,0.5,0.5)]
+    colors = ['yellowgreen', 'gold', 'lightskyblue', 'lightcoral','lightgreen','khaki','plum','powderblue']
 
     self.unclass_all = np.array([])
 
@@ -285,7 +289,7 @@ class AnalyseResultsExtraction(MultiOptions):
       nb = [len(unclass_types[unclass_types==t]) for t in types]
 
       plt.subplot(grid[:2,:2],aspect=1,title='Unclassified events')
-      plt.pie(nb,labels=types,autopct='%1.1f%%')
+      plt.pie(nb,labels=types,autopct='%1.1f%%',colors=colors)
 
       orga = [(0,2),(0,3),(1,2),(1,3),(2,0),(2,1),(2,2),(2,3)]
       for it,t in enumerate(types):
@@ -314,7 +318,9 @@ class AnalyseResultsExtraction(MultiOptions):
     for d in dic.keys():
       if dic[d] == 10:
         ld.append(d)
-   
+  
+    colors = ['yellowgreen', 'gold', 'lightskyblue', 'lightcoral','lightgreen','khaki','plum','powderblue']
+ 
     types = np.unique(self.y.Type.values)
     unc_type = self.y.reindex(index=ld,columns=['Type']).values
     nb = [len(unc_type[unc_type==t]) for t in types]
@@ -326,12 +332,12 @@ class AnalyseResultsExtraction(MultiOptions):
     fig = plt.figure(figsize=(12,5))
     fig.set_facecolor('white')
     plt.subplot(grid[0,0])
-    plt.pie(nb_dataset,labels=types,autopct='%1.1f%%')
+    plt.pie(nb_dataset,labels=types,autopct='%1.1f%%',colors=colors)
     plt.title('(a) Whole dataset')
     plt.subplot(grid[0,1])
-    plt.pie(nb,labels=types,autopct='%1.1f%%')
+    plt.pie(nb,labels=types,autopct='%1.1f%%',colors=colors)
     plt.title('(b) Unclassified events')
-    #plt.savefig('../results/Ijen/figures/unclass_all.png')
+    #plt.savefig('../results/Ijen/figures/unclass_all_OBO.png')
     plt.show()
 
     self.types = types[np.argsort(nb)][-3:]
@@ -342,21 +348,22 @@ class AnalyseResultsExtraction(MultiOptions):
     Y = self.y.copy()
     self.x = self.x.reindex(index=ld)
     self.y = self.y.reindex(index=ld)
-    self.compute_pdfs()
-    g_unclass = self.gaussians
+    if len(self.y) > 0:
+      self.compute_pdfs()
+      g_unclass = self.gaussians
 
-    colors = ['r','g','b']
-    for feat in sorted(g_ok):
-      if feat == 'NbPeaks':
-        continue
-      fig = plt.figure()
-      fig.set_facecolor('white')
-      for it,t in enumerate(self.types):
-        plt.plot(g_ok[feat]['vec'],g_ok[feat][t],ls='-',c=colors[it],label=t)
-        plt.plot(g_unclass[feat]['vec'],g_unclass[feat][t],ls='--',c=colors[it])
-      plt.title(feat)
-      plt.legend()
-      plt.show()
+      colors = ['r','g','b']
+      for feat in sorted(g_ok):
+        if feat == 'NbPeaks':
+          continue
+        fig = plt.figure()
+        fig.set_facecolor('white')
+        for it,t in enumerate(self.types):
+          plt.plot(g_ok[feat]['vec'],g_ok[feat][t],ls='-',c=colors[it],label=t)
+          plt.plot(g_unclass[feat]['vec'],g_unclass[feat][t],ls='--',c=colors[it])
+        plt.title(feat)
+        plt.legend()
+        plt.show()
 
     self.x = X
     self.y = Y
@@ -427,6 +434,8 @@ class AnalyseResultsExtraction(MultiOptions):
       if dic[d] == 10:
         ld.append(d)
 
+    colors = ['yellowgreen', 'gold', 'lightskyblue', 'lightcoral','lightgreen','khaki','plum','powderblue']
+
     if len(ld) > 0:
       types = np.unique(self.y.Type.values)
       rep_type = self.y.reindex(index=ld,columns=['Type']).values
@@ -438,7 +447,7 @@ class AnalyseResultsExtraction(MultiOptions):
       fig = plt.figure(figsize=(6,6))
       fig.set_facecolor('white')
       plt.subplot(grid[0,0])
-      plt.pie(nb,labels=types,autopct='%1.1f%%')
+      plt.pie(nb,labels=types,autopct='%1.1f%%',colors=colors)
       plt.title('Repeated events')
       plt.show()
 
@@ -463,7 +472,7 @@ class AnalyseResultsExtraction(MultiOptions):
     print types
     N = np.array(range(len(types)-1))
 
-    colors_all = create_color_scale(types)
+    colors = ['yellowgreen', 'gold', 'lightskyblue', 'lightcoral','lightgreen','khaki','plum','powderblue']
     width = 0.1
     for icl,cl in enumerate(types):
       t = np.setxor1d(np.array(types),np.array([cl]))
@@ -507,8 +516,9 @@ class AnalyseResultsExtraction(MultiOptions):
         if 'Hibrid' in labels:
           labels[labels=='Hibrid'] = 'Hy'
         plt.subplot(grid[row,col+1],aspect=1)
-        plt.pie(fracs,labels=labels,autopct='%1.1f%%')
+        plt.pie(fracs,labels=labels,autopct='%1.1f%%',colors=colors)
       plt.suptitle('Extraction of %s'%cl)
+      #plt.savefig('../results/Ijen/figures/OBO_%s_svm.png'%cl)
 
     plt.show()
 
@@ -530,7 +540,7 @@ class AnalyseResultsExtraction(MultiOptions):
       types = ['Tektonik','Tremor','VulkanikB','VulkanikA']
     N = np.array(range(len(types)-1))
 
-    colors_all = create_color_scale(types)
+    colors = ['yellowgreen', 'gold', 'lightskyblue', 'lightcoral','lightgreen','khaki','plum','powderblue']
     width = 0.1
     for tir in sorted(self.results):
       fig = plt.figure(figsize=(12,7))
@@ -575,11 +585,15 @@ class AnalyseResultsExtraction(MultiOptions):
         if 'Hibrid' in labels:
           labels[labels=='Hibrid'] = 'Hy'
         plt.subplot(grid[row,col+1],aspect=1)
-        plt.pie(fracs,labels=labels,autopct='%1.1f%%')
-      plt.figtext(.1,.87,'(a) Extraction of tectonics')
-      plt.figtext(.55,.87,'(b) Extraction of tremors')
-      plt.figtext(.1,.43,'(c) Extraction of VB')
-      plt.figtext(.55,.43,'(d) Extraction of VA')
+        plt.pie(fracs,labels=labels,autopct='%1.1f%%',colors=colors)
+        if icl == 0:
+          plt.figtext(.1,.87,'(a) Extraction of %s'%types[icl])
+        elif icl == 1:
+          plt.figtext(.55,.87,'(b) Extraction of %s'%types[icl])
+        elif icl == 2:
+          plt.figtext(.1,.43,'(c) Extraction of %s'%types[icl])
+        elif icl == 3:
+          plt.figtext(.55,.43,'(d) Extraction of %s'%types[icl])
       #plt.savefig('../results/Ijen/figures/OBO_SVM_tir%d.png'%tir)
 
     plt.show()
