@@ -15,56 +15,40 @@ class SeismicTraces():
   envelope and determines the P-onset.
   """
 
-  def __init__(self,filename,origin):
-    self.t0 = origin
-    self.tr = self.read_file(filename)
+  def __init__(self,mat,comp,train=None):
+    self.read_file(mat,comp,train)
+    self.dt = .01
+    self.station = 'BOR'
+    self.t0 = 0
+    self.starttime = 0
+    self.i1, self.i2 = 0,len(self.tr)-1
 
-    if len(self.tr) > 0:
-
-      datadir = os.path.dirname(filename)
-      fname = os.path.basename(filename)
-
-      # Kurtosis gradient
-      filename = os.path.join(datadir,'GRAD/%s_GRAD'%fname)
-      if os.path.exists(filename):
-        self.tr_grad = self.read_file(filename)
-      else:
-        filename = os.path.join(datadir,"grad/%s_GRAD"%fname)
-        if os.path.exists(filename):
-          self.tr_grad = self.read_file(filename)
-        else:
-          print "Warning !! File %s_GRAD does not exist"%fname
-
-      # Envelope
-      filename = os.path.join(datadir,"ENV/%s_env.*"%fname)
-      if os.path.exists(filename):
-        self.tr_env = self.read_file(filename)
-      else:
-        self.process_envelope()
-
-      # Compute the spectrum
-      self.spectrum(plot=False)
+    # Compute the spectrum
+    self.spectrum(plot=False)
 
 
-  def read_file(self,filename):
-    #tb,ta = 15, 135
-    tb,ta = 20, 100
-    st = read(filename)
-    if len(st) > 0:
-      if len(st) > 1:
-        st.merge(fill_value=0)
-        st.write(filename,'MSEED')
-      st.filter('bandpass',freqmin=1,freqmax=10)
-      tr = st[0]
-      self.dt = tr.stats.delta
-      self.starttime = self.t0 - tb 
-      self.i1, self.i2 = 0,len(tr)-1
-      if len(tr.data) != int((ta+tb)*1./self.dt)+1:
-        print len(tr.data),int((ta+tb)*1./self.dt)+1
-        return [] 
-      return tr.data
+  def read_file(self,mat,comp,train):
+    if train:
+      i,type = train[0],train[1]
+      kname = 'Sig%s'%type
+      if comp == 'Z':
+        self.tr = mat[kname][0][i][0][0][0]
+      elif comp == 'E':
+        self.tr = mat[kname][0][i][1][0][0]
+      elif comp == 'N':
+        self.tr = mat[kname][0][i][2][0][0]
+      self.tr_env = mat['%s_ENV'%kname][i]
+      self.tr_grad = mat['%s_GRAD'%kname][i]
     else:
-      return []
+      df = pd.DataFrame(mat['SIG2'])
+      if comp == 'Z':
+        self.tr = mat['SIG2'][:,0][0][0]
+      elif comp == 'E':
+        self.tr = mat['SIG2'][:,1][0][0]
+      elif comp == 'N':
+        self.tr = mat['SIG2'][:,2][0][0]
+      self.tr_env = mat['SIG_ENV'].T[0]
+      self.tr_grad = mat['SIG_GRAD'].T[0]
 
 
   def process_envelope(self):
@@ -158,13 +142,14 @@ class SeismicTraces():
 
 # ================================================================
 
-def read_data_for_features_extraction(save=False):
+def read_data_for_features_extraction(set='test',save=False):
   """
   Extracts the features from all seismic files
   If option 'save' is set, then save the pandas DataFrame as a .csv file
   """
+  from scipy.io.matlab import mio
   from options import MultiOptions
-  opt = MultiOptions(opt='hash')
+  opt = MultiOptions(opt='norm')
 
   if save:
     if os.path.exists(opt.opdict['feat_filepath']):
@@ -175,48 +160,64 @@ def read_data_for_features_extraction(save=False):
   list_features = opt.opdict['feat_list']
   df = pd.DataFrame(columns=list_features)
 
-  hob_all = {}
+  if set == 'test':
+    datafiles = glob.glob(os.path.join(opt.opdict['datadir'],'TestSet/SigEve_*'))
+    datafiles.sort()
+    liste = [os.path.basename(datafiles[i]).split('_')[1].split('.mat')[0] for i in range(len(datafiles))]
+    liste = map(int,liste) # sort the list of file following the event number
+    liste.sort()
 
-  # Classification
-  tsort = opt.read_classification()
-  tsort.index = tsort.Date
-  tsort = tsort.reindex(columns=['Date','Type'])
+    tsort = opt.read_classification()
+    tsort.index = tsort.Date
 
-  list_sta = opt.opdict['stations']
-  for ifile in range(tsort.shape[0]):
-    date = tsort.values[ifile,0]
-    type = tsort.values[ifile,1]
+    for ifile,numfile in enumerate(liste):
+      file = os.path.join(opt.opdict['datadir'],'TestSet/SigEve_%d.mat'%numfile)
+      print ifile,file
+      mat = mio.loadmat(file)
 
-    for sta in list_sta:
-      print "#####",sta
-      counter = 0
       for comp in ['Z','E','N']:
-        ind = (date,sta,comp)
+        ind = (numfile,'BOR',comp)
         dic = pd.DataFrame(columns=list_features,index=[ind])
-        dic['EventType'] = type
+        dic['EventType'] = df.Type[ifile]
         dic['Ponset'] = 0
-        list_files = glob.glob(os.path.join(opt.opdict['datadir'],sta,'*%s.D'%comp,'*%s.D*%s_%s*'%(comp,str(date)[:8],str(date)[8:])))
-        list_files.sort()
-        if len(list_files) > 0:
-          file =  list_files[0]
-          print ifile, file
-          if opt.opdict['option'] == 'norm':
-            counter = counter + 1
-            dic = extract_norm_features(list_features,date,file,dic,plot=False)
-          elif opt.opdict['option'] == 'hash':
-            permut_file = '%s/permut_%s'%(opt.opdict['libdir'],opt.opdict['feat_filename'].split('.')[0])
-            dic = extract_hash_features(list_features,date,file,dic,permut_file,plot=True)
+
+        s = SeismicTraces(mat,comp)
+        list_attr = s.__dict__.keys()
+
+        if len(list_attr) > 2:
+          dic = extract_norm_features(s,list_features,numfile,dic,plot=False)
           df = df.append(dic)
 
-      if counter == 3 and 'Rectilinearity' in list_features:
-        from waveform_features import polarization_analysis
-        d_mean = (df.Dur[(date,sta,comp)] + df.Dur[(date,sta,'E')] + df.Dur[(date,sta,'Z')])/3.
-        po_mean = int((df.Ponset[(date,sta,comp)] + df.Ponset[(date,sta,'E')] + df.Ponset[(date,sta,'Z')])/3)
-        list_files = [file,file.replace("N.D","E.D"),file.replace("N.D","Z.D")]
-        rect, plan, eigen = polarization_analysis(list_files,d_mean,po_mean,plot=False)
-        df.Rectilinearity[(date,sta,'Z')], df.Rectilinearity[(date,sta,'N')], df.Rectilinearity[(date,sta,'E')] = rect, rect, rect
-        df.Planarity[(date,sta,'Z')], df.Planarity[(date,sta,'N')], df.Planarity[(date,sta,'E')] = plan, plan, plan
-        df.MaxEigenvalue[(date,sta,'Z')], df.MaxEigenvalue[(date,sta,'N')], df.MaxEigenvalue[(date,sta,'E')] = eigen, eigen, eigen
+  elif set == 'train':
+    datafile = os.path.join(opt.opdict['datadir'],'TrainingSetPlusSig_2.mat')
+    mat = mio.loadmat(datafile)
+    hob_all_EB = {}
+    for i in range(mat['KurtoEB'].shape[1]):
+      print "EB", i
+      for comp in ['Z','E','N']:
+        dic = pd.DataFrame(columns=list_features,index=[(i,'BOR',comp)])
+        dic['EventType'] = 'EB'
+        dic['Ponset'] = 0
+        
+        s = SeismicTraces(mat,comp,train=[i,'EB'])
+        list_attr = s.__dict__.keys()
+        if len(list_attr) > 2:
+          dic = extract_norm_features(s,list_features,i,dic,plot=False)
+          df = df.append(dic)
+      neb = i+1
+
+    for i in range(mat['KurtoVT'].shape[1]):
+      print "VT", i+neb
+      for comp in ['Z','E','N']:
+        dic = pd.DataFrame(columns=list_features,index=[(i+neb,'BOR',comp)])
+        dic['EventType'] = 'VT'
+        dic['Ponset'] = 0
+
+        s = SeismicTraces(mat,comp,train=[i,'VT'])
+        list_attr = s.__dict__.keys()
+        if len(list_attr) > 2:
+          dic = extract_norm_features(s,list_features,i,dic,plot=False)
+          df = df.append(dic)
 
   if save:
     print "Features written in %s"%opt.opdict['feat_filepath']
@@ -224,14 +225,13 @@ def read_data_for_features_extraction(save=False):
 
 # ================================================================
 
-def extract_norm_features(list_features,date,file,dic,plot=False):
+def extract_norm_features(s,list_features,date,dic,plot=False):
 
     """
     Extraction of all features given by list_features, except hash 
     table values.
     """
 
-    s = SeismicTraces(file,utcdatetime.UTCDateTime(str(date)))
     list_attr = s.__dict__.keys()
     if 'tr_grad' not in list_attr:
       for feat in list_features:
@@ -442,4 +442,4 @@ def extract_hash_features(list_features,date,file,dic,permut_file,plot=False):
 
 # ================================================================
 if __name__ == '__main__':
-  read_data_for_features_extraction(save=True)
+  read_data_for_features_extraction(set='train',save=True)

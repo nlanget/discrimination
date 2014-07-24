@@ -6,26 +6,25 @@ import matplotlib.pyplot as plt
 
 class Options(object):
 
+
   def __init__(self,opt='norm'):
 
     self.opdict = {}
 
     # Define directories and paths
-    self.opdict['dir'] = 'Ijen'
-    self.opdict['network'] = 'ID'
-    self.opdict['stations'] = ['IJEN']
-    #self.opdict['stations'] = ['DAM','IBLW','IGEN','IJEN','IMLB','IPAL','IPLA','KWUI','MLLR','POS','POSI','PSG','PUN','RAUN','TRWI']
+    self.opdict['dir'] = 'Piton'
     self.opdict['channels'] = ['Z','N','E']
 
-    self.opdict['Types'] = ['Hembusan','Hibrid','LF','Longsoran','Tektonik','Tremor','VulkanikA','VulkanikB']
-    #self.opdict['Types'] = ['Tremor','VulkanikB','?']
-
-    self.opdict['datadir'] = os.path.join('../data',self.opdict['dir'],self.opdict['network'])
     self.opdict['libdir'] = os.path.join('../lib',self.opdict['dir'])
     self.opdict['outdir'] = os.path.join('../results',self.opdict['dir'])
 
+    if self.opdict['dir'] == 'Ijen':
+      self.ijen()
+    elif self.opdict['dir'] == 'Piton':
+      self.piton()
+
     # Define options for classification functions
-    self.opdict['method'] = '1b1' # could be 'lr' (logistic regression),'svm' (Support Vector Machine from scikit.learn package),'ova' (1-vs-all extractor), '1b1' (1-by-1 extractor), 'lrsk' (Logistic regression from scikit.learn package)
+    self.opdict['method'] = 'svm' # could be 'lr' (logistic regression),'svm' (Support Vector Machine from scikit.learn package),'ova' (1-vs-all extractor), '1b1' (1-by-1 extractor), 'lrsk' (Logistic regression from scikit.learn package)
     self.opdict['boot'] = 1 # number of iterations (a new training set is generated at each 'iteration')
     self.opdict['train_file'] = '%s/train_%d'%(self.opdict['libdir'],self.opdict['boot'])
     self.opdict['plot_pdf'] = False # display the pdfs of the features
@@ -39,10 +38,10 @@ class Options(object):
     date = time.localtime()
     if opt == 'norm':
       # Features "normales"
-      #self.opdict['feat_filename'] = 'ijen_%02d%02d.csv'%(date.tm_mday,date.tm_mon)
-      self.opdict['feat_filename'] = 'ijen_3006.csv'
-      #self.opdict['feat_list'] = ['AsDec','Bandwidth','CentralF','Centroid_time','Dur','Ene20-30','Ene5-10','Ene0-5','F_low','F_up','Growth','IFslope','Kurto','MeanPredF','NbPeaks','PredF','RappMaxMean','RappMaxMeanTF','Skewness','sPredF','TimeMaxSpec','Width','ibw0','ibw1','ibw2','ibw3','ibw4','ibw5','ibw6','ibw7','ibw8','ibw9','if0','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9']
-      self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Growth','Kurto','RappMaxMean','RappMaxMeanTF','Skewness','TimeMaxSpec','Width']
+      self.opdict['feat_filename'] = '%s_%02d%02d.csv'%(self.opdict['dir'],date.tm_mday,date.tm_mon)
+      #self.opdict['feat_filename'] = 'ijen_3006.csv'
+      self.opdict['feat_list'] = ['AsDec','Bandwidth','CentralF','Centroid_time','Dur','Ene20-30','Ene5-10','Ene0-5','F_low','F_up','Growth','IFslope','Kurto','MeanPredF','NbPeaks','PredF','RappMaxMean','RappMaxMeanTF','Skewness','sPredF','TimeMaxSpec','Width','ibw0','ibw1','ibw2','ibw3','ibw4','ibw5','ibw6','ibw7','ibw8','ibw9','if0','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9']
+      #self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Growth','Kurto','RappMaxMean','RappMaxMeanTF','Skewness','TimeMaxSpec','Width']
       #self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Kurto','RappMaxMean','Skewness','TimeMaxSpec']
       #self.opdict['feat_list'] = ['Dur','F_up','Growth','Kurto','RappMaxMean','RappMaxMeanTF','TimeMaxSpec','Width']
       #self.opdict['feat_list'] = ['CentralF','Centroid_time','Dur','Ene0-5','F_up','Growth','IFslope','Kurto','MeanPredF','RappMaxMean','RappMaxMeanTF','Skewness','TimeMaxSpec','Width','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9']
@@ -54,16 +53,36 @@ class Options(object):
       self.opdict['feat_list'] = map(str,range(50))
 
     self.opdict['feat_filepath'] = '%s/features/%s'%(self.opdict['outdir'],self.opdict['feat_filename'])
-    self.opdict['label_filename'] = '%s/Ijen_class_all.csv'%self.opdict['libdir']
 
     if self.opdict['method'] == 'lr' or self.opdict['method'] == 'svm' or self.opdict['method'] == 'lrsk':
-      self.opdict['result_file'] = 'results_%s_%dc_%df'%(self.opdict['method'],len(self.opdict['Types']),len(self.opdict['feat_list']))
+      #self.opdict['result_file'] = 'results_%s_%dc_%df'%(self.opdict['method'],len(self.opdict['Types']),len(self.opdict['feat_list']))
+      self.opdict['result_file'] = 'results_svm_3class_3c_33f_15sta'
     else:
-      #self.opdict['result_file'] = '%s_%s_reclass'%(self.opdict['method'].upper(),self.opdict['stations'][0])
-      self.opdict['result_file'] = '1B1_IJEN_svm'
+      self.opdict['result_file'] = '%s_%s_reclass'%(self.opdict['method'].upper(),self.opdict['stations'][0])
     self.opdict['result_path'] = '%s/%s/%s'%(self.opdict['outdir'],self.opdict['method'].upper(),self.opdict['result_file'])
 
     self.opdict['types'] = None
+
+
+  def ijen(self):
+    self.opdict['network'] = 'ID'
+    #self.opdict['stations'] = ['IJEN']
+    self.opdict['stations'] = ['DAM','IBLW','IGEN','IJEN','IMLB','IPAL','IPLA','IPSW','KWUI','MLLR','POS','POSI','PSG','PUN','RAUN','TRWI']
+
+    self.opdict['Types'] = ['Hembusan','Hibrid','LF','Longsoran','Tektonik','Tremor','VulkanikA','VulkanikB']
+    #self.opdict['Types'] = ['Tremor','VulkanikB','?']
+
+    self.opdict['datadir'] = os.path.join('../data',self.opdict['dir'],self.opdict['network'])
+
+    self.opdict['label_filename'] = '%s/Ijen_class_all.csv'%self.opdict['libdir']
+
+
+  def piton(self):
+    self.opdict['stations'] = ['BOR']
+    self.opdict['Types'] = ['EB','VT']
+    self.opdict['datadir'] = os.path.join('../data/%s/full_data'%self.opdict['dir'])
+    self.opdict['label_filename_train'] = '%s/class_train_set.csv'%self.opdict['libdir']
+    self.opdict['label_filename_test'] = '%s/class_test_set.csv'%self.opdict['libdir']
 
 
   def data_for_LR(self):
@@ -319,7 +338,8 @@ class MultiOptions(Options):
 
   def __init__(self,opt):
     Options.__init__(self,opt)
-    self.data_for_LR()
+    if os.path.exists(self.opdict['feat_filepath']):
+      self.data_for_LR()
 
   def tri(self):
 
@@ -381,7 +401,7 @@ class MultiOptions(Options):
     for key in df.index:
       stakey = key.split(',')[1].replace(" ","")
       stakey = stakey.replace("'","")
-      if key.split(',')[2] == " 'Z')" and stakey in opt.opdict['stations']:
+      if key.split(',')[2] == " 'Z')" and stakey in self.opdict['stations']:
         dic[stakey] = dic[stakey]+1
     print dic
 
