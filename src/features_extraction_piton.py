@@ -167,7 +167,7 @@ def read_data_for_features_extraction(set='test',save=False):
     liste = map(int,liste) # sort the list of file following the event number
     liste.sort()
 
-    tsort = opt.read_classification()
+    tsort = opt.read_csvfile(opt.opdict['label_filename_test'])
     tsort.index = tsort.Date
 
     for ifile,numfile in enumerate(liste):
@@ -178,7 +178,7 @@ def read_data_for_features_extraction(set='test',save=False):
       for comp in ['Z','E','N']:
         ind = (numfile,'BOR',comp)
         dic = pd.DataFrame(columns=list_features,index=[ind])
-        dic['EventType'] = df.Type[ifile]
+        dic['EventType'] = tsort.Type[tsort.Date==numfile]
         dic['Ponset'] = 0
 
         s = SeismicTraces(mat,comp)
@@ -442,4 +442,4 @@ def extract_hash_features(list_features,date,file,dic,permut_file,plot=False):
 
 # ================================================================
 if __name__ == '__main__':
-  read_data_for_features_extraction(set='train',save=True)
+  read_data_for_features_extraction(set='test',save=True)
