@@ -143,7 +143,7 @@ class AnalyseResults(MultiOptions):
     from do_classification import confusion
     import matplotlib.pyplot as plt
 
-    self.tri()
+    self.do_tri()
     self.classname2number()
 
     m = self.man

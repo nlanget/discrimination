@@ -14,11 +14,15 @@ def classifier(opt):
   Classification of the different types of events.
   opt is an object of the class Options()
   """
-  opt.data_for_LR()
-  opt.tri()
 
+  opt.do_tri()
   X = opt.x
   Y = opt.y
+
+  list_attr = opt.__dict__.keys()
+  if 'train_x' in list_attr:
+    X_TRAIN = opt.train_x
+    Y_TRAIN = opt.train_y
 
   dic_results = {}
   for isc in sorted(opt.xs):
@@ -38,8 +42,6 @@ def classifier(opt):
 
     if len(opt.xs[isc]) == 0:
       continue
-    #if len(opt.xs[isc]) < 100:
-    #  continue
 
     opt.x = opt.xs[isc]
     opt.y = opt.ys[isc]
@@ -53,11 +55,17 @@ def classifier(opt):
 
     K = len(opt.types)
 
-    if len(opt.opdict['stations']) == 1 and opt.opdict['boot'] > 1:
+    if len(opt.opdict['stations']) == 1 and opt.opdict['boot'] > 1 and 'train_x' not in list_attr:
       if os.path.exists(opt.opdict['train_file']):
         TRAIN_Y = opt.read_binary_file(opt.opdict['train_file'])
       else:
         TRAIN_Y = []
+    elif 'train_x' in list_attr:
+      opt.x = opt.xs_train[isc]
+      opt.y = opt.ys_train[isc]
+      opt.classname2number()
+      x_train = opt.x
+      y_train = opt.y
 
     for b in range(opt.opdict['boot']):
       print "\n-------------------- # iter: %d --------------------\n"%(b+1)
@@ -66,22 +74,23 @@ def classifier(opt):
 
       y_test = y_ref.copy()
 
-      if len(opt.opdict['stations']) == 1 and opt.opdict['boot'] > 1:
-        if len(TRAIN_Y) > b:
-          y_train = y_ref.reindex(index=TRAIN_Y[b])
-          y_train = y_train.dropna(how='any')
-        else:
-          y_train = create_training_set(y_ref,opt.numt)
-          list_ev_train = y_train.index        
-          TRAIN_Y.append(list(y_train.index))
+      if 'train_x' not in list_attr:
+        if len(opt.opdict['stations']) == 1 and opt.opdict['boot'] > 1:
+          if len(TRAIN_Y) > b:
+            y_train = y_ref.reindex(index=TRAIN_Y[b])
+            y_train = y_train.dropna(how='any')
+          else:
+            y_train = create_training_set(y_ref,opt.numt)
+            list_ev_train = y_train.index        
+            TRAIN_Y.append(list(y_train.index))
 
-      else:
-        if marker_sta == 0:
-          y_train = create_training_set(y_ref,opt.numt)
-          list_ev_train = y_train.index
         else:
-          y_train = y_ref.reindex(index=list_ev_train)
-          y_train = y_train.dropna(how='any')
+          if marker_sta == 0:
+            y_train = create_training_set(y_ref,opt.numt)
+            list_ev_train = y_train.index
+          else:
+            y_train = y_ref.reindex(index=list_ev_train)
+            y_train = y_train.dropna(how='any')
 
       y = y_train.copy()
 
@@ -91,7 +100,8 @@ def classifier(opt):
 
       y_train = y.copy()
       x_train = opt.x.reindex(index=y_train.index)
-      x_test = opt.x.reindex(index=y_test.index)
+      if list(x_test.index) != list(y_test.index):
+        x_test = opt.x.reindex(index=y_test.index)
 
       print "# types in the test set:",len(np.unique(y_test.values.ravel()))
       print "# types in the training set:",len(np.unique(y_train.values.ravel()))

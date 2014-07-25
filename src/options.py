@@ -24,12 +24,12 @@ class Options(object):
       self.piton()
 
     # Define options for classification functions
-    self.opdict['method'] = 'svm' # could be 'lr' (logistic regression),'svm' (Support Vector Machine from scikit.learn package),'ova' (1-vs-all extractor), '1b1' (1-by-1 extractor), 'lrsk' (Logistic regression from scikit.learn package)
+    self.opdict['method'] = 'lr' # could be 'lr' (logistic regression),'svm' (Support Vector Machine from scikit.learn package),'ova' (1-vs-all extractor), '1b1' (1-by-1 extractor), 'lrsk' (Logistic regression from scikit.learn package)
     self.opdict['boot'] = 1 # number of iterations (a new training set is generated at each 'iteration')
     self.opdict['train_file'] = '%s/train_%d'%(self.opdict['libdir'],self.opdict['boot'])
     self.opdict['plot_pdf'] = False # display the pdfs of the features
     self.opdict['save_pdf'] = False
-    self.opdict['plot_confusion'] = False # display the confusion matrices
+    self.opdict['plot_confusion'] = True # display the confusion matrices
     self.opdict['save_confusion'] = False
 
     self.opdict['option'] = opt
@@ -38,8 +38,7 @@ class Options(object):
     date = time.localtime()
     if opt == 'norm':
       # Features "normales"
-      self.opdict['feat_filename'] = '%s_%02d%02d.csv'%(self.opdict['dir'],date.tm_mday,date.tm_mon)
-      #self.opdict['feat_filename'] = 'ijen_3006.csv'
+      #self.opdict['feat_test'] = '%s_%02d%02d.csv'%(self.opdict['dir'],date.tm_mday,date.tm_mon)
       self.opdict['feat_list'] = ['AsDec','Bandwidth','CentralF','Centroid_time','Dur','Ene20-30','Ene5-10','Ene0-5','F_low','F_up','Growth','IFslope','Kurto','MeanPredF','NbPeaks','PredF','RappMaxMean','RappMaxMeanTF','Skewness','sPredF','TimeMaxSpec','Width','ibw0','ibw1','ibw2','ibw3','ibw4','ibw5','ibw6','ibw7','ibw8','ibw9','if0','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9']
       #self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Growth','Kurto','RappMaxMean','RappMaxMeanTF','Skewness','TimeMaxSpec','Width']
       #self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Kurto','RappMaxMean','Skewness','TimeMaxSpec']
@@ -49,14 +48,14 @@ class Options(object):
 
     if opt == 'hash':
       # Hashing
-      self.opdict['feat_filename'] = 'HT_ijen_%02d%02d.csv'%(date.tm_mday,date.tm_mon)
+      self.opdict['feat_test'] = 'HT_ijen_%02d%02d.csv'%(date.tm_mday,date.tm_mon)
       self.opdict['feat_list'] = map(str,range(50))
 
-    self.opdict['feat_filepath'] = '%s/features/%s'%(self.opdict['outdir'],self.opdict['feat_filename'])
+    self.opdict['feat_filepath'] = '%s/features/%s'%(self.opdict['outdir'],self.opdict['feat_test'])
+    self.opdict['label_filename'] = '%s/%s'%(self.opdict['libdir'],self.opdict['label_test'])
 
     if self.opdict['method'] == 'lr' or self.opdict['method'] == 'svm' or self.opdict['method'] == 'lrsk':
-      #self.opdict['result_file'] = 'results_%s_%dc_%df'%(self.opdict['method'],len(self.opdict['Types']),len(self.opdict['feat_list']))
-      self.opdict['result_file'] = 'results_svm_3class_3c_33f_15sta'
+      self.opdict['result_file'] = 'results_%s_%dc_%df'%(self.opdict['method'],len(self.opdict['Types']),len(self.opdict['feat_list']))
     else:
       self.opdict['result_file'] = '%s_%s_reclass'%(self.opdict['method'].upper(),self.opdict['stations'][0])
     self.opdict['result_path'] = '%s/%s/%s'%(self.opdict['outdir'],self.opdict['method'].upper(),self.opdict['result_file'])
@@ -68,21 +67,21 @@ class Options(object):
     self.opdict['network'] = 'ID'
     #self.opdict['stations'] = ['IJEN']
     self.opdict['stations'] = ['DAM','IBLW','IGEN','IJEN','IMLB','IPAL','IPLA','IPSW','KWUI','MLLR','POS','POSI','PSG','PUN','RAUN','TRWI']
-
     self.opdict['Types'] = ['Hembusan','Hibrid','LF','Longsoran','Tektonik','Tremor','VulkanikA','VulkanikB']
     #self.opdict['Types'] = ['Tremor','VulkanikB','?']
-
     self.opdict['datadir'] = os.path.join('../data',self.opdict['dir'],self.opdict['network'])
-
-    self.opdict['label_filename'] = '%s/Ijen_class_all.csv'%self.opdict['libdir']
+    self.opdict['feat_test'] = 'ijen_3006.csv'
+    self.opdict['label_test'] = 'Ijen_class_all.csv'
 
 
   def piton(self):
     self.opdict['stations'] = ['BOR']
     self.opdict['Types'] = ['EB','VT']
     self.opdict['datadir'] = os.path.join('../data/%s/full_data'%self.opdict['dir'])
-    self.opdict['label_filename_train'] = '%s/class_train_set.csv'%self.opdict['libdir']
-    self.opdict['label_filename_test'] = '%s/class_test_set.csv'%self.opdict['libdir']
+    self.opdict['feat_train'] = 'Piton_train_2407.csv'
+    self.opdict['feat_test'] = 'Piton_test_2407.csv'
+    self.opdict['label_train'] = 'class_train_set.csv'
+    self.opdict['label_test'] = 'class_test_set.csv'
 
 
   def data_for_LR(self):
@@ -338,11 +337,30 @@ class MultiOptions(Options):
 
   def __init__(self,opt):
     Options.__init__(self,opt)
-    if os.path.exists(self.opdict['feat_filepath']):
-      self.data_for_LR()
+
+
+  def do_tri(self):
+
+    if 'feat_train' in sorted(self.opdict):
+      self.opdict['feat_filepath'] = '%s/features/%s'%(self.opdict['outdir'],self.opdict['feat_train'])
+      self.opdict['label_filename'] = '%s/%s'%(self.opdict['libdir'],self.opdict['label_train'])
+      self.tri()
+
+      self.xs_train, self.ys_train = {},{}
+      for key in sorted(self.xs):
+        self.xs_train[key] = self.xs[key].copy()
+        self.ys_train[key] = self.ys[key].copy()
+      self.train_x = self.x.copy()
+      self.train_y = self.y.copy()
+
+    self.opdict['feat_filepath'] = '%s/features/%s'%(self.opdict['outdir'],self.opdict['feat_test'])
+    self.opdict['label_filename'] = '%s/%s'%(self.opdict['libdir'],self.opdict['label_test'])
+    self.tri()
+
 
   def tri(self):
 
+    self.data_for_LR()
     self.x = self.raw_df.copy()
     self.y = self.manuals.copy()
 
@@ -387,6 +405,7 @@ class MultiOptions(Options):
           k = k+1
 
     self.trad = trad
+
 
   def count_number_of_events(self):
     """
@@ -449,16 +468,16 @@ class TestOptions(MultiOptions):
     self.opdict['outdir'] = os.path.join('../results',self.opdict['dir'])
 
     if len(self.opdict['stations']) == 1:
-      self.opdict['feat_filename'] = 'test_onesta.csv'
+      self.opdict['feat_test'] = 'test_onesta.csv'
     elif len(self.opdict['stations']) > 1:
-      self.opdict['feat_filename'] = 'test_multista.csv'
-    self.opdict['feat_filepath'] = '../results/%s/features/%s'%(self.opdict['dir'],self.opdict['feat_filename'])
+      self.opdict['feat_test'] = 'test_multista.csv'
+    self.opdict['feat_filepath'] = '../results/%s/features/%s'%(self.opdict['dir'],self.opdict['feat_test'])
     self.opdict['feat_list'] = ['RappMaxMean','Kurto']
 
 
     self.opdict['label_filename'] = '%s/test_classification.csv'%self.opdict['libdir']
 
-    self.opdict['result_file'] = 'results_%s'%self.opdict['feat_filename'].split('.')[0]
+    self.opdict['result_file'] = 'results_%s'%self.opdict['feat_test'].split('.')[0]
     self.opdict['result_path'] = '../results/%s/%s'%(self.opdict['dir'],self.opdict['result_file'])
 
     self.opdict['class_auto_file'] = 'auto_class_%s.csv'%self.opdict['result_file'].split('_')[2]

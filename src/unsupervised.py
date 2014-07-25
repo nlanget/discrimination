@@ -12,8 +12,7 @@ def classifier(opt):
   Classification of the different types of events.
   opt is an object of the class Options()
   """
-  opt.data_for_LR()
-  opt.tri()
+  opt.do_tri()
 
   X = opt.x
   Y = opt.y
@@ -133,8 +132,9 @@ def plot_diagrams(y_auto,y_man):
   plt.pie(nb_man,labels=types,autopct='%1.1f%%',colors=colors)
   plt.subplot(122,title='Automatic classes')
   plt.pie(nb_auto,labels=range(nb_class),autopct='%1.1f%%',colors=colors)
+  plt.figtext(.1,.9,'(a)',fontsize=16)
+  plt.figtext(.52,.9,'(b)',fontsize=16)
   #plt.savefig('../results/Ijen/figures/Unsupervised/unsup_all.png')
-  plt.show()
 
 # ================================================================
 
@@ -229,6 +229,7 @@ def results_diagrams(y_auto,y_man):
     plt.subplot(grid[nl,nc],title='Class %d'%i)
     plt.pie(nbs,labels=labels,autopct='%1.1f%%',colors=colors)
 
+  plt.figtext(.1,.9,'(c)',fontsize=16)
   #plt.savefig('../results/Ijen/figures/Unsupervised/unsup_details.png')
   plt.show()
 
@@ -305,9 +306,10 @@ def all_diagrams(y_auto,y_man):
 
     plt.subplot(grid[1,2*i:2*i+2],title='Class %d'%i)
     plt.pie(nbs,labels=labels,autopct='%1.1f%%',colors=colors)
-    plt.axis("equal")
+    #plt.axis("equal")
 
-  plt.figtext(.1,.95,'(a)',fontsize=16)
-  plt.figtext(.1,.5,'(b)',fontsize=16)
-  #plt.savefig('../results/Ijen/figures/Unsupervised/unsup_diagrams.png')
+  plt.figtext(.1,.92,'(a)',fontsize=16)
+  plt.figtext(.55,.92,'(b)',fontsize=16)
+  plt.figtext(.1,.5,'(c)',fontsize=16)
+  #plt.savefig('../results/Ijen/figures/Unsupervised/unsup_diagrams_50f.png')
   plt.show()
