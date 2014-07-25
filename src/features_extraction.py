@@ -202,7 +202,7 @@ def read_data_for_features_extraction(save=False):
           print ifile, file
           if opt.opdict['option'] == 'norm':
             counter = counter + 1
-            dic = extract_norm_features(list_features,date,file,dic,plot=False)
+            dic = extract_norm_features(list_features,date,file,dic)
           elif opt.opdict['option'] == 'hash':
             permut_file = '%s/permut_%s'%(opt.opdict['libdir'],opt.opdict['feat_test'].split('.')[0])
             dic = extract_hash_features(list_features,date,file,dic,permut_file,plot=True)
@@ -224,7 +224,7 @@ def read_data_for_features_extraction(save=False):
 
 # ================================================================
 
-def extract_norm_features(list_features,date,file,dic,plot=False):
+def extract_norm_features(list_features,date,file,dic):
 
     """
     Extraction of all features given by list_features, except hash 

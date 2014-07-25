@@ -375,7 +375,6 @@ def kurto_bandpass(trace,plot=False):
 
   from waveloc.kurtogram import Fast_Kurtogram
 
-  #data = trace.tr[trace.i1:trace.i2]
   data = trace.tr
   N = len(data)
   N2 = np.log2(N)-7
@@ -424,7 +423,7 @@ def spectrogram(trace,plot=False):
   l = cum(b,plot=False)
   nimp = np.argmin(l[:len(l)/2])
   mins = find_local_min(l)*npts/len(time)
-  #print nimp, int(trace.ponset/len(trace.tr)*len(time))
+  tt = np.arange(len(trace.tr))*trace.dt
   if det_ponset:
     l = cum(b,plot=False)
     ponset = np.argmin(l[:len(l)/2])
@@ -434,7 +433,6 @@ def spectrogram(trace,plot=False):
     else:
       trace.i1 = 0
   else:
-    tt = np.arange(len(trace.tr))*trace.dt
     ponset = np.argmin(np.abs(time-tt[trace.ponset]))
 
   #level = 0.02*np.max(b[ponset:ponset+500])
@@ -528,7 +526,8 @@ def spectrogram(trace,plot=False):
     halfbin_freq = (f[1] - f[0]) / 2.0
     extent = (time[0] - halfbin_time, time[-1] + halfbin_time, f[0] - halfbin_freq, f[-1] + halfbin_freq)
 
-    print "Duration :",trace.dur,'s' 
+    print "Duration :",trace.dur,'s'
+    print "Ponset :", trace.ponset 
 
     import matplotlib.pyplot as plt
     import matplotlib.gridspec as gridspec

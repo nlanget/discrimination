@@ -26,11 +26,6 @@ class SeismicTraces():
     self.station = 'BOR'
     self.t0 = 0
     self.starttime = 0
-    self.i1, self.i2 = 0,len(self.tr)-1
-
-    # Compute the spectrum
-    self.spectrum(plot=False)
-
 
   def read_file(self,mat,comp,train):
     if train:
@@ -86,11 +81,6 @@ class SeismicTraces():
       ax2.set_xlim([0,20])
       fig.suptitle(self.tr.stats.station)
       plt.show()
-
-  def duration(self):
-    from waveform_features import signal_duration
-    it0 = (self.t0 - self.starttime) * 1./self.dt
-    self.ponset = signal_duration(self,it0=it0,plot=False)
 
 
   def display_traces(self):
@@ -191,8 +181,10 @@ def read_data_for_features_extraction(set='test',save=False):
 
         if len(list_attr) > 2:
           if opt.opdict['option'] == 'norm':
-            dic = extract_norm_features(s,list_features,dic,plot=False)
+            dic = extract_norm_features(s,list_features,dic)
           elif opt.opdict['option'] == 'hash':
+            if ifile in [409,1026,1027,1028,1993,2121,2122,2123,2424,2441,3029,3058,3735,3785,3852,3930,4200,4463,4464,4746,6150,6382,6672,6733]:
+              continue
             permut_file = '%s/permut_%s'%(opt.opdict['libdir'],opt.opdict['feat_test'].split('.')[0])
             dic = extract_hash_features(s,list_features,dic,permut_file,plot=False)
           df = df.append(dic)
@@ -212,7 +204,7 @@ def read_data_for_features_extraction(set='test',save=False):
         list_attr = s.__dict__.keys()
         if len(list_attr) > 2:
           if opt.opdict['option'] == 'norm':
-            dic = extract_norm_features(s,list_features,dic,plot=False)
+            dic = extract_norm_features(s,list_features,dic)
           elif opt.opdict['option'] == 'hash':
             permut_file = '%s/permut_%s'%(opt.opdict['libdir'],opt.opdict['feat_test'].split('.')[0])
             dic = extract_hash_features(s,list_features,dic,permut_file,plot=False)
@@ -230,7 +222,7 @@ def read_data_for_features_extraction(set='test',save=False):
         list_attr = s.__dict__.keys()
         if len(list_attr) > 2:
           if opt.opdict['option'] == 'norm':
-            dic = extract_norm_features(s,list_features,dic,plot=False)
+            dic = extract_norm_features(s,list_features,dic)
           elif opt.opdict['option'] == 'hash':
             permut_file = '%s/permut_%s'%(opt.opdict['libdir'],opt.opdict['feat_test'].split('.')[0])
             dic = extract_hash_features(s,list_features,dic,permut_file,plot=False)
@@ -242,7 +234,7 @@ def read_data_for_features_extraction(set='test',save=False):
 
 # ================================================================
 
-def extract_norm_features(s,list_features,dic,plot=False):
+def extract_norm_features(s,list_features,dic):
 
     """
     Extraction of all features given by list_features, except hash 
@@ -254,12 +246,11 @@ def extract_norm_features(s,list_features,dic,plot=False):
       for feat in list_features:
         dic[feat] = np.nan
       return dic
-    # Determine P-onset
-    s.duration()
+
     #s.display_traces()
     #s.amplitude_distribution()
 
-    if len(list_attr) > 7:
+    if len(list_attr) > 6:
 
       if 'Dur' in list_features:
         # Mean of the predominant frequency
@@ -268,6 +259,8 @@ def extract_norm_features(s,list_features,dic,plot=False):
         for i in range(len(vals)):
           dic['v%d'%i] = vals[i]
         dic['Dur'] = s.dur
+
+      s.spectrum(plot=False)
 
       if 'Acorr' in list_features:
         from waveform_features import autocorrelation,filt_ratio
