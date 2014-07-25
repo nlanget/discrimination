@@ -43,18 +43,8 @@ def classifier(opt):
     if len(opt.xs[isc]) == 0:
       continue
 
-    opt.x = opt.xs[isc]
-    opt.y = opt.ys[isc]
 
-    set = pd.DataFrame(index=opt.ys[isc].index,columns=['Otime'])
-    set['Otime'] = opt.xs[isc].index
-
-    opt.classname2number()
-    x_test = opt.x
-    y_ref = opt.y
-
-    K = len(opt.types)
-
+    # About the training set
     if len(opt.opdict['stations']) == 1 and opt.opdict['boot'] > 1 and 'train_x' not in list_attr:
       if os.path.exists(opt.opdict['train_file']):
         TRAIN_Y = opt.read_binary_file(opt.opdict['train_file'])
@@ -63,9 +53,29 @@ def classifier(opt):
     elif 'train_x' in list_attr:
       opt.x = opt.xs_train[isc]
       opt.y = opt.ys_train[isc]
+      if opt.opdict['plot_pdf']:
+        opt.compute_pdfs()
+        g_train = opt.gaussians
+        del opt.gaussians
       opt.classname2number()
       x_train = opt.x
       y_train = opt.y
+
+
+    # About the test set
+    opt.x = opt.xs[isc]
+    opt.y = opt.ys[isc]
+    if opt.opdict['plot_pdf']:
+      opt.compute_pdfs()
+ 
+    set = pd.DataFrame(index=opt.ys[isc].index,columns=['Otime'])
+    set['Otime'] = opt.xs[isc].index
+
+    opt.classname2number()
+    x_test = opt.x
+    y_ref = opt.y
+
+    K = len(opt.types)
 
     for b in range(opt.opdict['boot']):
       print "\n-------------------- # iter: %d --------------------\n"%(b+1)
@@ -123,7 +133,10 @@ def classifier(opt):
         sys.exit()
 
       if opt.opdict['plot_pdf']:
-        opt.plot_all_pdfs(save=opt.opdict['save_pdf'])
+        if 'train_x' in list_attr:
+          opt.plot_superposed_pdfs(g_train,save=opt.opdict['save_pdf'])
+        else:
+          opt.plot_all_pdfs(save=opt.opdict['save_pdf'])
 
       if opt.opdict['method'] == '1b1':
         # EXTRACTEURS

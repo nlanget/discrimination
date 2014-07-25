@@ -27,7 +27,7 @@ class Options(object):
     self.opdict['method'] = 'lr' # could be 'lr' (logistic regression),'svm' (Support Vector Machine from scikit.learn package),'ova' (1-vs-all extractor), '1b1' (1-by-1 extractor), 'lrsk' (Logistic regression from scikit.learn package)
     self.opdict['boot'] = 1 # number of iterations (a new training set is generated at each 'iteration')
     self.opdict['train_file'] = '%s/train_%d'%(self.opdict['libdir'],self.opdict['boot'])
-    self.opdict['plot_pdf'] = False # display the pdfs of the features
+    self.opdict['plot_pdf'] = True # display the pdfs of the features
     self.opdict['save_pdf'] = False
     self.opdict['plot_confusion'] = True # display the confusion matrices
     self.opdict['save_confusion'] = False
@@ -65,8 +65,8 @@ class Options(object):
 
   def ijen(self):
     self.opdict['network'] = 'ID'
-    #self.opdict['stations'] = ['IJEN']
-    self.opdict['stations'] = ['DAM','IBLW','IGEN','IJEN','IMLB','IPAL','IPLA','IPSW','KWUI','MLLR','POS','POSI','PSG','PUN','RAUN','TRWI']
+    self.opdict['stations'] = ['IJEN']
+    #self.opdict['stations'] = ['DAM','IBLW','IGEN','IJEN','IMLB','IPAL','IPLA','IPSW','KWUI','MLLR','POS','POSI','PSG','PUN','RAUN','TRWI']
     self.opdict['Types'] = ['Hembusan','Hibrid','LF','Longsoran','Tektonik','Tremor','VulkanikA','VulkanikB']
     #self.opdict['Types'] = ['Tremor','VulkanikB','?']
     self.opdict['datadir'] = os.path.join('../data',self.opdict['dir'],self.opdict['network'])
@@ -250,7 +250,7 @@ class Options(object):
 
     dic={}
     for t in self.types:
-      dic[t] = self.x[self.y.Type == t]
+      dic[t] = self.x[self.y.Type==t]
 
     self.gaussians = {}
     for feat in self.opdict['feat_list']:
@@ -296,6 +296,31 @@ class Options(object):
         plt.hist(list,normed=True,alpha=.2)
       plt.title(feat)
       plt.legend(self.types)
+      if save:
+        plt.savefig('../results/%s/figures/fig_%s.png'%(self.opdict['dir'],feat))
+      plt.show()
+
+
+  def plot_superposed_pdfs(self,g,save=False):
+    """
+    Plots two kinds of pdfs (for example, the test set ones with the training set)
+    """
+    if not hasattr(self,'gaussians'):
+      self.compute_pdfs()
+
+    if list(sorted(g)) != list(sorted(self.gaussians)):
+      print "WARNING !! Not the same features in gaussians..."
+      sys.exit()
+
+    colors = ['r','b','g','m','c','y','k']
+    for feat in sorted(self.gaussians):
+      fig = plt.figure()
+      fig.set_facecolor('white') 
+      for it,t in enumerate(self.types):
+        plt.plot(self.gaussians[feat]['vec'],self.gaussians[feat][t],c=colors[it],label=t)
+        plt.plot(g[feat]['vec'],g[feat][t],ls='--',c=colors[it])
+      plt.title(feat)
+      plt.legend()
       if save:
         plt.savefig('../results/%s/figures/fig_%s.png'%(self.opdict['dir'],feat))
       plt.show()
