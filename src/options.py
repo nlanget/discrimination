@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 
 class Options(object):
 
-
   def __init__(self):
 
     self.opdict = {}
@@ -15,7 +14,7 @@ class Options(object):
 
     # Define directories and paths
     self.opdict['dir'] = 'Piton'
-    self.opdict['channels'] = ['Z','N','E']
+    self.opdict['channels'] = ['Z']
 
     self.opdict['libdir'] = os.path.join('../lib',self.opdict['dir'])
     self.opdict['outdir'] = os.path.join('../results',self.opdict['dir'])
@@ -49,7 +48,7 @@ class Options(object):
 
     if self.opdict['option'] == 'hash':
       # Hashing
-      self.opdict['feat_test'] = 'HT_ijen_%02d%02d.csv'%(date.tm_mday,date.tm_mon)
+      self.opdict['feat_test'] = 'HT_%02d%02d.csv'%(date.tm_mday,date.tm_mon)
       self.opdict['feat_list'] = map(str,range(50))
 
     self.opdict['feat_filepath'] = '%s/features/%s'%(self.opdict['outdir'],self.opdict['feat_test'])

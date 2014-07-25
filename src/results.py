@@ -6,8 +6,12 @@ import pandas as pd
 import os,sys,glob
 from options import MultiOptions
 
-class AnalyseResults(MultiOptions):
 
+class AnalyseResults(MultiOptions):
+  """
+  Functions to analyse and interpret the classification results from a result file.
+  For logistic regression and SVM only.
+  """
   def __init__(self):
     MultiOptions.__init__(self)
 
@@ -138,7 +142,7 @@ class AnalyseResults(MultiOptions):
 
   def plot_confusion(self):
     """
-    Plots the confusion matrix (test set).
+    Plots the confusion matrix (test set only).
     """
     from do_classification import confusion
     import matplotlib.pyplot as plt

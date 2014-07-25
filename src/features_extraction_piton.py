@@ -214,7 +214,7 @@ def read_data_for_features_extraction(set='test',save=False):
           if opt.opdict['option'] == 'norm':
             dic = extract_norm_features(s,list_features,dic,plot=False)
           elif opt.opdict['option'] == 'hash':
-            permut_file = '%s/permut_%s'%(opt.opdict['libdir'],opt.opdict['feat_train'].split('.')[0])
+            permut_file = '%s/permut_%s'%(opt.opdict['libdir'],opt.opdict['feat_test'].split('.')[0])
             dic = extract_hash_features(s,list_features,dic,permut_file,plot=False)
           df = df.append(dic)
       neb = i+1
@@ -232,7 +232,7 @@ def read_data_for_features_extraction(set='test',save=False):
           if opt.opdict['option'] == 'norm':
             dic = extract_norm_features(s,list_features,dic,plot=False)
           elif opt.opdict['option'] == 'hash':
-            permut_file = '%s/permut_%s'%(opt.opdict['libdir'],opt.opdict['feat_train'].split('.')[0])
+            permut_file = '%s/permut_%s'%(opt.opdict['libdir'],opt.opdict['feat_test'].split('.')[0])
             dic = extract_hash_features(s,list_features,dic,permut_file,plot=False)
           df = df.append(dic)
 
@@ -430,4 +430,4 @@ def extract_hash_features(s,list_features,dic,permut_file,plot=False):
 
 # ================================================================
 if __name__ == '__main__':
-  read_data_for_features_extraction(set='train',save=True)
+  read_data_for_features_extraction(set='test',save=True)

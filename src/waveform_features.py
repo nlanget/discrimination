@@ -123,7 +123,8 @@ def filt_ratio(trace,plot=False):
 
 def signal_duration(trace,it0=None,plot=False):
   """
-  Returns the signal duration of a trace
+  Returns the signal duration of a trace.
+  The P-onset is taken as the maximum of the kurtosis gradient.
   from Hibert 2012
   """
 
