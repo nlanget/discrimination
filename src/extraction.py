@@ -396,7 +396,7 @@ def plot_curves_bis(DIC,cl):
 def read_extraction_results(filename):
 
   from results import AnalyseResultsExtraction
-  res = AnalyseResultsExtraction(opt='norm')
+  res = AnalyseResultsExtraction()
 
   from obspy.core import utcdatetime,read
 
