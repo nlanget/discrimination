@@ -7,6 +7,12 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+"""
+Functions adapted to Piton de la Fournaise volcano dataset.
+*.mat files
+"""
+
+
 class SeismicTraces():
 
   """
@@ -149,7 +155,7 @@ def read_data_for_features_extraction(set='test',save=False):
   """
   from scipy.io.matlab import mio
   from options import MultiOptions
-  opt = MultiOptions(opt='norm')
+  opt = MultiOptions()
 
   if save:
     if os.path.exists(opt.opdict['feat_filepath']):
@@ -167,7 +173,7 @@ def read_data_for_features_extraction(set='test',save=False):
     liste = map(int,liste) # sort the list of file following the event number
     liste.sort()
 
-    tsort = opt.read_csvfile(opt.opdict['label_filename_test'])
+    tsort = opt.read_csvfile(opt.opdict['label_filename'])
     tsort.index = tsort.Date
 
     for ifile,numfile in enumerate(liste):
@@ -178,14 +184,18 @@ def read_data_for_features_extraction(set='test',save=False):
       for comp in ['Z','E','N']:
         ind = (numfile,'BOR',comp)
         dic = pd.DataFrame(columns=list_features,index=[ind])
-        dic['EventType'] = tsort.Type[tsort.Date==numfile]
+        dic['EventType'] = tsort[tsort.Date==numfile].Type.values[0]
         dic['Ponset'] = 0
 
         s = SeismicTraces(mat,comp)
         list_attr = s.__dict__.keys()
 
         if len(list_attr) > 2:
-          dic = extract_norm_features(s,list_features,numfile,dic,plot=False)
+          if opt.opdict['option'] == 'norm':
+            dic = extract_norm_features(s,list_features,dic,plot=False)
+          elif opt.opdict['option'] == 'hash':
+            permut_file = '%s/permut_%s'%(opt.opdict['libdir'],opt.opdict['feat_test'].split('.')[0])
+            dic = extract_hash_features(s,list_features,dic,permut_file,plot=True)
           df = df.append(dic)
 
   elif set == 'train':
@@ -202,7 +212,11 @@ def read_data_for_features_extraction(set='test',save=False):
         s = SeismicTraces(mat,comp,train=[i,'EB'])
         list_attr = s.__dict__.keys()
         if len(list_attr) > 2:
-          dic = extract_norm_features(s,list_features,i,dic,plot=False)
+          if opt.opdict['option'] == 'norm':
+            dic = extract_norm_features(s,list_features,dic,plot=False)
+          elif opt.opdict['option'] == 'hash':
+            permut_file = '%s/permut_%s'%(opt.opdict['libdir'],opt.opdict['feat_train'].split('.')[0])
+            dic = extract_hash_features(s,list_features,dic,permut_file,plot=True)
           df = df.append(dic)
       neb = i+1
 
@@ -216,7 +230,11 @@ def read_data_for_features_extraction(set='test',save=False):
         s = SeismicTraces(mat,comp,train=[i,'VT'])
         list_attr = s.__dict__.keys()
         if len(list_attr) > 2:
-          dic = extract_norm_features(s,list_features,i,dic,plot=False)
+          if opt.opdict['option'] == 'norm':
+            dic = extract_norm_features(s,list_features,dic,plot=False)
+          elif opt.opdict['option'] == 'hash':
+            permut_file = '%s/permut_%s'%(opt.opdict['libdir'],opt.opdict['feat_train'].split('.')[0])
+            dic = extract_hash_features(s,list_features,dic,permut_file,plot=True)
           df = df.append(dic)
 
   if save:
@@ -225,7 +243,7 @@ def read_data_for_features_extraction(set='test',save=False):
 
 # ================================================================
 
-def extract_norm_features(s,list_features,date,dic,plot=False):
+def extract_norm_features(s,list_features,dic,plot=False):
 
     """
     Extraction of all features given by list_features, except hash 
@@ -374,13 +392,12 @@ def hob(hobs,y_train,y_test,x_train,x_test):
 
 # ================================================================
 
-def extract_hash_features(list_features,date,file,dic,permut_file,plot=False):
+def extract_hash_features(s,list_features,dic,permut_file,plot=False):
   """
   Extracts hash table values.
   """
   from fingerprint_functions import FuncFingerprint, spectrogram, ponset_stack, vec_compute_signature, LSH
 
-  s = SeismicTraces(file,utcdatetime.UTCDateTime(str(date)))
   list_attr = s.__dict__.keys()
   if 'tr_grad' not in list_attr:
     for feat in list_features:
