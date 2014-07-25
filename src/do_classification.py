@@ -77,6 +77,7 @@ def classifier(opt):
 
     K = len(opt.types)
 
+
     for b in range(opt.opdict['boot']):
       print "\n-------------------- # iter: %d --------------------\n"%(b+1)
 
@@ -109,13 +110,11 @@ def classifier(opt):
       set[b][in_train] = 1
 
       y_train = y.copy()
-      x_train = opt.x.reindex(index=y_train.index)
-      if list(x_test.index) != list(y_test.index):
-        x_test = opt.x.reindex(index=y_test.index)
+      x_train = x_train.reindex(index=y_train.index)
+      x_test = x_test.reindex(index=y_test.index)
 
       print "# types in the test set:",len(np.unique(y_test.values.ravel()))
       print "# types in the training set:",len(np.unique(y_train.values.ravel()))
-
       x_train.index = range(x_train.shape[0])
       y_train.index = range(y_train.shape[0])
       print x_train.shape, y_train.shape
