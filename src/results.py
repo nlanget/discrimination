@@ -8,8 +8,8 @@ from options import MultiOptions
 
 class AnalyseResults(MultiOptions):
 
-  def __init__(self,opt):
-    MultiOptions.__init__(self,opt)
+  def __init__(self):
+    MultiOptions.__init__(self)
 
     self.opdict['class_auto_file'] = 'auto_class.csv'
     self.opdict['class_auto_path'] = '%s/%s/%s'%(self.opdict['outdir'],self.opdict['method'].upper(),self.opdict['class_auto_file'])
@@ -163,8 +163,8 @@ class AnalyseResults(MultiOptions):
 
 class AnalyseResultsExtraction(MultiOptions):
 
-  def __init__(self,opt):
-    MultiOptions.__init__(self,opt)
+  def __init__(self):
+    MultiOptions.__init__(self)
     self.results = self.read_binary_file(self.opdict['result_path'])
     self.opdict['feat_list'] = self.results['features']
     del self.results['features']

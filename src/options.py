@@ -7,9 +7,11 @@ import matplotlib.pyplot as plt
 class Options(object):
 
 
-  def __init__(self,opt='norm'):
+  def __init__(self):
 
     self.opdict = {}
+
+    self.opdict['option'] = 'hash' # could be 'norm' for classical seismic attributes or 'hash' for hash tables
 
     # Define directories and paths
     self.opdict['dir'] = 'Piton'
@@ -27,26 +29,25 @@ class Options(object):
     self.opdict['method'] = 'lr' # could be 'lr' (logistic regression),'svm' (Support Vector Machine from scikit.learn package),'ova' (1-vs-all extractor), '1b1' (1-by-1 extractor), 'lrsk' (Logistic regression from scikit.learn package)
     self.opdict['boot'] = 1 # number of iterations (a new training set is generated at each 'iteration')
     self.opdict['train_file'] = '%s/train_%d'%(self.opdict['libdir'],self.opdict['boot'])
-    self.opdict['plot_pdf'] = True # display the pdfs of the features
+    self.opdict['plot_pdf'] = False # display the pdfs of the features
     self.opdict['save_pdf'] = False
     self.opdict['plot_confusion'] = True # display the confusion matrices
     self.opdict['save_confusion'] = False
 
-    self.opdict['option'] = opt
-
     import time
     date = time.localtime()
-    if opt == 'norm':
+    if self.opdict['option'] == 'norm':
       # Features "normales"
       #self.opdict['feat_test'] = '%s_%02d%02d.csv'%(self.opdict['dir'],date.tm_mday,date.tm_mon)
-      self.opdict['feat_list'] = ['AsDec','Bandwidth','CentralF','Centroid_time','Dur','Ene20-30','Ene5-10','Ene0-5','F_low','F_up','Growth','IFslope','Kurto','MeanPredF','NbPeaks','PredF','RappMaxMean','RappMaxMeanTF','Skewness','sPredF','TimeMaxSpec','Width','ibw0','ibw1','ibw2','ibw3','ibw4','ibw5','ibw6','ibw7','ibw8','ibw9','if0','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9']
+      #self.opdict['feat_list'] = ['AsDec','Bandwidth','CentralF','Centroid_time','Dur','Ene20-30','Ene5-10','Ene0-5','F_low','F_up','Growth','IFslope','Kurto','MeanPredF','NbPeaks','PredF','RappMaxMean','RappMaxMeanTF','Skewness','sPredF','TimeMaxSpec','Width','ibw0','ibw1','ibw2','ibw3','ibw4','ibw5','ibw6','ibw7','ibw8','ibw9','if0','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9']
       #self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Growth','Kurto','RappMaxMean','RappMaxMeanTF','Skewness','TimeMaxSpec','Width']
       #self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Kurto','RappMaxMean','Skewness','TimeMaxSpec']
       #self.opdict['feat_list'] = ['Dur','F_up','Growth','Kurto','RappMaxMean','RappMaxMeanTF','TimeMaxSpec','Width']
       #self.opdict['feat_list'] = ['CentralF','Centroid_time','Dur','Ene0-5','F_up','Growth','IFslope','Kurto','MeanPredF','RappMaxMean','RappMaxMeanTF','Skewness','TimeMaxSpec','Width','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9']
       #self.opdict['feat_list_reclass'] = ['CentralF','Centroid_time','Dur','Ene0-5','F_up','Growth','Kurto','RappMaxMean','Skewness','TimeMaxSpec','ibw0','ibw1','ibw2','ibw3','ibw4','ibw5','ibw6','ibw7','ibw8','ibw9','if0','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9']
+      self.opdict['feat_list'] = ['Dur','Kurto','MeanPredF','Skewness']
 
-    if opt == 'hash':
+    if self.opdict['option'] == 'hash':
       # Hashing
       self.opdict['feat_test'] = 'HT_ijen_%02d%02d.csv'%(date.tm_mday,date.tm_mon)
       self.opdict['feat_list'] = map(str,range(50))
@@ -314,6 +315,8 @@ class Options(object):
 
     colors = ['r','b','g','m','c','y','k']
     for feat in sorted(self.gaussians):
+      if feat == 'NbPeaks':
+        continue
       fig = plt.figure()
       fig.set_facecolor('white') 
       for it,t in enumerate(self.types):
@@ -360,8 +363,8 @@ class Options(object):
 
 class MultiOptions(Options):
 
-  def __init__(self,opt):
-    Options.__init__(self,opt)
+  def __init__(self):
+    Options.__init__(self)
 
 
   def do_tri(self):

@@ -15,26 +15,27 @@ def run_test():
 def run_all():
 
   from options import MultiOptions
-  opt = MultiOptions(opt='norm')
+  opt = MultiOptions()
+  #opt.count_number_of_events()
  
   from do_classification import classifier
-  #classifier(opt)
+  classifier(opt)
 
   if opt.opdict['method'] == 'lr' or opt.opdict['method'] == 'svm' or opt.opdict['method'] == 'lrsk':
     from results import AnalyseResults
-    res = AnalyseResults(opt='norm')
+    res = AnalyseResults()
     if res.opdict['plot_confusion']:
       res.plot_confusion()
 
   else:
     from results import AnalyseResultsExtraction
-    res = AnalyseResultsExtraction(opt='norm')
+    res = AnalyseResultsExtraction()
 
 
 def run_unsupervised():
 
   from options import MultiOptions
-  opt = MultiOptions(opt='norm')
+  opt = MultiOptions()
   opt.opdict['method'] = 'kmean'
 
   from unsupervised import classifier
@@ -43,6 +44,6 @@ def run_unsupervised():
 
 if __name__ == '__main__':
   #run_test()
-  #run_all()
-  run_unsupervised()
+  run_all()
+  #run_unsupervised()
 

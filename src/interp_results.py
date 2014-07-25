@@ -52,7 +52,9 @@ def plot_on_pdf(opt):
         list_coord = [m.Type[list_dates].values,df[feat].values,a.Type[list_dates].values]
         list_coord = np.array(list_coord)
         opt.plot_one_pdf(feat,list_coord)
+
 # ================================================================
+ 
 def plot_waveforms(opt):
   """
   Affiche les formes d'ondes des événements manuels indéterminés 
@@ -88,22 +90,22 @@ def compare_pdfs_reclass():
   Affiche et compare les pdfs avant et après reclassification automatique.
   """
   from results import AnalyseResults
-  opt = AnalyseResults(opt='norm')
+  opt = AnalyseResults()
 
   opt.opdict['stations'] = ['IJEN']
   opt.opdict['channels'] = ['Z']
   opt.opdict['Types'] = ['Tremor','VulkanikB','?']
-  opt.opdict['feat_list'] = ['Dur','F_up','Growth','Kurto','RappMaxMean','RappMaxMeanTF','TimeMaxSpec','Width']
+  opt.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Growth','Kurto','RappMaxMean','RappMaxMeanTF','Skewness','TimeMaxSpec','Width']
 
   for sta in opt.opdict['stations']:
     for comp in opt.opdict['channels']:
-      opt.opdict['label_filename'] = '%s/Ijen_reclass_all.csv'%opt.opdict['libdir']
+      opt.opdict['label_filename'] = '%s/Ijen_3class_all.csv'%opt.opdict['libdir']
       opt.x, opt.y = opt.features_onesta(sta,comp)
       opt.classname2number()
       opt.compute_pdfs()
       g1 = opt.gaussians
 
-      opt.opdict['label_filename'] = '%s/Ijen_reclass_all_SVM.csv'%opt.opdict['libdir']
+      opt.opdict['label_filename'] = '%s/Ijen_reclass_all.csv'%opt.opdict['libdir']
       opt.x, opt.y = opt.features_onesta(sta,comp)
       opt.classname2number()
       opt.compute_pdfs()
@@ -115,9 +117,10 @@ def compare_pdfs_reclass():
         fig.set_facecolor('white')
         for it,t in enumerate(opt.types):
           plt.plot(g1[feat]['vec'],g1[feat][t],ls='-',color=c[it],label=t)
-          plt.plot(g2[feat]['vec'],g2[feat][t],ls='--',color=c[it],label=t)
+          plt.plot(g2[feat]['vec'],g2[feat][t],ls='--',color=c[it])
         plt.title(feat)
         plt.legend()
+        #plt.savefig('../results/Ijen/comp_BrutReclass_%s.png'%feat)
         plt.show()
       
 # ================================================================
@@ -127,7 +130,7 @@ def compare_pdfs_train():
   Affiche et compare les pdfs des différents training sets.
   """
   from options import MultiOptions
-  opt = MultiOptions(opt='norm')
+  opt = MultiOptions()
 
   opt.opdict['stations'] = ['IJEN']
   opt.opdict['channels'] = ['Z']
@@ -175,8 +178,8 @@ def plot_test_vs_train():
   """
   import cPickle
   path = '../results/Ijen'
-  filenames = ['SVM/results_ijen_3006_svm_3class_3c_8f','SVM/results_ijen_3006_svm_3classSVM_3c_8f','SVM/results_ijen_3006_svm_reclass_3c_8f','SVM/results_ijen_3006_svm_reclassSVM_3c_8f']
-  labels = ['SVM 3cl','SVM 3cl new','SVM 3cl reclass', 'SVM 3cl reclass new']
+  filenames = ['SVM/results_svm_8c_52f','SVM/results_svm_8c_52f_trFix','SVM/results_svm_8c_8f','SVM/results_svm_8c_8f_trFix']
+  labels = ['SVM prop','SVM fix','SVM prop 8f','SVM fix 8f']
 
   fig = plt.figure()
   fig.set_facecolor('white')
@@ -209,17 +212,17 @@ def plot_test_vs_train():
   plt.figtext(.7,.15,'Sur-apprentissage')
   plt.xlabel('% training set')
   plt.ylabel('% test set')
-  plt.savefig('../results/Ijen/figures/tir_3class.png')
+  #plt.savefig('../results/Ijen/figures/SVM_training.png')
   plt.show()
 
 
 if __name__ == '__main__':
   from results import AnalyseResults
-  res = AnalyseResults(opt='norm')
+  res = AnalyseResults()
 
-  #plot_test_vs_train()
+  plot_test_vs_train()
   #new_catalogue(res)
   #plot_on_pdf(res)
   #plot_waveforms(res)
   #compare_pdfs_reclass()
-  compare_pdfs_train()
+  #compare_pdfs_train()
