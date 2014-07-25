@@ -164,7 +164,7 @@ def read_data_for_features_extraction(save=False):
   If option 'save' is set, then save the pandas DataFrame as a .csv file
   """
   from options import MultiOptions
-  opt = MultiOptions(opt='hash')
+  opt = MultiOptions()
 
   if save:
     if os.path.exists(opt.opdict['feat_filepath']):
@@ -190,7 +190,7 @@ def read_data_for_features_extraction(save=False):
     for sta in list_sta:
       print "#####",sta
       counter = 0
-      for comp in ['Z','E','N']:
+      for comp in opt.opdict['channels']:
         ind = (date,sta,comp)
         dic = pd.DataFrame(columns=list_features,index=[ind])
         dic['EventType'] = type
@@ -378,7 +378,7 @@ def extract_hash_features(list_features,date,file,dic,permut_file,plot=False):
   """
   Extracts hash table values.
   """
-  from fingerprint_functions import FuncFingerprint, spectrogram, ponset_stack, vec_compute_signature, LSH
+  from fingerprint_functions import FuncFingerprint, spectrogram, ponset_grad, vec_compute_signature, LSH
 
   s = SeismicTraces(file,utcdatetime.UTCDateTime(str(date)))
   list_attr = s.__dict__.keys()
@@ -391,7 +391,7 @@ def extract_hash_features(list_features,date,file,dic,permut_file,plot=False):
   grad = s.tr_grad
   q = [100.,.8,1]
   (full_spectro,f,full_time,end) = spectrogram(full_tr,param=q)
-  ponset = ponset_stack(full_tr,grad,full_time,plot=plot)
+  ponset = ponset_grad(full_tr,grad,full_time,plot=plot)
   
   idebut = ponset-int(2*full_spectro.shape[1]/full_time[-1])
   print ponset, idebut

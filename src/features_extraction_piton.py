@@ -12,7 +12,6 @@ Functions adapted to Piton de la Fournaise volcano dataset.
 *.mat files
 """
 
-
 class SeismicTraces():
 
   """
@@ -181,7 +180,7 @@ def read_data_for_features_extraction(set='test',save=False):
       print ifile,file
       mat = mio.loadmat(file)
 
-      for comp in ['Z','E','N']:
+      for comp in opt.opdict['channels']:
         ind = (numfile,'BOR',comp)
         dic = pd.DataFrame(columns=list_features,index=[ind])
         dic['EventType'] = tsort[tsort.Date==numfile].Type.values[0]
@@ -195,7 +194,7 @@ def read_data_for_features_extraction(set='test',save=False):
             dic = extract_norm_features(s,list_features,dic,plot=False)
           elif opt.opdict['option'] == 'hash':
             permut_file = '%s/permut_%s'%(opt.opdict['libdir'],opt.opdict['feat_test'].split('.')[0])
-            dic = extract_hash_features(s,list_features,dic,permut_file,plot=True)
+            dic = extract_hash_features(s,list_features,dic,permut_file,plot=False)
           df = df.append(dic)
 
   elif set == 'train':
@@ -204,7 +203,7 @@ def read_data_for_features_extraction(set='test',save=False):
     hob_all_EB = {}
     for i in range(mat['KurtoEB'].shape[1]):
       print "EB", i
-      for comp in ['Z','E','N']:
+      for comp in opt.opdict['channels']:
         dic = pd.DataFrame(columns=list_features,index=[(i,'BOR',comp)])
         dic['EventType'] = 'EB'
         dic['Ponset'] = 0
@@ -216,13 +215,13 @@ def read_data_for_features_extraction(set='test',save=False):
             dic = extract_norm_features(s,list_features,dic,plot=False)
           elif opt.opdict['option'] == 'hash':
             permut_file = '%s/permut_%s'%(opt.opdict['libdir'],opt.opdict['feat_train'].split('.')[0])
-            dic = extract_hash_features(s,list_features,dic,permut_file,plot=True)
+            dic = extract_hash_features(s,list_features,dic,permut_file,plot=False)
           df = df.append(dic)
       neb = i+1
 
     for i in range(mat['KurtoVT'].shape[1]):
       print "VT", i+neb
-      for comp in ['Z','E','N']:
+      for comp in opt.opdict['channels']:
         dic = pd.DataFrame(columns=list_features,index=[(i+neb,'BOR',comp)])
         dic['EventType'] = 'VT'
         dic['Ponset'] = 0
@@ -234,7 +233,7 @@ def read_data_for_features_extraction(set='test',save=False):
             dic = extract_norm_features(s,list_features,dic,plot=False)
           elif opt.opdict['option'] == 'hash':
             permut_file = '%s/permut_%s'%(opt.opdict['libdir'],opt.opdict['feat_train'].split('.')[0])
-            dic = extract_hash_features(s,list_features,dic,permut_file,plot=True)
+            dic = extract_hash_features(s,list_features,dic,permut_file,plot=False)
           df = df.append(dic)
 
   if save:
@@ -341,8 +340,6 @@ def extract_norm_features(s,list_features,dic,plot=False):
       if 'IFslope' in list_features:
         # Average of the instantaneous frequency and slope of the unwrapped instantaneous phase
         from waveform_features import instant_freq
-        #p,pf = instant_freq(s.tr[s.i1:s.i2],s.dt,s.TF,plot=False)
-        #dic['IFslope'] = np.mean((p,pf[len(pf)-1]))
         vals, dic['IFslope'] = instant_freq(s.tr[s.i1:s.i2],s.dt,s.TF,s.ponset,s.tend,plot=False)
         for i in range(len(vals)):
           dic['if%d'%i] = vals[i]
@@ -360,35 +357,8 @@ def extract_norm_features(s,list_features,dic,plot=False):
         from waveform_features import around_freq
         dic['PredF'], dic['Bandwidth'], dic['CentralF'] = around_freq(s.TF,s.freqs,plot=False)
 
-      if 'Cepstrum' in list_features:
-        # Cepstrum
-        from waveform_features import cepstrum
-        #dic['Cepstrum'] = cepstrum(s.TF,s.freqs,plot=True)
-        cep = cepstrum(s.TF,s.freqs,plot=False)
-
       dic['Ponset'] = s.ponset
       return dic
-
-# ================================================================
-
-def hob(hobs,y_train,y_test,x_train,x_test):
-
-  med = {}
-  for i in range(len(np.unique(y_test))):
-    a = y_train[y_train.EventType==i].index
-    for j in range(len(hobs.keys())):
-      print type(hobs[j])
-      c = np.array(hobs[j])
-      med[(i,j)] = np.median(c[a],axis=0)
-
-  for i in range(len(np.unique(y_test))):
-    corr = []
-    for j in range(len(hobs.keys())):
-      for k in range(len(np.unique(y_test))):
-        a = y_test[y_test.EventType==k].index
-        corr.append(np.corrcoef(med[i,j],hobs[j][a]))
-      print corr
-      raw_input("Pause")
 
 # ================================================================
 
@@ -408,8 +378,9 @@ def extract_hash_features(s,list_features,dic,permut_file,plot=False):
   grad = s.tr_grad
   q = [100.,.8,1]
   (full_spectro,f,full_time,end) = spectrogram(full_tr,param=q)
-  ponset = ponset_stack(full_tr,grad,full_time,plot=plot)
-  
+  ponset = ponset_stack(full_tr,full_spectro,full_time,plot=plot)
+  dic['Ponset'] = ponset
+ 
   idebut = ponset-int(2*full_spectro.shape[1]/full_time[-1])
   print ponset, idebut
   if idebut < 0:
@@ -459,4 +430,4 @@ def extract_hash_features(s,list_features,dic,permut_file,plot=False):
 
 # ================================================================
 if __name__ == '__main__':
-  read_data_for_features_extraction(set='test',save=True)
+  read_data_for_features_extraction(set='train',save=True)

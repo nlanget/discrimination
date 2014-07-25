@@ -43,12 +43,21 @@ def spectrogram(trace,param=[200.,.6,2]):
 
 
 def smallest_pow2(x):
+  """
+  Returns the smallest power of 2 close to a number x.
+  """
   from math import pow,ceil,floor
   return pow(2,floor(np.log2(x)))
 
 # ***********************************************************
 
-def ponset_stack(x,grad,time,plot=False):
+def ponset_grad(x,grad,time,plot=False):
+  """
+  Returns the P-onset of a signal x.
+  The P-onset occurs when the maximum of the kurtosis gradient is reached.
+  grad = kurtosis gradient of the signal
+  time = time vector
+  """
   pas = .01
   t = np.arange(0,len(x)*pas,pas)
   ponset = np.argmax(grad)
@@ -63,6 +72,66 @@ def ponset_stack(x,grad,time,plot=False):
   return ponset
 
 # ***********************************************************
+
+def ponset_stack(x,mat,t,plot=False):
+  """
+  Returns the P-onset of a signal x.
+  The P-onset is determined by stacking the frequency values of the spectrogram.
+  mat = spectrogram
+  t = time vector
+  """
+  stack = np.sum(mat,axis=0)
+  s = np.cumsum(stack)
+  p = np.polyfit(range(len(stack)),s,deg=1)
+  line = p[0]*np.arange(len(stack))+p[1]
+  l = s-line
+ 
+  mins = find_local_min(l[:len(l)/2])
+  if list(mins):
+    ponset = mins[np.argmin(l[mins])]
+  if not list(mins) or t[ponset] < t[-1]*1./10:
+    mins = find_local_min(l)
+  ponset = mins[np.argmin(l[mins])]
+  while t[ponset] < t[-1]*1./10 and len(mins) > 1:
+    mins = np.delete(mins,np.argmin(l[mins]))
+    if list(mins):
+      ponset = mins[np.argmin(l[mins])]
+    else:
+      return None
+
+  if plot:
+    fig = plt.figure()
+    fig.set_facecolor('white')
+    ax1 = fig.add_subplot(211)
+    ax1.plot(x,'k')
+    ax2 = fig.add_subplot(212)
+    ax2.plot(t,stack/np.max(mat),'k')
+    ax2.plot(t,s/np.max(s),'y')
+    ax2.plot(t,line/np.max(line),'b')
+    ax2.plot(t,l/np.max(l),'r')
+    ax2.plot(t[mins],l[mins]/np.max(l),'ro')
+    ax2.plot([t[ponset],t[ponset]],[0,np.max(stack/np.max(mat))],'g-',lw=2.)
+
+  return ponset
+
+
+def find_local_min(a):
+  """
+  Returns the local minima of a function.
+  """
+  gradients = np.diff(a)
+
+  mins = np.array([],dtype=int)
+  count = 0
+  for i in gradients[:-1]:
+    count+=1
+    if ((cmp(i,0)<0) & (cmp(gradients[count],0)>0) & (i != gradients[count])):
+      mins = np.append(mins,count)
+
+  return mins
+
+# ***********************************************************
+
 def DecompositionStep(c):
   """
   Computation of the normalized coefficients in the Haar basis.
