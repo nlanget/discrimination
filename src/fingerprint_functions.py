@@ -331,6 +331,10 @@ def FuncFingerprint(mat,time,tr,f,end,plot=False,error=False):
 # ***********************************************************
 
 def define_permutation(size,Nperm):
+  """
+  Creates a matrix containing the permutation indexes.
+  Nperm is the number of permutation.
+  """
   permut = []
   for i in range(Nperm):
     permut.append(np.random.permutation(size))
@@ -343,7 +347,9 @@ def vec_compute_signature(vec,permut):
   l = len(vec)  # length of the vector
   
   if permut.shape[1] != l:
-    print "Warning - check lengths"
+    print "WARNING - check lengths of the permutation vector"
+    print "\tLength of the data vector : %d"%l
+    print "\tLength of the permutation vector : %d"%permut.shape[1]
     sys.exit()
 
   MH_sign = np.zeros(nb_perm,dtype=int)
