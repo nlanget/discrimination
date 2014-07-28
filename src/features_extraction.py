@@ -266,15 +266,15 @@ def extract_norm_features(list_features,date,file,dic):
        # Energy between 10 and 30 Hz
         from waveform_features import energy_between_10Hz_and_30Hz
         f1, f2 = 20,30
-        dic['Ene%d-%d'%(f1,f2)] = energy_between_10Hz_and_30Hz(s.tr[s.i1:s.i2]/np.max(s.tr[s.i1:s.i2]),s.dt,wd=f1,wf=f2,ponset=s.ponset)
+        dic['Ene%d-%d'%(f1,f2)] = energy_between_10Hz_and_30Hz(s.tr[s.i1:s.i2]/np.max(s.tr[s.i1:s.i2]),s.dt,wd=f1,wf=f2,ponset=s.ponset-s.i1,tend=s.tend-s.i1)
 
       if 'Ene5-10' in list_features:
         f1, f2 = 5,10
-        dic['Ene%d-%d'%(f1,f2)] = energy_between_10Hz_and_30Hz(s.tr[s.i1:s.i2]/np.max(s.tr[s.i1:s.i2]),s.dt,wd=f1,wf=f2,ponset=s.ponset)
+        dic['Ene%d-%d'%(f1,f2)] = energy_between_10Hz_and_30Hz(s.tr[s.i1:s.i2]/np.max(s.tr[s.i1:s.i2]),s.dt,wd=f1,wf=f2,ponset=s.ponset-s.i1,tend=s.tend-s.i1)
 
       if 'Ene0-5' in list_features:
         f1, f2 = .5,5
-        dic['Ene%d-%d'%(f1,f2)] = energy_between_10Hz_and_30Hz(s.tr[s.i1:s.i2]/np.max(s.tr[s.i1:s.i2]),s.dt,wd=f1,wf=f2,ponset=s.ponset)
+        dic['Ene%d-%d'%(f1,f2)] = energy_between_10Hz_and_30Hz(s.tr[s.i1:s.i2]/np.max(s.tr[s.i1:s.i2]),s.dt,wd=f1,wf=f2,ponset=s.ponset-s.i1,tend=s.tend-s.i1)
 
       if 'RappMaxMean' in list_features:
         # Max over mean ratio of the envelope
@@ -313,7 +313,7 @@ def extract_norm_features(list_features,date,file,dic):
       if 'Centroid_time' in list_features:
         # Centroid time
         from waveform_features import centroid_time
-        dic['Centroid_time'] = centroid_time(s.tr[s.i1:s.i2],s.dt,s.TF,s.ponset,tend=s.tend,plot=False)
+        dic['Centroid_time'] = centroid_time(s.tr[s.i1:s.i2],s.dt,s.TF,s.ponset-s.i1,tend=s.tend-s.i1,plot=False)
 
       if 'RappMaxMeanTF' in list_features:
         # Max over mean ratio of the amplitude spectrum
@@ -325,14 +325,14 @@ def extract_norm_features(list_features,date,file,dic):
         from waveform_features import instant_freq
         #p,pf = instant_freq(s.tr[s.i1:s.i2],s.dt,s.TF,plot=False)
         #dic['IFslope'] = np.mean((p,pf[len(pf)-1]))
-        vals, dic['IFslope'] = instant_freq(s.tr[s.i1:s.i2],s.dt,s.TF,s.ponset,s.tend,plot=False)
+        vals, dic['IFslope'] = instant_freq(s.tr[s.i1:s.i2],s.dt,s.TF,s.ponset-s.i1,s.tend-s.i1,plot=False)
         for i in range(len(vals)):
           dic['if%d'%i] = vals[i]
 
       if ('ibw0' in list_features) or ('Norm_envelope' in list_features):
         # Average of the instantaneous frequency and normalized envelope
         from waveform_features import instant_bw
-        vals, Nenv = instant_bw(s.tr[s.i1:s.i2],s.tr_env[s.i1:s.i2],s.dt,s.TF,s.ponset,s.tend,plot=False)
+        vals, Nenv = instant_bw(s.tr[s.i1:s.i2],s.tr_env[s.i1:s.i2],s.dt,s.TF,s.ponset-s.i1,s.tend-s.i1,plot=False)
         dic['Norm_envelope'] = Nenv
         for i in range(len(vals)):
           dic['ibw%d'%i] = vals[i]

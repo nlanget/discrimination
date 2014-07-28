@@ -2,7 +2,6 @@ import numpy as np
 from obspy.signal import filter
 from obspy.core import read
 from scipy.stats import kurtosis
-from scipy.fftpack import fft
 from scipy.integrate import trapz
 
 
@@ -334,6 +333,8 @@ def energy_between_10Hz_and_30Hz(trace,dt,wd=10,wf=30,ponset=0,tend=0):
   """
   Returns the energy between 10 and 30 Hz of a trace
   from Hibert 2012
+  wd = lowest frequency
+  wf = highest frequency 
   """
 
   befp = 10
@@ -346,7 +347,7 @@ def energy_between_10Hz_and_30Hz(trace,dt,wd=10,wf=30,ponset=0,tend=0):
   else:
     trace = trace[p1:tend+befp]
 
-  TF = fft(trace)
+  TF = np.fft.fft(trace)
   TF = np.absolute(TF)
 
   freqs = np.fft.fftfreq(len(TF),d=dt)
@@ -435,8 +436,8 @@ def spectrogram(trace,plot=False):
   else:
     ponset = np.argmin(np.abs(time-tt[trace.ponset]))
 
-  #level = 0.02*np.max(b[ponset:ponset+500])
-  level = np.mean(b[0:10])
+  level = np.mean(b[0:10]) # level in the very beginning of the signal
+  level_befp = np.mean(b[ponset-20:ponset]) # level just before the P-onset
   imax = np.argmax(b[ponset:ponset+500])+ponset
   idurfs = np.where(b[imax:]<level)[0]+imax
   if idurfs.any() and idurfs.all():
