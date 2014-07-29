@@ -10,11 +10,11 @@ class Options(object):
 
     self.opdict = {}
 
-    self.opdict['option'] = 'hash' # could be 'norm' for classical seismic attributes or 'hash' for hash tables
+    self.opdict['option'] = 'norm' # could be 'norm' for classical seismic attributes or 'hash' for hash tables
 
     # Define directories and paths
     self.opdict['dir'] = 'Piton'
-    self.opdict['channels'] = ['Z']
+    self.opdict['channels'] = ['Z','E','N']
 
     self.opdict['libdir'] = os.path.join('../lib',self.opdict['dir'])
     self.opdict['outdir'] = os.path.join('../results',self.opdict['dir'])
@@ -28,6 +28,7 @@ class Options(object):
     self.opdict['method'] = 'lr' # could be 'lr' (logistic regression),'svm' (Support Vector Machine from scikit.learn package),'ova' (1-vs-all extractor), '1b1' (1-by-1 extractor), 'lrsk' (Logistic regression from scikit.learn package)
     self.opdict['boot'] = 1 # number of iterations (a new training set is generated at each 'iteration')
     self.opdict['train_file'] = '%s/train_%d'%(self.opdict['libdir'],self.opdict['boot'])
+    self.opdict['log'] = True # normalize features with np.log (makes data look more gaussians)
     self.opdict['plot_pdf'] = False # display the pdfs of the features
     self.opdict['save_pdf'] = False
     self.opdict['plot_confusion'] = True # display the confusion matrices
@@ -38,18 +39,23 @@ class Options(object):
     if self.opdict['option'] == 'norm':
       # Features "normales"
       #self.opdict['feat_test'] = '%s_%02d%02d.csv'%(self.opdict['dir'],date.tm_mday,date.tm_mon)
-      #self.opdict['feat_list'] = ['AsDec','Bandwidth','CentralF','Centroid_time','Dur','Ene20-30','Ene5-10','Ene0-5','F_low','F_up','Growth','IFslope','Kurto','MeanPredF','NbPeaks','PredF','RappMaxMean','RappMaxMeanTF','Skewness','sPredF','TimeMaxSpec','Width','ibw0','ibw1','ibw2','ibw3','ibw4','ibw5','ibw6','ibw7','ibw8','ibw9','if0','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9']
+      self.opdict['feat_list'] = ['AsDec','Bandwidth','CentralF','Centroid_time','Dur','Ene20-30','Ene5-10','Ene0-5','F_low','F_up','Growth','IFslope','Kurto','MeanPredF','NbPeaks','PredF','RappMaxMean','RappMaxMeanTF','Skewness','sPredF','TimeMaxSpec','Width','ibw0','ibw1','ibw2','ibw3','ibw4','ibw5','ibw6','ibw7','ibw8','ibw9','if0','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9','Rectilinearity','Planarity','MaxEigenvalue']
       #self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Growth','Kurto','RappMaxMean','RappMaxMeanTF','Skewness','TimeMaxSpec','Width']
       #self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Kurto','RappMaxMean','Skewness','TimeMaxSpec']
       #self.opdict['feat_list'] = ['Dur','F_up','Growth','Kurto','RappMaxMean','RappMaxMeanTF','TimeMaxSpec','Width']
       #self.opdict['feat_list'] = ['CentralF','Centroid_time','Dur','Ene0-5','F_up','Growth','IFslope','Kurto','MeanPredF','RappMaxMean','RappMaxMeanTF','Skewness','TimeMaxSpec','Width','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9']
       #self.opdict['feat_list_reclass'] = ['CentralF','Centroid_time','Dur','Ene0-5','F_up','Growth','Kurto','RappMaxMean','Skewness','TimeMaxSpec','ibw0','ibw1','ibw2','ibw3','ibw4','ibw5','ibw6','ibw7','ibw8','ibw9','if0','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9']
-      self.opdict['feat_list'] = ['Dur','Kurto','MeanPredF','Skewness']
+      #self.opdict['feat_list'] = ['Dur','Kurto','MeanPredF','Skewness','Rectilinearity','Planarity','MaxEigenvalue']
 
     if self.opdict['option'] == 'hash':
       # Hashing
-      self.opdict['feat_test'] = 'HT_%02d%02d.csv'%(date.tm_mday,date.tm_mon)
+      #self.opdict['feat_test'] = 'HT_%02d%02d.csv'%(date.tm_mday,date.tm_mon)
+      self.opdict['feat_test'] = self.opdict['hash_test']
+      if 'hash_train' in sorted(self.opdict):
+        self.opdict['feat_train'] = self.opdict['hash_train']
+      self.opdict['permut_file'] = '%s/permut_HT'%self.opdict['libdir']
       self.opdict['feat_list'] = map(str,range(50))
+
 
     self.opdict['feat_filepath'] = '%s/features/%s'%(self.opdict['outdir'],self.opdict['feat_test'])
     self.opdict['label_filename'] = '%s/%s'%(self.opdict['libdir'],self.opdict['label_test'])
@@ -78,8 +84,10 @@ class Options(object):
     self.opdict['stations'] = ['BOR']
     self.opdict['Types'] = ['EB','VT']
     self.opdict['datadir'] = os.path.join('../data/%s/full_data'%self.opdict['dir'])
-    self.opdict['feat_train'] = 'Piton_train_2407.csv'
-    self.opdict['feat_test'] = 'Piton_test_2407.csv'
+    self.opdict['feat_train'] = 'Piton_trainset.csv'
+    self.opdict['feat_test'] = 'Piton_testset.csv'
+    self.opdict['hash_train'] = 'HT_Piton_trainset.csv'
+    self.opdict['hash_test'] = 'HT_Piton_testset.csv'
     self.opdict['label_train'] = 'class_train_set.csv'
     self.opdict['label_test'] = 'class_test_set.csv'
 
@@ -264,7 +272,7 @@ class Options(object):
       for it,t in enumerate(self.types):
         if len(dic[t][feat].values) > 1:
           if feat != 'NbPeaks':
-            kde = gaussian_kde(dic[t][feat].values)      
+            kde = gaussian_kde(dic[t][feat].values)
             a = np.cumsum(kde(vec))[-1]
             self.gaussians[feat][t] = kde(vec)/a
           else:
@@ -426,8 +434,14 @@ class MultiOptions(Options):
           trad.append((sta,comp))
           keys = ["(%d, '%s', '%s')"%(int(list_ev_uniq[ev]),sta,comp) for ev in ind]
           self.xs[k] = self.x.reindex(index=keys)
+          if self.opdict['log']:
+            for feat in self.opdict['feat_list']:
+              self.xs[k][feat] = np.log(self.xs[k][feat])
           self.xs[k].index = list_ev_uniq[ind]
           self.ys[k].index = self.xs[k].index
+          if self.opdict['log']:
+            self.xs[k] = self.xs[k].dropna(how='any')
+            self.ys[k] = self.ys[k].reindex(index=self.xs[k].index)
 
           k = k+1
 

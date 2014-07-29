@@ -77,7 +77,6 @@ def classifier(opt):
 
     K = len(opt.types)
 
-
     for b in range(opt.opdict['boot']):
       print "\n-------------------- # iter: %d --------------------\n"%(b+1)
 
@@ -170,7 +169,7 @@ def classifier(opt):
         if opt.opdict['boot'] == 1:
           confusion(y_train,CLASS_train,opt.types,'Training','Logistic regression',plot=opt.opdict['plot_confusion'])
           if opt.opdict['plot_confusion'] and opt.opdict['save_confusion']:
-            plt.savefig('%s/figures/training_%s.png'%(opt.opdict['outdir'],opt.opdict['result_file'][8:]))
+            plt.savefig('%s/figures/training_%s_%s_%s.png'%(opt.opdict['outdir'],opt.opdict['result_file'][8:],opt.trad[isc][0],opt.trad[isc][1]))
 
         print "\t Test set"
         for i in range(K):
@@ -180,7 +179,7 @@ def classifier(opt):
           confusion(y_test,CLASS_test,opt.types,'Test','Logistic regression',plot=opt.opdict['plot_confusion'])
           if opt.opdict['plot_confusion']:
             if opt.opdict['save_confusion']:
-              plt.savefig('%s/figures/test_%s.png'%(opt.opdict['outdir'],opt.opdict['result_file'][8:]))
+              plt.savefig('%s/figures/test_%s_%s_%s.png'%(opt.opdict['outdir'],opt.opdict['result_file'][8:],opt.trad[isc][0],opt.trad[isc][1]))
             plt.show()
 
       subsubdic['%'] = pourcentages
@@ -265,7 +264,7 @@ def confusion(y,y_auto,l,set,method,plot=False,output=False):
     plt.matshow(cmat,cmap=plt.cm.gray_r)
     for i in range(cmat.shape[0]):
       for j in range(cmat.shape[0]):
-        if cmat[j,i] >= np.max(cmat)/2.:
+        if cmat[j,i] >= np.max(cmat)/2. or cmat[j,i] > 50:
           col = 'w'
         else:
           col = 'k'
