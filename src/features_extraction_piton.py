@@ -162,6 +162,10 @@ def read_data_for_features_extraction(set='test',save=False):
   from options import MultiOptions
   opt = MultiOptions()
 
+  if set == 'train':
+    opt.opdict['feat_filepath'] = '%s/features/%s'%(opt.opdict['outdir'],opt.opdict['feat_train'])
+  print opt.opdict['feat_filepath']
+
   if save:
     if os.path.exists(opt.opdict['feat_filepath']):
       print "WARNING !! File %s already exists"%opt.opdict['feat_filepath']
@@ -203,8 +207,7 @@ def read_data_for_features_extraction(set='test',save=False):
           elif opt.opdict['option'] == 'hash':
             if ifile in [409,1026,1027,1028,1993,2121,2122,2123,2424,2441,3029,3058,3735,3785,3852,3930,4200,4463,4464,4746,6150,6382,6672,6733]:
               continue
-            permut_file = '%s/permut_%s'%(opt.opdict['libdir'],opt.opdict['feat_test'].split('.')[0])
-            dic = extract_hash_features(s,list_features,dic,permut_file,plot=False)
+            dic = extract_hash_features(s,list_features,dic,opt.opdict['permut_file'],plot=False)
           df = df.append(dic)
 
         if counter == 3 and ('Rectilinearity' in list_features or 'Planarity' in list_features):
@@ -236,8 +239,7 @@ def read_data_for_features_extraction(set='test',save=False):
           if opt.opdict['option'] == 'norm':
             dic = extract_norm_features(s,list_features,dic)
           elif opt.opdict['option'] == 'hash':
-            permut_file = '%s/permut_%s'%(opt.opdict['libdir'],opt.opdict['feat_test'].split('.')[0])
-            dic = extract_hash_features(s,list_features,dic,permut_file,plot=False)
+            dic = extract_hash_features(s,list_features,dic,opt.opdict['permut_file'],plot=False)
           df = df.append(dic)
       neb = i+1
       if counter == 3 and ('Rectilinearity' in list_features or 'Planarity' in list_features):
@@ -264,18 +266,16 @@ def read_data_for_features_extraction(set='test',save=False):
           if opt.opdict['option'] == 'norm':
             dic = extract_norm_features(s,list_features,dic)
           elif opt.opdict['option'] == 'hash':
-            permut_file = '%s/permut_%s'%(opt.opdict['libdir'],opt.opdict['feat_test'].split('.')[0])
-            dic = extract_hash_features(s,list_features,dic,permut_file,plot=False)
+            dic = extract_hash_features(s,list_features,dic,opt.opdict['permut_file'],plot=False)
           df = df.append(dic)
-
       if counter == 3 and ('Rectilinearity' in list_features or 'Planarity' in list_features):
-        d_mean = (df.Dur[(i,'BOR',comp)] + df.Dur[(i,'BOR','E')] + df.Dur[(i,'BOR','Z')])/3.
-        po_mean = int((df.Ponset[(i,'BOR',comp)] + df.Ponset[(i,'BOR','E')] + df.Ponset[(i,'BOR','Z')])/3)
+        d_mean = (df.Dur[(i+neb,'BOR',comp)] + df.Dur[(i+neb,'BOR','E')] + df.Dur[(i+neb,'BOR','Z')])/3.
+        po_mean = int((df.Ponset[(i+neb,'BOR',comp)] + df.Ponset[(i+neb,'BOR','E')] + df.Ponset[(i+neb,'BOR','Z')])/3)
         s.read_all_files(mat,train=[i,'VT'])
         rect, plan, eigen = polarization_analysis(s,d_mean,po_mean,plot=False)
-        df.Rectilinearity[(i,'BOR','Z')], df.Rectilinearity[(i,'BOR','N')], df.Rectilinearity[(i,'BOR','E')] = rect, rect, rect
-        df.Planarity[(i,'BOR','Z')], df.Planarity[(i,'BOR','N')], df.Planarity[(i,'BOR','E')] = plan, plan, plan
-        df.MaxEigenvalue[(i,'BOR','Z')], df.MaxEigenvalue[(i,'BOR','N')], df.MaxEigenvalue[(i,'BOR','E')] = eigen, eigen, eigen
+        df.Rectilinearity[(i+neb,'BOR','Z')], df.Rectilinearity[(i+neb,'BOR','N')], df.Rectilinearity[(i+neb,'BOR','E')] = rect, rect, rect
+        df.Planarity[(i+neb,'BOR','Z')], df.Planarity[(i+neb,'BOR','N')], df.Planarity[(i+neb,'BOR','E')] = plan, plan, plan
+        df.MaxEigenvalue[(i+neb,'BOR','Z')], df.MaxEigenvalue[(i+neb,'BOR','N')], df.MaxEigenvalue[(i+neb,'BOR','E')] = eigen, eigen, eigen
 
   if save:
     print "Features written in %s"%opt.opdict['feat_filepath']
@@ -611,5 +611,5 @@ def compare_ponsets(set='test'):
 
 # ================================================================
 if __name__ == '__main__':
-  read_data_for_features_extraction(set='train',save=False)
+  read_data_for_features_extraction(set='train',save=True)
   #compare_ponsets()
