@@ -161,7 +161,14 @@ def classifier(opt):
         # LOGISTIC REGRESSION
         print "********* Logistic regression **********"
         from LR_functions import do_all_logistic_regression
-        CLASS_train,theta,CLASS_test,pourcentages,wtr = do_all_logistic_regression(x_train,y_train,x_test,y_test,output=True,perc=True)
+        wtr = np.array([])
+        if 'learn_file' in sorted(opt.opdict):
+          if os.path.exists(opt.opdict['learn_file']):
+            wtr = opt.read_binary_file(opt.opdict['learn_file'])
+        CLASS_train,theta,CLASS_test,pourcentages,wtr = do_all_logistic_regression(x_train,y_train,x_test,y_test,output=True,perc=True,wtr=wtr)
+        if 'learn_file' in sorted(opt.opdict):
+          if not os.path.exists(opt.opdict['learn_file']):
+            wtr = opt.write_binary_file(opt.opdict['learn_file'],wtr)
         print "\t Training set"
         for i in range(K):
           print i, opt.types[i], len(np.where(y_train.values[:,0]==i)[0]), len(np.where(CLASS_train==i)[0])
@@ -197,8 +204,9 @@ def classifier(opt):
   if opt.opdict['method'] == 'lr' or opt.opdict['method'] == 'lrsk' or opt.opdict['method'] == 'svm':
     opt.write_binary_file(opt.opdict['result_path'],dic_results)
 
-  if not os.path.exists(opt.opdict['train_file']) and opt.opdict['boot'] > 1:
-    opt.write_binary_file(opt.opdict['train_file'],TRAIN_Y)
+  if 'train_file' in sorted(opt.opdict):
+    if not os.path.exists(opt.opdict['train_file']) and opt.opdict['boot'] > 1:
+      opt.write_binary_file(opt.opdict['train_file'],TRAIN_Y)
 
 # ================================================================
 

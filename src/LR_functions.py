@@ -213,7 +213,6 @@ def logistic_reg(x,y,theta,l=0,verbose=0,method='g'):
         plot_multiclass_2d(x,theta)
       else:
         plot_db(x,y,theta[1],title='Decision boundary')
-        plt.savefig('/home/nadege/Desktop/Figures_these/db2c2f.png')
     if n == 3:
       if K != 1:
         plot_multiclass_3d(x,theta)
@@ -287,7 +286,6 @@ def degree_and_regularization(xtest,ytest,xcv,ycv,xtrain,ytrain,verbose=False):
   for k in range(1,K+1):
     theta[k] = all_theta[best_dl[k-1][0],best_dl[k-1][1]][k]
 
-  verbose = True
   if verbose:
     print best_dl
     print theta
@@ -530,7 +528,6 @@ def evaluation(x,y,wtr=np.array([]),learn=False,verbose=False):
   print "MISCLASSIFICATION TEST ERROR", err
 
   # Learning curves
-  learn = True
   if learn:
     print "Computing learning curves......."
     verbose = True
@@ -596,7 +593,7 @@ def do_all_logistic_regression(x,y_all,x_testset,y_testset=None,norm=True,verbos
   If norm = True: data from the training and test sets are normalized. Default is True. Must be deactivated if data are already normalized (e.g. after PCA...)
   If output = True: returns prediction for both training and test sets and theta vector
   If perc = True: returns the percentage rates of recovery of the training and test sets
-  If wtr: put a label to the events which are contained in the "true" training set (60% of the whole training set) (as we split the training set in a training set (60%), a CV set (20%) and a test set (20%))
+  If wtr: indexes of the events in the following order : "true" training set (60%), CV set (20%) and test set (20%)
   """
   x.index = range(len(x.index))
   y_all.index = range(len(y_all.index))

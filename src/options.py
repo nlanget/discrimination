@@ -27,8 +27,6 @@ class Options(object):
     # Define options for classification functions
     self.opdict['method'] = 'lr' # could be 'lr' (logistic regression),'svm' (Support Vector Machine from scikit.learn package),'ova' (1-vs-all extractor), '1b1' (1-by-1 extractor), 'lrsk' (Logistic regression from scikit.learn package)
     self.opdict['boot'] = 1 # number of iterations (a new training set is generated at each 'iteration')
-    self.opdict['train_file'] = '%s/train_%d'%(self.opdict['libdir'],self.opdict['boot'])
-    self.opdict['log'] = True # normalize features with np.log (makes data look more gaussians)
     self.opdict['plot_pdf'] = False # display the pdfs of the features
     self.opdict['save_pdf'] = False
     self.opdict['plot_confusion'] = True # display the confusion matrices
@@ -39,13 +37,13 @@ class Options(object):
     if self.opdict['option'] == 'norm':
       # Features "normales"
       #self.opdict['feat_test'] = '%s_%02d%02d.csv'%(self.opdict['dir'],date.tm_mday,date.tm_mon)
-      self.opdict['feat_list'] = ['AsDec','Bandwidth','CentralF','Centroid_time','Dur','Ene20-30','Ene5-10','Ene0-5','F_low','F_up','Growth','IFslope','Kurto','MeanPredF','NbPeaks','PredF','RappMaxMean','RappMaxMeanTF','Skewness','sPredF','TimeMaxSpec','Width','ibw0','ibw1','ibw2','ibw3','ibw4','ibw5','ibw6','ibw7','ibw8','ibw9','if0','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9','Rectilinearity','Planarity','MaxEigenvalue']
+      #self.opdict['feat_list'] = ['AsDec','Bandwidth','CentralF','Centroid_time','Dur','Ene20-30','Ene5-10','Ene0-5','F_low','F_up','Growth','IFslope','Kurto','MeanPredF','NbPeaks','PredF','RappMaxMean','RappMaxMeanTF','Skewness','sPredF','TimeMaxSpec','Width','ibw0','ibw1','ibw2','ibw3','ibw4','ibw5','ibw6','ibw7','ibw8','ibw9','if0','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9','Rectilinearity','Planarity','MaxEigenvalue']
+      self.opdict['feat_log'] = ['AsDec','Dur','Ene0-5','Growth','ibw0','MeanPredF','RappMaxMean','RappMaxMeanTF','TimeMaxSpec','v0','v8','v9'] # list of features to be normalized with np.log (makes data look more gaussians)
       #self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Growth','Kurto','RappMaxMean','RappMaxMeanTF','Skewness','TimeMaxSpec','Width']
       #self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Kurto','RappMaxMean','Skewness','TimeMaxSpec']
       #self.opdict['feat_list'] = ['Dur','F_up','Growth','Kurto','RappMaxMean','RappMaxMeanTF','TimeMaxSpec','Width']
       #self.opdict['feat_list'] = ['CentralF','Centroid_time','Dur','Ene0-5','F_up','Growth','IFslope','Kurto','MeanPredF','RappMaxMean','RappMaxMeanTF','Skewness','TimeMaxSpec','Width','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9']
-      #self.opdict['feat_list_reclass'] = ['CentralF','Centroid_time','Dur','Ene0-5','F_up','Growth','Kurto','RappMaxMean','Skewness','TimeMaxSpec','ibw0','ibw1','ibw2','ibw3','ibw4','ibw5','ibw6','ibw7','ibw8','ibw9','if0','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9']
-      #self.opdict['feat_list'] = ['Dur','Kurto','MeanPredF','Skewness','Rectilinearity','Planarity','MaxEigenvalue']
+      self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_low','F_up','IFslope','Kurto','MeanPredF','RappMaxMean','Skewness','ibw0','if6','if7','if8','v8']
 
     if self.opdict['option'] == 'hash':
       # Hashing
@@ -78,6 +76,7 @@ class Options(object):
     self.opdict['datadir'] = os.path.join('../data',self.opdict['dir'],self.opdict['network'])
     self.opdict['feat_test'] = 'ijen_3006.csv'
     self.opdict['label_test'] = 'Ijen_class_all.csv'
+    self.opdict['train_file'] = '%s/train_%d'%(self.opdict['libdir'],self.opdict['boot'])
 
 
   def piton(self):
@@ -90,6 +89,7 @@ class Options(object):
     self.opdict['hash_test'] = 'HT_Piton_testset.csv'
     self.opdict['label_train'] = 'class_train_set.csv'
     self.opdict['label_test'] = 'class_test_set.csv'
+    self.opdict['learn_file'] = os.path.join(self.opdict['libdir'],'learning_set')
 
 
   def data_for_LR(self):
@@ -434,12 +434,13 @@ class MultiOptions(Options):
           trad.append((sta,comp))
           keys = ["(%d, '%s', '%s')"%(int(list_ev_uniq[ev]),sta,comp) for ev in ind]
           self.xs[k] = self.x.reindex(index=keys)
-          if self.opdict['log']:
-            for feat in self.opdict['feat_list']:
-              self.xs[k][feat] = np.log(self.xs[k][feat])
           self.xs[k].index = list_ev_uniq[ind]
           self.ys[k].index = self.xs[k].index
-          if self.opdict['log']:
+
+          if 'feat_log' in sorted(self.opdict):
+            for feat in self.opdict['feat_log']:
+              if feat in self.opdict['feat_list']:
+                self.xs[k][feat] = np.log(self.xs[k][feat])
             self.xs[k] = self.xs[k].dropna(how='any')
             self.ys[k] = self.ys[k].reindex(index=self.xs[k].index)
 
