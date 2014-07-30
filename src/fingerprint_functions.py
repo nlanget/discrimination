@@ -393,7 +393,13 @@ def FuncFingerprint(mat,time,tr,f,end,plot=False,error=False):
     gs2.update(top=top)
     gs3.update(bottom=bottom)
 
-    #plt.savefig('Pics/event_8.png')
+    plt.figtext(.06,.96,'(a)',fontsize=16)
+    plt.figtext(.06,.63,'(b)',fontsize=16)
+    plt.figtext(.06,.3,'(c)',fontsize=16)
+    plt.figtext(.49,.95,'(d)',fontsize=16)
+    plt.figtext(.7,.95,'(e)',fontsize=16)
+    plt.figtext(.49,.44,'(f)',fontsize=16)
+    plt.figtext(.69,.44,'(g)',fontsize=16)
 
   return haar_bin
 
