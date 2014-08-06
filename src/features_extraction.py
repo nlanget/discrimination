@@ -208,15 +208,20 @@ def read_data_for_features_extraction(save=False):
             dic = extract_hash_features(list_features,date,file,dic,permut_file,plot=True)
           df = df.append(dic)
 
-      if counter == 3 and 'Rectilinearity' in list_features:
+      if counter == 3 and ('Rectilinearity' in list_features or 'Planarity' in list_features or 'Azimuth' in list_features or 'Incidence' in list_features):
         from waveform_features import polarization_analysis
         d_mean = (df.Dur[(date,sta,comp)] + df.Dur[(date,sta,'E')] + df.Dur[(date,sta,'Z')])/3.
         po_mean = int((df.Ponset[(date,sta,comp)] + df.Ponset[(date,sta,'E')] + df.Ponset[(date,sta,'Z')])/3)
         list_files = [file,file.replace("N.D","E.D"),file.replace("N.D","Z.D")]
-        rect, plan, eigen = polarization_analysis(list_files,d_mean,po_mean,plot=False)
-        df.Rectilinearity[(date,sta,'Z')], df.Rectilinearity[(date,sta,'N')], df.Rectilinearity[(date,sta,'E')] = rect, rect, rect
-        df.Planarity[(date,sta,'Z')], df.Planarity[(date,sta,'N')], df.Planarity[(date,sta,'E')] = plan, plan, plan
-        df.MaxEigenvalue[(date,sta,'Z')], df.MaxEigenvalue[(date,sta,'N')], df.MaxEigenvalue[(date,sta,'E')] = eigen, eigen, eigen
+        rect, plan, az, iang = polarization_analysis(list_files,d_mean,po_mean,plot=False)
+        if 'Rectilinearity' in list_features:
+          df.Rectilinearity[(date,sta,'Z')], df.Rectilinearity[(date,sta,'N')], df.Rectilinearity[(date,sta,'E')] = rect, rect, rect
+        if 'Planarity' in list_features:
+          df.Planarity[(date,sta,'Z')], df.Planarity[(date,sta,'N')], df.Planarity[(date,sta,'E')] = plan, plan, plan
+        if list_features or 'Azimuth':
+          df.Azimuth[(date,sta,'Z')], df.Azimuth[(date,sta,'N')], df.Azimuth[(date,sta,'E')] = az, az, az
+        if 'Incidence' in list_features:
+          df.Incidence[(date,sta,'Z')], df.Incidence[(date,sta,'N')], df.Incidence[(date,sta,'E')] = iang, iang, iang
 
   if save:
     print "Features written in %s"%opt.opdict['feat_filepath']

@@ -93,7 +93,7 @@ class SeismicTraces():
       ax2.set_xlabel('Frequency (Hz)')
       ax2.set_ylabel('Amplitude')
       ax2.set_xlim([0,20])
-      fig.suptitle(self.tr.stats.station)
+      fig.suptitle(self.station)
       plt.show()
 
 
@@ -210,15 +210,19 @@ def read_data_for_features_extraction(set='test',save=False):
             dic = extract_hash_features(s,list_features,dic,opt.opdict['permut_file'],plot=False)
           df = df.append(dic)
 
-        if counter == 3 and ('Rectilinearity' in list_features or 'Planarity' in list_features):
+        if counter == 3 and ('Rectilinearity' in list_features or 'Planarity' in list_features or 'Azimuth' in list_features or 'Incidence' in list_features):
           d_mean = (df.Dur[(numfile,'BOR',comp)] + df.Dur[(numfile,'BOR','E')] + df.Dur[(numfile,'BOR','Z')])/3.
           po_mean = int((df.Ponset[(numfile,'BOR',comp)] + df.Ponset[(numfile,'BOR','E')] + df.Ponset[(numfile,'BOR','Z')])/3)
           s.read_all_files(mat,False)
-          rect, plan, eigen = polarization_analysis(s,d_mean,po_mean,plot=False)
-          df.Rectilinearity[(numfile,'BOR','Z')], df.Rectilinearity[(numfile,'BOR','N')], df.Rectilinearity[(numfile,'BOR','E')] = rect, rect, rect
-          df.Planarity[(numfile,'BOR','Z')], df.Planarity[(numfile,'BOR','N')], df.Planarity[(numfile,'BOR','E')] = plan, plan, plan
-          df.MaxEigenvalue[(numfile,'BOR','Z')], df.MaxEigenvalue[(numfile,'BOR','N')], df.MaxEigenvalue[(numfile,'BOR','E')] = eigen, eigen, eigen
-
+          rect, plan, az, iang = polarization_analysis(s,d_mean,po_mean,plot=False)
+          if 'Rectilinearity' in list_features:
+            df.Rectilinearity[(numfile,'BOR','Z')], df.Rectilinearity[(numfile,'BOR','N')], df.Rectilinearity[(numfile,'BOR','E')] = rect, rect, rect
+          if 'Planarity' in list_features:
+            df.Planarity[(numfile,'BOR','Z')], df.Planarity[(numfile,'BOR','N')], df.Planarity[(numfile,'BOR','E')] = plan, plan, plan
+          if list_features or 'Azimuth':
+            df.Azimuth[(numfile,'BOR','Z')], df.Azimuth[(numfile,'BOR','N')], df.Azimuth[(numfile,'BOR','E')] = az, az, az
+          if 'Incidence' in list_features:
+            df.Incidence[(numfile,'BOR','Z')], df.Incidence[(numfile,'BOR','N')], df.Incidence[(numfile,'BOR','E')] = iang, iang, iang
 
   elif set == 'train':
     datafile = os.path.join(opt.opdict['datadir'],'TrainingSetPlusSig_2.mat')
@@ -239,17 +243,23 @@ def read_data_for_features_extraction(set='test',save=False):
           if opt.opdict['option'] == 'norm':
             dic = extract_norm_features(s,list_features,dic)
           elif opt.opdict['option'] == 'hash':
-            dic = extract_hash_features(s,list_features,dic,opt.opdict['permut_file'],plot=False)
+            dic = extract_hash_features(s,list_features,dic,opt.opdict['permut_file'],plot=True)
           df = df.append(dic)
       neb = i+1
-      if counter == 3 and ('Rectilinearity' in list_features or 'Planarity' in list_features):
+      if counter == 3 and ('Rectilinearity' in list_features or 'Planarity' in list_features or 'Azimuth' in list_features or 'Incidence' in list_features):
         d_mean = (df.Dur[(i,'BOR',comp)] + df.Dur[(i,'BOR','E')] + df.Dur[(i,'BOR','Z')])/3.
         po_mean = int((df.Ponset[(i,'BOR',comp)] + df.Ponset[(i,'BOR','E')] + df.Ponset[(i,'BOR','Z')])/3)
         s.read_all_files(mat,train=[i,'EB'])
-        rect, plan, eigen = polarization_analysis(s,d_mean,po_mean,plot=False)
-        df.Rectilinearity[(i,'BOR','Z')], df.Rectilinearity[(i,'BOR','N')], df.Rectilinearity[(i,'BOR','E')] = rect, rect, rect
-        df.Planarity[(i,'BOR','Z')], df.Planarity[(i,'BOR','N')], df.Planarity[(i,'BOR','E')] = plan, plan, plan
-        df.MaxEigenvalue[(i,'BOR','Z')], df.MaxEigenvalue[(i,'BOR','N')], df.MaxEigenvalue[(i,'BOR','E')] = eigen, eigen, eigen
+        rect, plan, az, iang = polarization_analysis(s,d_mean,po_mean,plot=False)
+        if 'Rectilinearity' in list_features:
+          df.Rectilinearity[(i,'BOR','Z')], df.Rectilinearity[(i,'BOR','N')], df.Rectilinearity[(i,'BOR','E')] = rect, rect, rect
+        if 'Planarity' in list_features:
+          df.Planarity[(i,'BOR','Z')], df.Planarity[(i,'BOR','N')], df.Planarity[(i,'BOR','E')] = plan, plan, plan
+        if 'Azimuth' in list_features:
+          df.Azimuth[(i,'BOR','Z')], df.Azimuth[(i,'BOR','N')], df.Azimuth[(i,'BOR','E')] = az, az, az
+        if 'Incidence' in list_features:
+          df.Incidence[(i,'BOR','Z')], df.Incidence[(i,'BOR','N')], df.Incidence[(i,'BOR','E')] = iang, iang, iang
+
 
     for i in range(mat['KurtoVT'].shape[1]):
       print "VT", i+neb
@@ -266,16 +276,21 @@ def read_data_for_features_extraction(set='test',save=False):
           if opt.opdict['option'] == 'norm':
             dic = extract_norm_features(s,list_features,dic)
           elif opt.opdict['option'] == 'hash':
-            dic = extract_hash_features(s,list_features,dic,opt.opdict['permut_file'],plot=False)
+            dic = extract_hash_features(s,list_features,dic,opt.opdict['permut_file'],plot=True)
           df = df.append(dic)
-      if counter == 3 and ('Rectilinearity' in list_features or 'Planarity' in list_features):
+      if counter == 3 and ('Rectilinearity' in list_features or 'Planarity' in list_features or 'Azimuth' in list_features or 'Incidence' in list_features):
         d_mean = (df.Dur[(i+neb,'BOR',comp)] + df.Dur[(i+neb,'BOR','E')] + df.Dur[(i+neb,'BOR','Z')])/3.
         po_mean = int((df.Ponset[(i+neb,'BOR',comp)] + df.Ponset[(i+neb,'BOR','E')] + df.Ponset[(i+neb,'BOR','Z')])/3)
         s.read_all_files(mat,train=[i,'VT'])
-        rect, plan, eigen = polarization_analysis(s,d_mean,po_mean,plot=False)
-        df.Rectilinearity[(i+neb,'BOR','Z')], df.Rectilinearity[(i+neb,'BOR','N')], df.Rectilinearity[(i+neb,'BOR','E')] = rect, rect, rect
-        df.Planarity[(i+neb,'BOR','Z')], df.Planarity[(i+neb,'BOR','N')], df.Planarity[(i+neb,'BOR','E')] = plan, plan, plan
-        df.MaxEigenvalue[(i+neb,'BOR','Z')], df.MaxEigenvalue[(i+neb,'BOR','N')], df.MaxEigenvalue[(i+neb,'BOR','E')] = eigen, eigen, eigen
+        rect, plan, az, iang = polarization_analysis(s,d_mean,po_mean,plot=False)
+        if 'Rectilinearity' in list_features:
+          df.Rectilinearity[(i+neb,'BOR','Z')], df.Rectilinearity[(i+neb,'BOR','N')], df.Rectilinearity[(i+neb,'BOR','E')] = rect, rect, rect
+        if 'Planarity' in list_features:
+          df.Planarity[(i+neb,'BOR','Z')], df.Planarity[(i+neb,'BOR','N')], df.Planarity[(i+neb,'BOR','E')] = plan, plan, plan
+        if 'Azimuth' in list_features:
+          df.Azimuth[(i+neb,'BOR','Z')], df.Azimuth[(i+neb,'BOR','N')], df.Azimuth[(i+neb,'BOR','E')] = az, az, az
+        if 'Incidence' in list_features:
+          df.Incidence[(i+neb,'BOR','Z')], df.Incidence[(i+neb,'BOR','N')], df.Incidence[(i+neb,'BOR','E')] = iang, iang, iang
 
   if save:
     print "Features written in %s"%opt.opdict['feat_filepath']
@@ -327,10 +342,12 @@ def extract_norm_features(s,list_features,dic):
         dic['Ene%d-%d'%(f1,f2)] = energy_between_10Hz_and_30Hz(s.tr[s.i1:s.i2]/np.max(s.tr[s.i1:s.i2]),s.dt,wd=f1,wf=f2,ponset=s.ponset-s.i1,tend=s.tend-s.i1)
 
       if 'Ene5-10' in list_features:
+        from waveform_features import energy_between_10Hz_and_30Hz
         f1, f2 = 5,10
         dic['Ene%d-%d'%(f1,f2)] = energy_between_10Hz_and_30Hz(s.tr[s.i1:s.i2]/np.max(s.tr[s.i1:s.i2]),s.dt,wd=f1,wf=f2,ponset=s.ponset-s.i1,tend=s.tend-s.i1)
 
       if 'Ene0-5' in list_features:
+        from waveform_features import energy_between_10Hz_and_30Hz
         f1, f2 = .5,5
         dic['Ene%d-%d'%(f1,f2)] = energy_between_10Hz_and_30Hz(s.tr[s.i1:s.i2]/np.max(s.tr[s.i1:s.i2]),s.dt,wd=f1,wf=f2,ponset=s.ponset-s.i1,tend=s.tend-s.i1)
 
@@ -366,7 +383,7 @@ def extract_norm_features(s,list_features,dic):
       if ('F_low' in list_features) or ('F_up' in list_features):
         # Lowest and highest frequency for kurtogram analysis
         from waveform_features import kurto_bandpass
-        dic['F_low'],dic['F_up'] = kurto_bandpass(s,plot=False)
+        dic['F_low'],dic['F_up'] = kurto_bandpass(s,plot=True)
 
       if 'Centroid_time' in list_features:
         # Centroid time
@@ -408,7 +425,8 @@ def polarization_analysis(S,dur,ponset,plot=False):
   Returns:
   - the planarity
   - the rectilinearity
-  - the largest eigenvalue
+  - the azimuth
+  - the incidence angle
   from Hammer et al. 2012
   """
 
@@ -424,8 +442,17 @@ def polarization_analysis(S,dur,ponset,plot=False):
   rect = 1 - (vals_sort[1]+vals_sort[2])/(2*vals_sort[0])
   plan = 1 - 2*vals_sort[2]/(vals_sort[1]+vals_sort[0])
 
+  # Azimuth
+  az = np.arctan(vecs_sort[1][0]*np.sign(vecs_sort[0][0]))/np.arctan(vecs_sort[2][0]*np.sign(vecs_sort[0][0]))
+  # Angle of incidence
+  iang = np.arccos(vecs_sort[0][0])
+  # Conversion from radians to degrees
+  from math import pi
+  az = az*180/pi
+  iang = iang*180/pi
+
   if plot:
-    print rect, plan, vals_sort[0]
+    print rect, plan, az, iang
 
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D
@@ -495,7 +522,7 @@ def polarization_analysis(S,dur,ponset,plot=False):
     fig.suptitle(S.station)
     plt.show()
 
-  return rect, plan, vals_sort[0]
+  return rect, plan, az, iang
 
 
 # ================================================================
@@ -562,6 +589,7 @@ def extract_hash_features(s,list_features,dic,permut_file,plot=False):
     dic['%d'%iht] = ht
 
   if plot:
+    plt.savefig('../results/Piton/figures/Examples/hash.png')
     plt.show()
 
   return dic
@@ -611,5 +639,5 @@ def compare_ponsets(set='test'):
 
 # ================================================================
 if __name__ == '__main__':
-  read_data_for_features_extraction(set='train',save=True)
+  read_data_for_features_extraction(set='test',save=False)
   #compare_ponsets()

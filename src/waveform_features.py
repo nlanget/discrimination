@@ -375,6 +375,7 @@ def kurto_bandpass(trace,plot=False):
   """
 
   from waveloc.kurtogram import Fast_Kurtogram
+  import matplotlib.pyplot as plt
 
   data = trace.tr
   N = len(data)
@@ -383,7 +384,10 @@ def kurto_bandpass(trace,plot=False):
 
   dt = trace.dt
 
+  fig = plt.figure()
+  fig.set_facecolor('white')
   Kwav, Level_w, freq_w, c, f_lower, f_upper = Fast_Kurtogram(np.array(data,dtype=float), nlevel,verbose=plot,Fs=1./dt,opt2=1)
+  plt.savefig('../results/Piton/figures/Examples/kurto.png')
 
   return f_lower, f_upper
 
@@ -947,8 +951,11 @@ def polarization_analysis(filenames,dur,ponset,plot=False):
   rect = 1 - (vals_sort[1]+vals_sort[2])/(2*vals_sort[0])
   plan = 1 - 2*vals_sort[2]/(vals_sort[1]+vals_sort[0])
 
+  az = np.arctan(vecs_sort[1][0]*np.sign(vecs_sort[0][0]))/np.arctan(vecs_sort[2][0]*np.sign(vecs_sort[0][0]))
+  iang = np.arccos(vecs_sort[0][0])
+
   if plot:
-    print rect, plan, vals_sort[0]
+    print rect, plan, az, iang
 
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D
@@ -982,7 +989,7 @@ def polarization_analysis(filenames,dur,ponset,plot=False):
     plot_particle_motion(tr_z,tr_e,tr_n,filenames[0].split('/')[4],i1,i2)
     plt.show()
 
-  return rect, plan, vals_sort[0]
+  return rect, plan, az, iang
 
 
 def plot_particle_motion(tr_z,tr_e,tr_n,station,i1,i2):
