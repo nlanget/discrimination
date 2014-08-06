@@ -443,7 +443,7 @@ def polarization_analysis(S,dur,ponset,plot=False):
   plan = 1 - 2*vals_sort[2]/(vals_sort[1]+vals_sort[0])
 
   # Azimuth
-  az = np.arctan(vecs_sort[1][0]*np.sign(vecs_sort[0][0]))/np.arctan(vecs_sort[2][0]*np.sign(vecs_sort[0][0]))
+  az = np.arctan(vecs_sort[1][0]*np.sign(vecs_sort[0][0])/(vecs_sort[2][0]*np.sign(vecs_sort[0][0])))
   # Angle of incidence
   iang = np.arccos(vecs_sort[0][0])
   # Conversion from radians to degrees
@@ -639,5 +639,5 @@ def compare_ponsets(set='test'):
 
 # ================================================================
 if __name__ == '__main__':
-  read_data_for_features_extraction(set='test',save=False)
+  read_data_for_features_extraction(set='train',save=False)
   #compare_ponsets()

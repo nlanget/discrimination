@@ -951,7 +951,7 @@ def polarization_analysis(filenames,dur,ponset,plot=False):
   rect = 1 - (vals_sort[1]+vals_sort[2])/(2*vals_sort[0])
   plan = 1 - 2*vals_sort[2]/(vals_sort[1]+vals_sort[0])
 
-  az = np.arctan(vecs_sort[1][0]*np.sign(vecs_sort[0][0]))/np.arctan(vecs_sort[2][0]*np.sign(vecs_sort[0][0]))
+  az = np.arctan(vecs_sort[1][0]*np.sign(vecs_sort[0][0])/(vecs_sort[2][0]*np.sign(vecs_sort[0][0])))
   iang = np.arccos(vecs_sort[0][0])
 
   if plot:

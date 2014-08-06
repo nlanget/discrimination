@@ -169,6 +169,7 @@ class AnalyseResultsExtraction(MultiOptions):
 
   def __init__(self):
     MultiOptions.__init__(self)
+    print "ANALYSIS OF %s"%self.opdict['result_path']
     self.results = self.read_binary_file(self.opdict['result_path'])
     self.opdict['feat_list'] = self.results['features']
     del self.results['features']
@@ -186,6 +187,7 @@ class AnalyseResultsExtraction(MultiOptions):
           continue
 
         self.composition_dataset()
+        self.repartition_extraction()
 
         self.plot_all_diagrams()
         self.plot_diagrams_one_draw()
@@ -197,6 +199,55 @@ class AnalyseResultsExtraction(MultiOptions):
         if self.opdict['method'] == 'ova':
           self.search_repetition()
           self.analyse_repeat()
+
+
+  def repartition_extraction(self):
+    """
+    Affiche le diagramme de répartition des classes extraites par l'extracteur.
+    A comparer entre extracteurs, et avec le diagramme de répartition manuel.
+    """
+    import matplotlib.pyplot as plt
+    N = len(self.x)
+    colors = ['yellowgreen', 'gold', 'lightskyblue', 'lightcoral','lightgreen','khaki','plum','powderblue']
+
+    if self.opdict['method'] == '1b1':
+      for tir in sorted(self.results):
+        nbs = [self.results[tir][cl]['nb'] for cl in sorted(self.results[tir])]
+        labels = sorted(self.results[tir])
+        nbs.append(N-np.sum(nbs))
+        labels.append('unclass')
+
+        fig = plt.figure(figsize=(6,6))
+        fig.set_facecolor('white')
+        plt.pie(nbs,labels=labels,autopct='%1.1f',colors=colors)
+        plt.title('Repartition after the extraction')
+        #plt.savefig('%s/OBO_repartition_tir%d.png'%(self.opdict['fig_path'],tir))
+      plt.show()
+
+    elif self.opdict['method'] == 'ova':
+      self.search_repetition()
+      self.repeat = map(int,list(self.repeat))
+      for tir in sorted(self.results):
+        nbs, labels = [],[] 
+        for cl in sorted(self.results[tir]):
+          if cl == 'i_train':
+            continue
+          labels.append(cl)
+          nb_ini = self.results[tir][cl]['nb']
+          for ev in self.repeat:
+            if ev in self.results[tir][cl]['i_other'] or ev in self.results[tir][cl]['index_ok']:
+              nb_ini = nb_ini-1
+          nbs.append(nb_ini)
+
+        nbs.append(N-np.sum(nbs))
+        labels.append('unclass')
+
+        fig = plt.figure(figsize=(6,6))
+        fig.set_facecolor('white')
+        plt.pie(nbs,labels=labels,autopct='%1.1f',colors=colors)
+        plt.title('Repartition after the extraction')
+        plt.savefig('%s/OVA_repartition_tir%d.png'%(self.opdict['fig_path'],tir))
+      plt.show()
 
 
   def unclass_histo(self):
@@ -655,23 +706,3 @@ class AnalyseResultsExtraction(MultiOptions):
     self.y = Y_ini
 
 
-
-
-
-
-
-def create_color_scale(clist):
-  all_colors = [(0,0,1),(1,0,0),(0,1,0),(1,1,0),(0,0,0),(0,1,1),(1,0,1),(.9,0,.5),(.8,.5,0),(0,0.5,0.5)]
-  colors = {}
-  for ic,c in enumerate(clist):
-    colors[c] = all_colors[ic]
-  return colors
-
-
-def associate_color(tuplist,names):
-  colors = []
-  for tup in tuplist:
-    name = tup[0]
-    if name in names:
-      colors.append(tup[1])
-  return colors
