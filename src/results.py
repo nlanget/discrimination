@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import os,sys,glob
 from options import MultiOptions
-
+import matplotlib.pyplot as plt
 
 class AnalyseResults(MultiOptions):
   """
@@ -15,6 +15,7 @@ class AnalyseResults(MultiOptions):
   def __init__(self):
     MultiOptions.__init__(self)
 
+    print "ANALYSIS OF %s"%self.opdict['result_path']
     self.opdict['class_auto_file'] = 'auto_class.csv'
     self.opdict['class_auto_path'] = '%s/%s/%s'%(self.opdict['outdir'],self.opdict['method'].upper(),self.opdict['class_auto_file'])
 
@@ -28,6 +29,7 @@ class AnalyseResults(MultiOptions):
     """
     dic = self.read_binary_file(self.opdict['result_path'])
     self.opdict['feat_list'] = dic['features']
+    print "Nb features :", len(dic['features'])
     del dic['features']
     self.results = dic
     print sorted(dic)
@@ -84,6 +86,37 @@ class AnalyseResults(MultiOptions):
           struct['%'][df.index[iev]] = 1./len(t_uniq)*100
 
     struct.to_csv(self.opdict['class_auto_path'])
+    self.plot_stats(struct)
+
+
+  def plot_stats(self,struct):
+    """
+    Plot some statistics from the class_auto file.
+    Use of the pandas package.
+    """
+    histos = struct.reindex(columns=['%','Nb'])
+    histos.hist()
+    plt.ylabel('Number of events')
+    #plt.savefig('%s/stats.png'%self.opdict['fig_path'])
+
+    #print np.unique(struct['%'].values)
+    #for p in np.unique(struct['%'].values):
+    #  df = struct[struct['%']==p]
+    #  nbs = [len(df[df.Nb==n]) for n in np.unique(df.Nb.values)]
+    #  fig = plt.figure()
+    #  fig.set_facecolor('white')
+    #  plt.pie(nbs)
+    #  plt.title('%% = %d'%p)
+    #  plt.show()
+
+    fig = plt.figure()
+    fig.set_facecolor('white')
+    plt.plot(struct['Nb'].values,struct['%'].values,'k+')
+    plt.xlim([0,struct['Nb'].max()+1])
+    plt.ylim([20,101])
+    plt.xlabel('Number of classifications')
+    plt.ylabel('% of same classification')
+    plt.show()
 
 
   def read_manual_auto_files(self):
@@ -145,7 +178,6 @@ class AnalyseResults(MultiOptions):
     Plots the confusion matrix (test set only).
     """
     from do_classification import confusion
-    import matplotlib.pyplot as plt
 
     self.do_tri()
     self.classname2number()
@@ -206,7 +238,6 @@ class AnalyseResultsExtraction(MultiOptions):
     Affiche le diagramme de répartition des classes extraites par l'extracteur.
     A comparer entre extracteurs, et avec le diagramme de répartition manuel.
     """
-    import matplotlib.pyplot as plt
     N = len(self.x)
     colors = ['yellowgreen', 'gold', 'lightskyblue', 'lightcoral','lightgreen','khaki','plum','powderblue']
 
@@ -255,7 +286,6 @@ class AnalyseResultsExtraction(MultiOptions):
     Classe d'appartenance d'origine (classification manuelle) des événements 
     non classés à l'issue de l'extraction.
     """
-    import matplotlib.pyplot as plt
 
     tuniq = np.unique(self.y.Type)
     N = np.array(range(len(np.unique(tuniq))))
@@ -313,7 +343,6 @@ class AnalyseResultsExtraction(MultiOptions):
     (a) Répartition en classes manuelles des non classés.
     (b) Proportions, pour chaque classe manuelle, des événements non classés.
     """
-    import matplotlib.pyplot as plt
     from matplotlib.gridspec import GridSpec
 
     types = np.unique(self.y.Type.values)
@@ -381,7 +410,6 @@ class AnalyseResultsExtraction(MultiOptions):
     nb = [len(unc_type[unc_type==t]) for t in types]
     nb_dataset = [len(self.y[self.y.Type==t]) for t in types]
 
-    import matplotlib.pyplot as plt
     from matplotlib.gridspec import GridSpec
     grid = GridSpec(1,2)
     fig = plt.figure(figsize=(12,5))
@@ -429,7 +457,6 @@ class AnalyseResultsExtraction(MultiOptions):
     Evénements qui sont classés plusieurs fois, et ce, dans des classes différentes.
     One-vs-All method only.
     """
-    import matplotlib.pyplot as plt
 
     types = self.y.Type
 
@@ -496,7 +523,6 @@ class AnalyseResultsExtraction(MultiOptions):
       rep_type = self.y.reindex(index=ld,columns=['Type']).values
       nb = [len(rep_type[rep_type==t]) for t in types]
 
-      import matplotlib.pyplot as plt
       from matplotlib.gridspec import GridSpec
       grid = GridSpec(1,1)
       fig = plt.figure(figsize=(6,6))
@@ -518,7 +544,6 @@ class AnalyseResultsExtraction(MultiOptions):
     classés automatiquement dans la classe extraite mais qui n'ont pas la 
     bonne classe d'origine (= reste).
     """
-    import matplotlib.pyplot as plt
     from matplotlib.gridspec import GridSpec
 
     types = sorted(self.results[0])
@@ -585,7 +610,6 @@ class AnalyseResultsExtraction(MultiOptions):
     Note : nombre de classes limité aux 4 principales !!
     (Une figure par tirage)
     """
-    import matplotlib.pyplot as plt
     from matplotlib.gridspec import GridSpec
 
     types = sorted(self.results[0])
