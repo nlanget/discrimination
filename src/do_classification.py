@@ -85,6 +85,7 @@ def classifier(opt):
       y_test = y_ref.copy()
 
       if 'train_x' not in list_attr:
+        x_train = x_test.copy()
         if len(opt.opdict['stations']) == 1 and opt.opdict['boot'] > 1:
           if len(TRAIN_Y) > b:
             y_train = y_ref.reindex(index=TRAIN_Y[b])
@@ -199,7 +200,10 @@ def classifier(opt):
 
     dic_results[opt.trad[isc]] = subdic
 
-  dic_results['features'] = opt.opdict['feat_list']
+  dic_results['header'] = {}
+  dic_results['header']['features'] = opt.opdict['feat_list']
+  dic_results['header']['types'] = opt.opdict['Types']
+  dic_results['header']['catalog'] = opt.opdict['label_test']
 
   if opt.opdict['method'] == 'lr' or opt.opdict['method'] == 'lrsk' or opt.opdict['method'] == 'svm':
     opt.write_binary_file(opt.opdict['result_path'],dic_results)

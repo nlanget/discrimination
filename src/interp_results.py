@@ -220,9 +220,9 @@ if __name__ == '__main__':
   from results import AnalyseResults
   res = AnalyseResults()
 
-  plot_test_vs_train()
+  #plot_test_vs_train()
   #new_catalogue(res)
   #plot_on_pdf(res)
-  #plot_waveforms(res)
+  plot_waveforms(res)
   #compare_pdfs_reclass()
   #compare_pdfs_train()

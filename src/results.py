@@ -28,13 +28,15 @@ class AnalyseResults(MultiOptions):
     Reads the file containing the results
     """
     dic = self.read_binary_file(self.opdict['result_path'])
-    self.opdict['feat_list'] = dic['features']
-    print "Nb features :", len(dic['features'])
-    del dic['features']
+    self.opdict['feat_list'] = dic['header']['features']
+    self.opdict['label_filename'] = '%s/%s'%(self.opdict['libdir'],dic['header']['catalog'])
+    print "Nb features :", len(self.opdict['feat_list'])
     self.results = dic
     print sorted(dic)
     self.opdict['stations'] = [key[0] for key in sorted(dic)]
     self.opdict['channels'] = [key[1] for key in sorted(dic)]
+    self.opdict['Types'] = dic['header']['types']
+    del dic['header']
 
 
   def concatenate_results(self):
