@@ -102,8 +102,15 @@ def ponset_stack(x,mat,t,plot=False):
   if plot:
     fig = plt.figure()
     fig.set_facecolor('white')
+
     ax1 = fig.add_subplot(211)
     ax1.plot(x,'k')
+    ax1.set_xlim([0,len(x)])
+    ax1.xaxis.set_ticks_position('bottom')
+    ax1.xaxis.set_ticklabels('')
+    ax1.yaxis.set_ticks_position('left')
+    #ax1.text(-3000,480,'(a)')
+
     ax2 = fig.add_subplot(212)
     ax2.plot(t,stack/np.max(mat),'k')
     ax2.plot(t,s/np.max(s),'y')
@@ -111,6 +118,9 @@ def ponset_stack(x,mat,t,plot=False):
     ax2.plot(t,l/np.max(l),'r')
     ax2.plot(t[mins],l[mins]/np.max(l),'ro')
     ax2.plot([t[ponset],t[ponset]],[0,np.max(stack/np.max(mat))],'g-',lw=2.)
+    ax2.set_xlim([0,t[-1]])
+    ax2.set_xlabel('Time (s)')
+    #ax2.text(-30,4.8,'(b)')
 
   return ponset
 
@@ -378,7 +388,9 @@ def FuncFingerprint(mat,time,tr,f,end,plot=False,error=False):
       ax7.set_ylabel('Correlation coefficient',color='r')
       for tl in ax7.get_yticklabels():
         tl.set_color('r')
-      ax7.plot([frac*100,frac*100],[np.min(CORR),np.max(CORR)],'g',lw=2.)
+      m = np.min((np.min(CORR),np.min(MSE)))
+      M = np.max(CORR)
+      ax7.plot([frac*100,frac*100],[m,M],'g',lw=2.)
       #ax8 = ax6.twinx()
       #ax8.plot(x*100,ENE,'y--')
       #ax8.set_ylabel('Fraction of energy retained',color='y')

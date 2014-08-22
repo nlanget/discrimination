@@ -115,6 +115,7 @@ class SeismicTraces():
       ax1.plot([time[self.ponset],time[self.ponset]],[np.min(self.tr),np.max(self.tr)],'r',lw=2)
       if 'dur' in self.__dict__.keys():
         ax1.plot([time[self.ponset]+self.dur,time[self.ponset]+self.dur],[np.min(self.tr),np.max(self.tr)],'b',lw=2)
+    ax1.set_xlim([0,time[-1]])
     ax1.set_xticklabels('')
 
     ax2 = fig.add_subplot(312,title='Smoothed envelope')
@@ -125,9 +126,13 @@ class SeismicTraces():
       ax2.plot([time[emax],time[emax]],[np.min(self.tr_env),np.max(self.tr_env)],'g',lw=2)
       if 'dur' in self.__dict__.keys():
         ax2.plot([time[self.ponset]+self.dur,time[self.ponset]+self.dur],[np.min(self.tr_env),np.max(self.tr_env)],'b',lw=2)
-    
+    ax2.set_xlim([0,time[-1]])
+    ax2.set_xticklabels('')
+ 
     ax3 = fig.add_subplot(313,title='Kurtosis gradient')
-    ax3.plot(self.tr_grad,'k')
+    ax3.plot(time,self.tr_grad,'k')
+    ax3.set_xlabel('Time (s)')
+    ax3.set_xlim([0,time[-1]])
     plt.show()
 
 
@@ -243,8 +248,9 @@ def read_data_for_features_extraction(set='test',save=False):
           if opt.opdict['option'] == 'norm':
             dic = extract_norm_features(s,list_features,dic)
           elif opt.opdict['option'] == 'hash':
-            dic = extract_hash_features(s,list_features,dic,opt.opdict['permut_file'],plot=True)
+            dic = extract_hash_features(s,list_features,dic,opt.opdict['permut_file'],plot=False)
           df = df.append(dic)
+
       neb = i+1
       if counter == 3 and ('Rectilinearity' in list_features or 'Planarity' in list_features or 'Azimuth' in list_features or 'Incidence' in list_features):
         d_mean = (df.Dur[(i,'BOR',comp)] + df.Dur[(i,'BOR','E')] + df.Dur[(i,'BOR','Z')])/3.
@@ -276,7 +282,7 @@ def read_data_for_features_extraction(set='test',save=False):
           if opt.opdict['option'] == 'norm':
             dic = extract_norm_features(s,list_features,dic)
           elif opt.opdict['option'] == 'hash':
-            dic = extract_hash_features(s,list_features,dic,opt.opdict['permut_file'],plot=True)
+            dic = extract_hash_features(s,list_features,dic,opt.opdict['permut_file'],plot=False)
           df = df.append(dic)
       if counter == 3 and ('Rectilinearity' in list_features or 'Planarity' in list_features or 'Azimuth' in list_features or 'Incidence' in list_features):
         d_mean = (df.Dur[(i+neb,'BOR',comp)] + df.Dur[(i+neb,'BOR','E')] + df.Dur[(i+neb,'BOR','Z')])/3.
@@ -335,10 +341,10 @@ def extract_norm_features(s,list_features,dic):
         for i in range(len(vals)):
           dic['fratio%d'%i] = vals[i]
 
-      if 'Ene20-30' in list_features:
+      if 'Ene10-30' in list_features:
        # Energy between 10 and 30 Hz
         from waveform_features import energy_between_10Hz_and_30Hz
-        f1, f2 = 20,30
+        f1, f2 = 10,30
         dic['Ene%d-%d'%(f1,f2)] = energy_between_10Hz_and_30Hz(s.tr[s.i1:s.i2]/np.max(s.tr[s.i1:s.i2]),s.dt,wd=f1,wf=f2,ponset=s.ponset-s.i1,tend=s.tend-s.i1)
 
       if 'Ene5-10' in list_features:
@@ -544,7 +550,7 @@ def extract_hash_features(s,list_features,dic,permut_file,plot=False):
   q = [100.,.8,1]
   (full_spectro,f,full_time,end) = spectrogram(full_tr,param=q)
   ponset = ponset_stack(full_tr,full_spectro,full_time,plot=plot)
-  dic['Ponset'] = ponset
+  dic['Ponset'] = int(full_time[ponset]*1./s.dt)
  
   idebut = ponset-int(2*full_spectro.shape[1]/full_time[-1])
   print ponset, idebut
