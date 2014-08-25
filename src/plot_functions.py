@@ -6,26 +6,78 @@ import matplotlib.pyplot as plt
 import pandas as pd
 # ---------------------------------------------------
 # Plotting function for 1 feature
-def plot_hyp_func(x,y,syn,hyp):
+def plot_hyp_func_1f(x,y,str_t,syn,hyp,x_ok=None,x_bad=None,text=None):
   """
-  Plots the hypothesis function
+  Plots the hypothesis function for one feature.
+  Superimposed with histograms (training and test sets)
+  x is a pandas DataFrame
+  y is a pandas DataFrame
   """
+  num_t = np.unique(y.Type.values)
+
   fig = plt.figure()
   fig.set_facecolor('white')
-  x1 = x[y==0].values[:,0]
-  x2 = x[y==1].values[:,0]
-  nn,b,p = plt.hist([x1,x2],25,normed=True,histtype='stepfilled',alpha=.2,color=('b','g'),label=['Class 1','Class 2'])
+
+  x1 = x[y.Type==num_t[0]].values[:,0]
+  x2 = x[y.Type==num_t[1]].values[:,0]
+
+  nn,b,p = plt.hist([x1,x2],25,histtype='stepfilled',alpha=.2,color=('b','g'),label=str_t)
   norm = np.mean([np.max(nn[0]),np.max(nn[1])])
   plt.plot(syn,norm*hyp,'y-',lw=2,label='hypothesis')
+
+  if x_ok and x_bad:
+    nn, b, p = plt.hist([x_ok,x_bad],25,normed=True,color=('k','r'),histtype='step',fill=False,ls='dashed',lw=2,label=['Test Set'])
+
   plt.legend()
+  if text:
+    plt.figtext(0.15,0.85,"%.2f %% %s"%(text[0],str_t[0]),color='b')
+    plt.figtext(0.15,0.8,"%.2f %% %s"%(text[1],str_t[1]),color='g')
+    plt.figtext(0.15,0.75,"%.2f %% test set"%text[2])
+    plt.figtext(0.15,0.7,"%.2f %% test set"%text[3],color='r')
+
   plt.xlabel(x.columns[0])
-  plt.title('Logistic regression - 1 feature')
+  plt.title(x.columns[0])
+  plt.show()
+# ---------------------------------------------------
+def plot_sep_2f(x_train,y_train,str_t,x_all,y_all,x_bad,theta=[],text=None):
+  """
+  Plots the decision boundary for two feature.
+  Superimposed with scatter plots (training and test sets)
+  x_train, y_train, x_all, y_all are pandas DataFrame
+  """
+  n = x_train.shape[1]
+  for ikey,key in enumerate(x_train.columns):
+    for k in x_train.columns[ikey+1:]:
+      fig = plt.figure()
+      fig.set_facecolor('white')
+      plt.scatter(x_all[key],x_all[k],c=list(y_all.values),cmap=plt.cm.gray,alpha=0.2)
+      plt.scatter(x_train[key],x_train[k],c=list(y_train.values),cmap=plt.cm.winter,alpha=0.5)
+      if key in x_bad.columns:
+        plt.scatter(x_bad[key],x_bad[k],c='r',alpha=0.2)
+      if list(theta):
+        lim = .1
+        x1 = x_all.values[:,0]
+        x2 = x_all.values[:,1]
+        xplot = np.arange(np.min(x1)-lim,np.max(x1)+lim,0.1)
+        plt.plot(xplot,1./theta[2]*(-theta[0]-theta[1]*xplot),'y',lw=3.)
+        plt.xlim((np.min(x1)-lim,np.max(x1)+lim))
+        plt.ylim((np.min(x2)-lim,np.max(x2)+lim))
+      if text:
+        plt.figtext(0.7,0.85,"%.2f %% %s"%(text[0],str_t[0]),color='b')
+        plt.figtext(0.7,0.8,"%.2f %% %s"%(text[1],str_t[1]),color='g')
+        plt.figtext(0.7,0.75,"%.2f %% test set"%text[2])
+        plt.figtext(0.7,0.7,"%.2f %% test set"%text[3],color='r')
+      plt.xlabel(key)
+      plt.ylabel(k)
+      plt.ylim([-1,1])
+      plt.title('%s and %s'%(x_all.columns[0],x_all.columns[1]))
+      plt.show()
 # ---------------------------------------------------
 # Plotting function for 2 features and degree = 2
 def plot_db(x,y,theta,lim=.1,title=None):
   """
   Plots the decision boundary 
-  x is of DataFrame type
+  x is a pandas DataFrame
   y is a np.array
   """
   x1 = x.values[:,0]
@@ -46,7 +98,7 @@ def plot_db(x,y,theta,lim=.1,title=None):
 def plot_db_test(x,y,theta,lim=.1,title=None):
   """
   Plots the decision boundary 
-  x is of DataFrame type
+  x is a pandas DataFrame
   y is a np.array
   """
   x1 = x.values[:,0]
@@ -87,7 +139,7 @@ def plot_db_3d(x,y,theta,lim=.1,title=None):
   xplot = np.arange(np.min(x1)-lim,np.max(x1)+lim,0.1)
   yplot = np.arange(np.min(x2)-lim,np.max(x2)+lim,0.1)
   xplot,yplot = np.meshgrid(xplot,yplot)
-  ax.scatter(x1,x2,x3,c=y,cmap=plt.cm.gray)
+  ax.scatter(x1,x2,x3,c=list(y.values),cmap=plt.cm.gray)
 
   zplot = -1./theta[3]*(theta[0]+theta[1]*xplot+theta[2]*yplot)
   ax.plot_surface(xplot,yplot,zplot,color=(0.7,0.7,0.7),cstride=1,rstride=1,alpha=.2)
@@ -99,11 +151,12 @@ def plot_db_3d(x,y,theta,lim=.1,title=None):
   ax.set_zlabel(x.columns[2])
   if title:
     ax.set_title(title)
+  plt.show()
 # ---------------------------------------------------
 # Plot for multiclass
 def plot_multiclass_2d(x,theta,title=None):
   """
-  x if of DataFrame type
+  x is a pandas DataFrame
   """
   x1 = x.values[:,0]
   x2 = x.values[:,1]

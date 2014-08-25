@@ -58,8 +58,8 @@ def classifier(opt):
         g_train = opt.gaussians
         del opt.gaussians
       opt.classname2number()
-      x_train = opt.x
-      y_train = opt.y
+      x_ref_train = opt.x
+      y_ref_train = opt.y
 
 
     # About the test set
@@ -74,6 +74,7 @@ def classifier(opt):
     opt.classname2number()
     x_test = opt.x
     y_ref = opt.y
+    x_ref = opt.x
 
     K = len(opt.types)
 
@@ -82,6 +83,7 @@ def classifier(opt):
 
       subsubdic = {}
 
+      x_test = x_ref.copy()
       y_test = y_ref.copy()
 
       if 'train_x' not in list_attr:
@@ -102,6 +104,10 @@ def classifier(opt):
           else:
             y_train = y_ref.reindex(index=list_ev_train)
             y_train = y_train.dropna(how='any')
+
+      else:
+        x_train = x_ref_train.copy()
+        y_train = y_ref_train.copy()
 
       y = y_train.copy()
 
@@ -151,25 +157,33 @@ def classifier(opt):
       elif opt.opdict['method'] == 'svm':
         # SVM
         print "********** SVM **********"
-        CLASS_test, pourcentages = implement_svm(x_train,x_test,y_train,y_test,opt.types,opt.opdict,kern='NonLin')
+        kern = 'Lin'
+        if kern == 'NonLin':
+          CLASS_test, pourcentages = implement_svm(x_train,x_test,y_train,y_test,opt.types,opt.opdict,kern='NonLin')
+        elif kern == 'Lin':
+          CLASS_test, pourcentages, CLASS_train, theta_vec = implement_svm(x_train,x_test,y_train,y_test,opt.types,opt.opdict,kern='Lin')
+          theta = {}
+          for it in range(len(theta_vec)):
+            theta[it+1] = theta_vec[it]
 
       elif opt.opdict['method'] == 'lrsk':
         # LOGISTIC REGRESSION (scikit learn)
         print "********* Logistic regression (sklearn) **********"
         CLASS_test, pourcentages = implement_lr_sklearn(x_train,x_test,y_train,y_test,opt.types,opt.opdict)
 
-      elif opt.opdict['method'] == 'lr': 
+      elif opt.opdict['method'] == 'lr':
         # LOGISTIC REGRESSION
         print "********* Logistic regression **********"
         from LR_functions import do_all_logistic_regression
         wtr = np.array([])
         if 'learn_file' in sorted(opt.opdict):
-          if os.path.exists(opt.opdict['learn_file']):
-            wtr = opt.read_binary_file(opt.opdict['learn_file'])
+          learn_filename = '%s_%d'%(opt.opdict['learn_file'],b+1)
+          if os.path.exists(learn_filename):
+            wtr = opt.read_binary_file(learn_filename)
         CLASS_train,theta,CLASS_test,pourcentages,wtr = do_all_logistic_regression(x_train,y_train,x_test,y_test,output=True,perc=True,wtr=wtr)
         if 'learn_file' in sorted(opt.opdict):
-          if not os.path.exists(opt.opdict['learn_file']):
-            wtr = opt.write_binary_file(opt.opdict['learn_file'],wtr)
+          if not os.path.exists(learn_filename):
+            wtr = opt.write_binary_file(learn_filename,wtr)
         print "\t Training set"
         for i in range(K):
           print i, opt.types[i], len(np.where(y_train.values[:,0]==i)[0]), len(np.where(CLASS_train==i)[0])
@@ -189,6 +203,41 @@ def classifier(opt):
             if opt.opdict['save_confusion']:
               plt.savefig('%s/figures/test_%s_%s_%s.png'%(opt.opdict['outdir'],opt.opdict['result_file'][8:],opt.trad[isc][0],opt.trad[isc][1]))
             plt.show()
+
+
+      n_feat = x_train.shape[1] # number of features
+      if opt.opdict['plot_sep'] and len(opt.types) == 2:
+        from LR_functions import normalize
+        x_train, x_test = normalize(x_train,x_test)
+
+        x_train_good = x_train.reindex(index=y_train[y_train.Type.values==CLASS_train].index)
+        x_train_bad = x_train.reindex(index=y_train[y_train.Type.values!=CLASS_train].index)
+        good_train = y_train.reindex(index=x_train_good.index)
+        p_good_cl0 = len(good_train[good_train.Type==0])*1./len(y_train[y_train.Type==0])*100
+        p_good_cl1 = len(good_train[good_train.Type==1])*1./len(y_train[y_train.Type==1])*100
+
+        x_test_good = x_test.reindex(index=y_test[y_test.Type.values==CLASS_test].index)
+        x_test_bad = x_test.reindex(index=y_test[y_test.Type.values!=CLASS_test].index)
+        p_good_test = len(x_test_good)*1./len(x_test)*100
+        text = [p_good_cl0,p_good_cl1,p_good_test,100-p_good_test]
+
+        if n_feat == 1:
+          from LR_functions import hypothesis
+          from plot_functions import plot_hyp_func_1f
+          mins=[x_train.min(),x_test.min()]
+          maxs=[x_train.max(),x_test.max()]
+          syn, hyp = hypothesis(mins,maxs,theta[1])
+          plot_hyp_func_1f(x_train,y_train,opt.types,syn,hyp,x_test_good,x_test_bad,text=text)
+
+        elif n_feat == 2:
+          from plot_functions import plot_sep_2f
+          plot_sep_2f(x_train,y_train.Type,opt.types,x_test,y_test.Type,x_test_bad,theta=theta[1],text=text)
+
+        elif n_feat == 3:
+          from plot_functions import plot_db_3d
+          plot_db_3d(x_train,y_train.Type,theta[1],title='Training set')
+          plot_db_3d(x_test,y_test.Type,theta[1],title='Test set')
+
 
       subsubdic['%'] = pourcentages
       trad_CLASS_test = []
@@ -341,7 +390,11 @@ def implement_svm(x_train,x_test,y_train,y_test,types,opdict,kern='NonLin'):
       if opdict['save_confusion']:
         plt.savefig('%s/figures/test_%s.png'%(opdict['outdir'],opdict['result_file'][8:]))
       plt.show()
-  return y_test_SVM,(p_tr,p_test)
+
+  if kern == 'Lin':
+    return y_test_SVM,(p_tr,p_test),y_train_SVM,grid.best_estimator_.raw_coef_
+  else:
+    return y_test_SVM,(p_tr,p_test)
 
 # ================================================================
 
