@@ -40,6 +40,19 @@ def normalize(x,x_data):
 
 # ---------------------------------------------------
 
+def hypothesis(mins,maxs,theta):
+  """
+  Computes the hypothesis function in a range of values [mins,maxs]
+  given the parameters theta.
+  """
+  x_synth = pd.DataFrame(np.arange(np.min(mins),np.max(maxs),0.01))
+  mat = features_mat(x_synth)
+  hyp = g(np.dot(theta.reshape(1,len(theta)),mat))[0]
+
+  return x_synth.values[:,0],hyp
+
+# ---------------------------------------------------
+
 class CostFunction():
 
   def __init__(self,x,y,l):
@@ -239,7 +252,6 @@ def degree_and_regularization(xtest,ytest,xcv,ycv,xtrain,ytrain,verbose=False):
   DEG_MAX = 1
   degrees = np.array(range(1,DEG_MAX+1),dtype=int)
   # Lambda vector (regulariztion coefficient)
-  lambdas = [0]
   lambdas = list(10.0 ** np.arange(-2, 5))
 
   all_theta = {}
@@ -393,7 +405,7 @@ def comparison(y_predict,y_actual):
 
 # ---------------------------------------------------
 
-def precision_and_recall(x,y,theta,verbose=False):
+def precision_and_recall(x,y,theta):
   """
   Precision and recall: try different prediction thresholds
   and choose the one which maximizes the F1 score
@@ -421,18 +433,59 @@ def precision_and_recall(x,y,theta,verbose=False):
   else:
     best_t = .5
 
-  if verbose:
-    print "threshold", best_t
-    # Plot recall vs precision
-    fig = plt.figure()
-    fig.set_facecolor('white')
-    plt.plot(R,P,'r')
-    plt.xlim((-0.01,1.01))
-    plt.ylim((-0.01,1.01))
-    plt.xlabel('Recall')
-    plt.ylabel('Precision')
-
   return best_t
+# ---------------------------------------------------
+def plot_precision_recall(x_train,y_train,x_test,y_test,theta):
+  """
+  Plots the precision and recall curves.
+  Tests different thresholds.
+  """
+  print theta
+  precision, rappel = [],[]
+  precision_tr, rappel_tr = [],[]
+  thress = np.arange(0,1.05,.05)
+  for t in thress:
+    y_pred = test_hyp(x_test,theta,threshold=t,verbose=False)
+    false_pos,false_neg,true_pos = comparison(y_pred,y_test.values[:,0])
+
+    if true_pos != 0:
+      precision.append(true_pos*1./(true_pos+false_pos))
+      rappel.append(true_pos*1./(true_pos+false_neg))
+    else:
+      precision.append(0)
+      rappel.append(0)
+
+    y_pred_tr = test_hyp(x_train,theta,threshold=t,verbose=False)
+    false_pos,false_neg,true_pos = comparison(y_pred_tr,y_train.values[:,0])
+
+    if true_pos != 0:
+      precision_tr.append(true_pos*1./(true_pos+false_pos))
+      rappel_tr.append(true_pos*1./(true_pos+false_neg))
+    else:
+      precision_tr.append(0)
+      rappel_tr.append(0)
+
+  fig = plt.figure(figsize=(10,4))
+  fig.set_facecolor('white')
+  ax = fig.add_subplot(121)
+  plt.plot(thress[:-1],precision[:-1],'b',lw=2,label='Precision')
+  plt.plot(thress,rappel,'g',lw=2,label='Recall')
+  plt.plot(thress[:-1],precision_tr[:-1],'b--')
+  plt.plot(thress,rappel_tr,'g--')
+  plt.legend(loc=3)
+  plt.figtext(0.07,0.88,'(a)')
+  plt.xlabel('Threshold')
+
+  ax = fig.add_subplot(122)
+  plt.plot(rappel[:-1],precision[:-1],'k',lw=2)
+  plt.plot(rappel_tr[:-1],precision_tr[:-1],'k--')
+  plt.xlabel('Recall')
+  plt.ylabel('Precision')
+  plt.xlim([0.3,1.1])
+  plt.ylim([0.3,1.1])
+  plt.figtext(0.49,0.88,'(b)')
+  #plt.savefig('/home/nadege/Dropbox/Figures/Piton/Clement/KRapp_prec_rec.png')
+  plt.show()
 
 # ---------------------------------------------------
 
@@ -539,15 +592,14 @@ def evaluation(x,y,wtr=np.array([]),learn=False,verbose=False):
 
       t = {1:theta[k]}
 
-      for i in range(1,mcv):
-        a = dic_xcv[k].reindex(index=range(i))
-        b = dic_xtrain[k].reindex(index=range(i))
+      M = m
+      for i in range(1,M):
+        b = dic_x[k].reindex(index=range(i))
         c = pd.DataFrame({1:ytrain[k][:i]})
-        t = logistic_reg(b,c,t,l,verbose=False)
 
-        CF_cv = CostFunction(a,ycv[k][:i],l)
+        CF_cv = CostFunction(b,ycv[k][:i],l)
         j_cv = CF_cv.compute_cost(theta[k])
-        CF_train = CostFunction(b,ytrain[k][:i],l)
+        CF_train = CostFunction(b,y[k][:i],l)
         j_train = CF_train.compute_cost(theta[k])
         list_j_cv[k].append(j_cv)
         list_j_train[k].append(j_train)
@@ -555,11 +607,12 @@ def evaluation(x,y,wtr=np.array([]),learn=False,verbose=False):
       if verbose:
         fig = plt.figure()
         fig.set_facecolor('white')
-        plt.plot(range(1,mcv),list_j_cv[k],'b')
-        plt.plot(range(1,mcv),list_j_train[k],'r')
+        plt.plot(range(1,M),list_j_cv[k],'b')
+        plt.plot(range(1,M),list_j_train[k],'r')
         plt.xlabel('Size of training set')
+        plt.xlim([mcv,M])
         plt.ylabel('Cost function')
-        plt.legend(('Jcv','Jtrain'),'upper left')
+        plt.legend(('Jcv','Jtrain'),'upper right')
         plt.title('Class %d'%k)
         plt.show()
 
@@ -590,7 +643,8 @@ def do_all_logistic_regression(x,y_all,x_testset,y_testset=None,norm=True,verbos
   2) determination of the best theta vector (associated with the best degree/lambda/threshold) for each class
   3) prediction and classification of the test set
   y_testset: if available, the function will compare it to the results obtained by logistic regression 
-  If norm = True: data from the training and test sets are normalized. Default is True. Must be deactivated if data are already normalized (e.g. after PCA...)
+  If norm = True: data from the training and test sets are normalized. Default is True. 
+            Must be deactivated if data are already normalized (e.g. after PCA...)
   If output = True: returns prediction for both training and test sets and theta vector
   If perc = True: returns the percentage rates of recovery of the training and test sets
   If wtr: indexes of the events in the following order : "true" training set (60%), CV set (20%) and test set (20%)
@@ -621,7 +675,6 @@ def do_all_logistic_regression(x,y_all,x_testset,y_testset=None,norm=True,verbos
     y = y_all.copy()
 
   y.columns = range(1,y.shape[1]+1) # Class numbering begins at 1 (instead of 0)
-  y_all.columns = [1]
 
 
   # Normalization
@@ -636,12 +689,12 @@ def do_all_logistic_regression(x,y_all,x_testset,y_testset=None,norm=True,verbos
   for k in range(1,len(theta)+1):
     print "Class %d: degree = %d - lambda = %.1f - threshold = %.2f"%(k,int(deg_and_lambda[k-1,0]),deg_and_lambda[k-1,1],thres[k])
 
-  deg=deg_and_lambda[:,0]
+  deg = deg_and_lambda[:,0]
   # Test hypothesis function on training set
   y_pred_train = test_hyp(x,theta,deg=deg,threshold=thres[1],verbose=False)
 
   print "\nTRAINING SET"
-  p_tr = np.float(len(np.where(y_pred_train-y_all[1]==0)[0]))*100/y.shape[0]
+  p_tr = np.float(len(np.where(y_pred_train-y_all.Type==0)[0]))*100/y.shape[0]
   print "Correct classification: %.2f %%"%p_tr
 
   # Test hypothesis function on test set
@@ -651,6 +704,8 @@ def do_all_logistic_regression(x,y_all,x_testset,y_testset=None,norm=True,verbos
     print "TEST SET"
     p_test = 100-np.float(x_bad.shape[0]*100)/y_testset.shape[0]
     print "Correct classification: %.2f %%"%p_test
+
+    #plot_precision_recall(x,y,x_testset,y_testset,theta)
 
   #verbose=True
   if verbose and x.shape[1] < 5:
