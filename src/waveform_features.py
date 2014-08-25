@@ -549,11 +549,12 @@ def spectrogram(trace,plot=False):
     ax1.plot([cmax*npts/len(time),cmax*npts/len(time)],[np.min(data),np.max(data)],'y',lw=2.)
     ax1.plot([durf*1./trace.dt,durf*1./trace.dt],[np.min(data),np.max(data)],'b',lw=2.)
     #ax1.plot([ponset+trace.dur*1./trace.dt,ponset+trace.dur*1./trace.dt],[np.min(data),np.max(data)],'b--',lw=2.)
+    ax1.set_xlim([0,len(data)])
     ax1.set_title('Signal')
     ax1.set_xticklabels('')
 
     ax2 = fig.add_subplot(G[1,0])
-    ax2.imshow(specgram,interpolation="nearest",cmap=plt.cm.jet,extent=extent)
+    ax2.imshow(specgram,interpolation="nearest",cmap=plt.cm.jet,extent=extent,vmin=0,vmax=np.max(specgram)*1./3)
     ax2.set_xlim([0,end])
     ax2.axis('tight')
     ax2.set_xticklabels('')
@@ -564,6 +565,7 @@ def spectrogram(trace,plot=False):
     ax3.plot(time,evolf,'k')
     if val:
       ax3.plot(tval,val,'r')
+    ax3.set_xlim([0,time[-1]])
     ax3.set_xlabel('Time (s)')
     ax3.set_ylabel('Frequency (Hz)')
     ax3.set_title('Evolution of the predominant frequency with time')
