@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from LR_functions import comparison
-
+from options import read_binary_file, write_binary_file
 
 def classifier(opt):
 
@@ -47,7 +47,7 @@ def classifier(opt):
     # About the training set
     if len(opt.opdict['stations']) == 1 and opt.opdict['boot'] > 1 and 'train_x' not in list_attr:
       if os.path.exists(opt.opdict['train_file']):
-        TRAIN_Y = opt.read_binary_file(opt.opdict['train_file'])
+        TRAIN_Y = read_binary_file(opt.opdict['train_file'])
       else:
         TRAIN_Y = []
     elif 'train_x' in list_attr:
@@ -179,11 +179,11 @@ def classifier(opt):
         if 'learn_file' in sorted(opt.opdict):
           learn_filename = '%s_%d'%(opt.opdict['learn_file'],b+1)
           if os.path.exists(learn_filename):
-            wtr = opt.read_binary_file(learn_filename)
+            wtr = read_binary_file(learn_filename)
         CLASS_train,theta,CLASS_test,pourcentages,wtr = do_all_logistic_regression(x_train,y_train,x_test,y_test,output=True,perc=True,wtr=wtr)
         if 'learn_file' in sorted(opt.opdict):
           if not os.path.exists(learn_filename):
-            wtr = opt.write_binary_file(learn_filename,wtr)
+            wtr = write_binary_file(learn_filename,wtr)
         print "\t Training set"
         for i in range(K):
           print i, opt.types[i], len(np.where(y_train.values[:,0]==i)[0]), len(np.where(CLASS_train==i)[0])
@@ -206,38 +206,48 @@ def classifier(opt):
 
 
       n_feat = x_train.shape[1] # number of features
-      if opt.opdict['plot_sep'] and len(opt.types) == 2:
-        from LR_functions import normalize
-        x_train, x_test = normalize(x_train,x_test)
+      if len(opt.types) == 2:
+        if opt.opdict['plot_sep'] or opt.opdict['save_sep']:
+          from LR_functions import normalize
+          x_train, x_test = normalize(x_train,x_test)
 
-        x_train_good = x_train.reindex(index=y_train[y_train.Type.values==CLASS_train].index)
-        x_train_bad = x_train.reindex(index=y_train[y_train.Type.values!=CLASS_train].index)
-        good_train = y_train.reindex(index=x_train_good.index)
-        p_good_cl0 = len(good_train[good_train.Type==0])*1./len(y_train[y_train.Type==0])*100
-        p_good_cl1 = len(good_train[good_train.Type==1])*1./len(y_train[y_train.Type==1])*100
+          x_train_good = x_train.reindex(index=y_train[y_train.Type.values==CLASS_train].index)
+          x_train_bad = x_train.reindex(index=y_train[y_train.Type.values!=CLASS_train].index)
+          good_train = y_train.reindex(index=x_train_good.index)
+          p_good_cl0 = len(good_train[good_train.Type==0])*1./len(y_train[y_train.Type==0])*100
+          p_good_cl1 = len(good_train[good_train.Type==1])*1./len(y_train[y_train.Type==1])*100
 
-        x_test_good = x_test.reindex(index=y_test[y_test.Type.values==CLASS_test].index)
-        x_test_bad = x_test.reindex(index=y_test[y_test.Type.values!=CLASS_test].index)
-        p_good_test = len(x_test_good)*1./len(x_test)*100
-        text = [p_good_cl0,p_good_cl1,p_good_test,100-p_good_test]
+          x_test_good = x_test.reindex(index=y_test[y_test.Type.values==CLASS_test].index)
+          x_test_bad = x_test.reindex(index=y_test[y_test.Type.values!=CLASS_test].index)
+          p_good_test = len(x_test_good)*1./len(x_test)*100
+          text = [p_good_cl0,p_good_cl1,p_good_test,100-p_good_test]
 
-        if n_feat == 1:
-          from LR_functions import hypothesis
-          from plot_functions import plot_hyp_func_1f
-          mins=[x_train.min(),x_test.min()]
-          maxs=[x_train.max(),x_test.max()]
-          syn, hyp = hypothesis(mins,maxs,theta[1])
-          plot_hyp_func_1f(x_train,y_train,opt.types,syn,hyp,x_test_good,x_test_bad,text=text)
+          if n_feat == 1:
+            from LR_functions import hypothesis
+            from plot_functions import plot_hyp_func_1f
+            mins=[x_train.min(),x_test.min()]
+            maxs=[x_train.max(),x_test.max()]
+            syn, hyp = hypothesis(mins,maxs,theta[1])
+            plot_hyp_func_1f(x_train,y_train,opt.types,syn,hyp,x_test_good,x_test_bad,text=text)
+            name = opt.opdict['feat_list'][0]
 
-        elif n_feat == 2:
-          from plot_functions import plot_sep_2f
-          plot_sep_2f(x_train,y_train.Type,opt.types,x_test,y_test.Type,x_test_bad,theta=theta[1],text=text)
+          elif n_feat == 2:
+            from plot_functions import plot_sep_2f
+            plot_sep_2f(x_train,y_train.Type,opt.types,x_test,y_test.Type,x_test_bad,theta=theta[1],text=text)
+            name = '%s_%s'%(opt.opdict['feat_list'][0],opt.opdict['feat_list'][1])
 
-        elif n_feat == 3:
-          from plot_functions import plot_db_3d
-          plot_db_3d(x_train,y_train.Type,theta[1],title='Training set')
-          plot_db_3d(x_test,y_test.Type,theta[1],title='Test set')
+          elif n_feat == 3:
+            from plot_functions import plot_db_3d
+            plot_db_3d(x_train,y_train.Type,theta[1],title='Training set')
+            plot_db_3d(x_test,y_test.Type,theta[1],title='Test set')
+            name = '%s_%s_%s'%(opt.opdict['feat_list'][0],opt.opdict['feat_list'][1],opt.opdict['feat_list'][2])
 
+        if opt.opdict['save_sep']:
+          plt.savefig('%s/HYP/sep_%s.png'%(opt.opdict['fig_path'],name))
+        if opt.opdict['plot_sep']:
+          plt.show()
+        else:
+          plt.close()
 
       subsubdic['%'] = pourcentages
       trad_CLASS_test = []
@@ -255,11 +265,11 @@ def classifier(opt):
   dic_results['header']['catalog'] = opt.opdict['label_test']
 
   if opt.opdict['method'] == 'lr' or opt.opdict['method'] == 'lrsk' or opt.opdict['method'] == 'svm':
-    opt.write_binary_file(opt.opdict['result_path'],dic_results)
+    write_binary_file(opt.opdict['result_path'],dic_results)
 
   if 'train_file' in sorted(opt.opdict):
     if not os.path.exists(opt.opdict['train_file']) and opt.opdict['boot'] > 1:
-      opt.write_binary_file(opt.opdict['train_file'],TRAIN_Y)
+      write_binary_file(opt.opdict['train_file'],TRAIN_Y)
 
 # ================================================================
 
@@ -390,6 +400,8 @@ def implement_svm(x_train,x_test,y_train,y_test,types,opdict,kern='NonLin'):
       if opdict['save_confusion']:
         plt.savefig('%s/figures/test_%s.png'%(opdict['outdir'],opdict['result_file'][8:]))
       plt.show()
+
+  print grid.best_estimator_.intercept_scaling
 
   if kern == 'Lin':
     return y_test_SVM,(p_tr,p_test),y_train_SVM,grid.best_estimator_.raw_coef_
@@ -581,10 +593,10 @@ def one_by_one(opt,x_test_ref0,y_test_ref0,otimes_ref,boot=1,method='lr'):
 
   file = opt.opdict['result_path']
   print "One-by-One results stored in %s"%file
-  opt.write_binary_file(file,DIC)
+  write_binary_file(file,DIC)
 
   file = '%s/stats_OBO'%os.path.dirname(opt.opdict['result_path'])
-  opt.write_binary_file(file,EXT)
+  write_binary_file(file,EXT)
 
 # ================================================================
 
@@ -688,4 +700,4 @@ def one_vs_all(opt,x_test,y_test_ref,otimes_ref,boot=1,method='lr'):
 
   file = opt.opdict['result_path']
   print "One-vs-All results stored in %s"%file
-  opt.write_binary_file(file,DIC)
+  write_binary_file(file,DIC)

@@ -6,6 +6,7 @@ import pandas as pd
 import os,sys,glob
 from options import MultiOptions
 import matplotlib.pyplot as plt
+from options import read_binary_file
 
 class AnalyseResults(MultiOptions):
   """
@@ -19,6 +20,7 @@ class AnalyseResults(MultiOptions):
     self.opdict['class_auto_file'] = 'auto_class.csv'
     self.opdict['class_auto_path'] = '%s/%s/%s'%(self.opdict['outdir'],self.opdict['method'].upper(),self.opdict['class_auto_file'])
 
+    self.bootstrap()
     self.concatenate_results()
     self.display_results()
 
@@ -27,7 +29,7 @@ class AnalyseResults(MultiOptions):
     """
     Reads the file containing the results
     """
-    dic = self.read_binary_file(self.opdict['result_path'])
+    dic = read_binary_file(self.opdict['result_path'])
     self.opdict['feat_list'] = dic['header']['features']
     self.opdict['label_filename'] = '%s/%s'%(self.opdict['libdir'],dic['header']['catalog'])
     print "Nb features :", len(self.opdict['feat_list'])
@@ -41,7 +43,8 @@ class AnalyseResults(MultiOptions):
 
   def concatenate_results(self):
     """
-    Does a synthesis of all classifications
+    Does a synthesis of all classifications (in cases where this is a multi-station or 
+    multi-component classification)
     Stores the automatic classification into a .csv file.
     The index of the DataFrame structure contains the list of events.
     The columns of the DataFrame structure contain, for each event : 
@@ -99,17 +102,6 @@ class AnalyseResults(MultiOptions):
     histos = struct.reindex(columns=['%','Nb'])
     histos.hist()
     plt.ylabel('Number of events')
-    #plt.savefig('%s/stats.png'%self.opdict['fig_path'])
-
-    #print np.unique(struct['%'].values)
-    #for p in np.unique(struct['%'].values):
-    #  df = struct[struct['%']==p]
-    #  nbs = [len(df[df.Nb==n]) for n in np.unique(df.Nb.values)]
-    #  fig = plt.figure()
-    #  fig.set_facecolor('white')
-    #  plt.pie(nbs)
-    #  plt.title('%% = %d'%p)
-    #  plt.show()
 
     fig = plt.figure()
     fig.set_facecolor('white')
@@ -119,6 +111,22 @@ class AnalyseResults(MultiOptions):
     plt.xlabel('Number of classifications')
     plt.ylabel('% of same classification')
     plt.show()
+
+
+  def bootstrap(self):
+    """
+    In cases where several training sets draws were carried out.
+    Displays the mean classification rate as well as the standard deviation.
+    """
+    self.read_result_file()
+    for key in sorted(self.results):
+      print key
+      p_test, p_train = [],[]
+      for tir in sorted(self.results[key]):
+        p_train.append(self.results[key][tir]['%'][0])
+        p_test.append(self.results[key][tir]['%'][1])
+      print "\t Training", np.mean(p_train), np.std(p_train)
+      print "\t Test", np.mean(p_test), np.std(p_test)
 
 
   def read_manual_auto_files(self):
@@ -204,7 +212,7 @@ class AnalyseResultsExtraction(MultiOptions):
   def __init__(self):
     MultiOptions.__init__(self)
     print "ANALYSIS OF %s"%self.opdict['result_path']
-    self.results = self.read_binary_file(self.opdict['result_path'])
+    self.results = read_binary_file(self.opdict['result_path'])
     self.opdict['feat_list'] = self.results['features']
     del self.results['features']
 

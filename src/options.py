@@ -4,6 +4,30 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
+
+def read_binary_file(filename):
+  """
+  Reads a binary file.
+  """
+  import cPickle
+  with open(filename,'rb') as file:
+    my_depickler = cPickle.Unpickler(file)
+    dic = my_depickler.load()
+    file.close()
+  return dic
+
+
+def write_binary_file(filename,dic):
+  """
+  Writes in a binary file.
+  """
+  import cPickle
+  with open(filename,'w') as file:
+    my_pickler = cPickle.Pickler(file)
+    my_pickler.dump(dic)
+    file.close()
+
+
 class Options(object):
 
   def __init__(self):
@@ -33,6 +57,7 @@ class Options(object):
     self.opdict['plot_confusion'] = True # display the confusion matrices
     self.opdict['save_confusion'] = False
     self.opdict['plot_sep'] = True # plot decision boundary
+    self.opdict['save_sep'] = True
 
     import time
     date = time.localtime()
@@ -40,7 +65,8 @@ class Options(object):
       # Features "normales"
       #self.opdict['feat_test'] = '%s_%02d%02d.csv'%(self.opdict['dir'],date.tm_mday,date.tm_mon)
       #self.opdict['feat_list'] = ['AsDec','Bandwidth','CentralF','Centroid_time','Dur','Ene20-30','Ene5-10','Ene0-5','F_low','F_up','Growth','IFslope','Kurto','MeanPredF','NbPeaks','PredF','RappMaxMean','RappMaxMeanTF','Skewness','sPredF','TimeMaxSpec','Width','ibw0','ibw1','ibw2','ibw3','ibw4','ibw5','ibw6','ibw7','ibw8','ibw9','if0','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9','Rectilinearity','Planarity','Azimuth','Incidence']
-      self.opdict['feat_list'] = ['AsDec','KRapp']
+      self.opdict['feat_list'] = ['AsDec']
+      #self.opdict['feat_log'] = ['AsDec']
       #self.opdict['feat_log'] = ['AsDec','Dur','Ene0-5','Growth','ibw0','MeanPredF','RappMaxMean','RappMaxMeanTF','TimeMaxSpec','v0','v8','v9'] # list of features to be normalized with np.log (makes data look more gaussians)
       #self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Growth','Kurto','RappMaxMean','RappMaxMeanTF','Skewness','TimeMaxSpec','Width']
       #self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Kurto','RappMaxMean','Skewness','TimeMaxSpec']
@@ -64,7 +90,8 @@ class Options(object):
     self.opdict['label_filename'] = '%s/%s'%(self.opdict['libdir'],self.opdict['label_test'])
 
     if self.opdict['method'] == 'lr' or self.opdict['method'] == 'svm' or self.opdict['method'] == 'lrsk':
-      self.opdict['result_file'] = 'results_%s_%dc_%df'%(self.opdict['method'],len(self.opdict['Types']),len(self.opdict['feat_list']))
+      #self.opdict['result_file'] = 'results_%s_%dc_%df'%(self.opdict['method'],len(self.opdict['Types']),len(self.opdict['feat_list']))
+      self.opdict['result_file'] = 'results_%s_%s_log'%(self.opdict['method'],self.opdict['feat_list'][0])
     else:
       self.opdict['result_file'] = '%s_%s_svm'%(self.opdict['method'].upper(),self.opdict['stations'][0])
     self.opdict['result_path'] = '%s/%s/%s'%(self.opdict['outdir'],self.opdict['method'].upper(),self.opdict['result_file'])
@@ -93,10 +120,10 @@ class Options(object):
     self.opdict['stations'] = ['BOR']
     self.opdict['Types'] = ['EB','VT']
     self.opdict['datadir'] = os.path.join('../data/%s/full_data'%self.opdict['dir'])
-    self.opdict['feat_train'] = 'clement_train.csv'
-    self.opdict['feat_test'] = 'clement_test.csv'
-    #self.opdict['feat_train'] = 'Piton_trainset.csv'
-    #self.opdict['feat_test'] = 'Piton_testset.csv'
+    #self.opdict['feat_train'] = 'clement_train.csv'
+    #self.opdict['feat_test'] = 'clement_test.csv'
+    self.opdict['feat_train'] = 'Piton_trainset.csv'
+    self.opdict['feat_test'] = 'Piton_testset.csv'
     self.opdict['hash_train'] = 'HT_Piton_trainset.csv'
     self.opdict['hash_test'] = 'HT_Piton_testset.csv'
     self.opdict['label_train'] = 'class_train_set.csv'
@@ -160,29 +187,6 @@ class Options(object):
     Reads the file with manual classification
     """
     return pd.read_csv(self.opdict['label_filename'])
-
-
-  def read_binary_file(self,filename):
-    """
-    Reads a binary file.
-    """
-    import cPickle
-    with open(filename,'rb') as file:
-      my_depickler = cPickle.Unpickler(file)
-      dic = my_depickler.load()
-      file.close()
-    return dic
-
-
-  def write_binary_file(self,filename,dic):
-    """
-    Writes in a binary file.
-    """
-    import cPickle
-    with open(filename,'w') as file:
-      my_pickler = cPickle.Pickler(file)
-      my_pickler.dump(dic)
-      file.close()
 
 
   def write_x_and_y(self):

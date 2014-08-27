@@ -8,16 +8,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from LR_functions import comparison
 from do_classification import confusion, create_training_set
-
-# ================================================================
-
-def read_binary_file(filename):
-  import cPickle
-  with open(filename,'rb') as test:
-    my_depickler = cPickle.Unpickler(test)
-    DIC = my_depickler.load()
-    test.close()
-  return DIC
+from options import read_binary_file
 
 # ================================================================
 

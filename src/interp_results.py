@@ -5,6 +5,7 @@ import os,glob,sys
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from options import read_binary_file
 
 def new_catalogue(opt):
 
@@ -139,7 +140,7 @@ def compare_pdfs_train():
   opt.opdict['train_file'] = '%s/train_10'%(opt.opdict['libdir'])
   opt.opdict['label_filename'] = '%s/Ijen_reclass_all.csv'%opt.opdict['libdir']
 
-  train = opt.read_binary_file(opt.opdict['train_file'])
+  train = read_binary_file(opt.opdict['train_file'])
   nb_tir = len(train)
 
   for sta in opt.opdict['stations']:
@@ -177,9 +178,9 @@ def plot_test_vs_train():
   For multiple training set draws
   """
   import cPickle
-  path = '../results/Ijen'
-  filenames = ['SVM/results_svm_8c_52f','SVM/results_svm_8c_52f_trFix','SVM/results_svm_8c_8f','SVM/results_svm_8c_8f_trFix']
-  labels = ['SVM prop','SVM fix','SVM prop 8f','SVM fix 8f']
+  path = '../results/Piton'
+  filenames = ['LR/results_lr_2c_50f_HASH','LR/results_lr_2c_50f_HASH32']
+  labels = ['64x64','32x32']
 
   fig = plt.figure()
   fig.set_facecolor('white')
@@ -203,6 +204,8 @@ def plot_test_vs_train():
     for i in sorted(DIC):
       p_tr.append(DIC[i]['%'][0])
       p_test.append(DIC[i]['%'][1])
+    print labels[k], 'TRAIN', np.mean(p_tr), np.std(p_tr)
+    print '\tTEST', np.mean(p_test), np.std(p_test)
     plt.plot(p_tr,p_test,marker=markers[k],color=colors[k],lw=0,label=labels[k])
     k = k+1
   plt.legend(numpoints=1,loc='upper left')
@@ -217,12 +220,14 @@ def plot_test_vs_train():
 
 
 if __name__ == '__main__':
+
+  plot_test_vs_train()
+
   from results import AnalyseResults
   res = AnalyseResults()
 
-  #plot_test_vs_train()
   #new_catalogue(res)
   #plot_on_pdf(res)
-  plot_waveforms(res)
+  #plot_waveforms(res)
   #compare_pdfs_reclass()
   #compare_pdfs_train()
