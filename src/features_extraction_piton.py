@@ -70,7 +70,11 @@ class SeismicTraces():
     Runs envelope processing on a waveform.
     """
     from obspy.signal import filter
-    self.tr_env = filter.envelope(self.tr)
+    env = filter.envelope(self.tr)
+    w = 51 # length of the sliding window
+    s = np.r_[env[w-1:0:-1],env,env[-1:-w:-1]]
+    window = np.ones(w,'d')
+    self.tr_env = np.convolve(window/window.sum(),s,mode='valid')[w/2:-w/2]
 
 
   def spectrum(self,plot=False):
@@ -235,6 +239,8 @@ def read_data_for_features_extraction(set='test',save=False):
     hob_all_EB = {}
     for i in range(mat['KurtoEB'].shape[1]):
       print "EB", i
+      if i!=10 and i!=61:
+        continue
       counter = 0
       for comp in opt.opdict['channels']:
         counter = counter + 1
@@ -269,6 +275,8 @@ def read_data_for_features_extraction(set='test',save=False):
 
     for i in range(mat['KurtoVT'].shape[1]):
       print "VT", i+neb
+      if i != 5:
+        continue
       counter = 0
       for comp in opt.opdict['channels']:
         counter = counter + 1
@@ -277,6 +285,7 @@ def read_data_for_features_extraction(set='test',save=False):
         dic['Ponset'] = 0
 
         s = SeismicTraces(mat,comp,train=[i,'VT'])
+
         list_attr = s.__dict__.keys()
         if len(list_attr) > 2:
           if opt.opdict['option'] == 'norm':
@@ -324,7 +333,7 @@ def extract_norm_features(s,list_features,dic):
 
       # Mean of the predominant frequency
       from waveform_features import spectrogram
-      s, dic['MeanPredF'], dic['TimeMaxSpec'], dic['NbPeaks'], dic['Width'], hob, vals, dic['sPredF'] = spectrogram(s,plot=False)
+      s, dic['MeanPredF'], dic['TimeMaxSpec'], dic['NbPeaks'], dic['Width'], hob, vals, dic['sPredF'] = spectrogram(s,plot=True)
       for i in range(len(vals)):
         dic['v%d'%i] = vals[i]
       dic['Dur'] = s.dur

@@ -72,7 +72,12 @@ class SeismicTraces():
     Runs envelope processing on a waveform.
     """
     from obspy.signal import filter
-    self.tr_env = filter.envelope(self.tr)
+    env = filter.envelope(self.tr)
+    # Smooth the envelope
+    w = 51 # length of the sliding window
+    s = np.r_[env[w-1:0:-1],env,env[-1:-w:-1]]
+    window = np.ones(w,'d')
+    self.tr_env = np.convolve(window/window.sum(),s,mode='valid')[w/2:-w/2]
 
 
   def spectrum(self,plot=False):
@@ -447,4 +452,4 @@ def extract_hash_features(list_features,date,file,dic,permut_file,plot=False):
 
 # ================================================================
 if __name__ == '__main__':
-  read_data_for_features_extraction(save=True)
+  read_data_for_features_extraction(save=False)
