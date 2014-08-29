@@ -162,14 +162,19 @@ def classifier(opt):
           CLASS_test, pourcentages = implement_svm(x_train,x_test,y_train,y_test,opt.types,opt.opdict,kern='NonLin')
         elif kern == 'Lin':
           CLASS_test, pourcentages, CLASS_train, theta_vec = implement_svm(x_train,x_test,y_train,y_test,opt.types,opt.opdict,kern='Lin')
-          theta = {}
+          theta,threshold = {},{}
           for it in range(len(theta_vec)):
             theta[it+1] = theta_vec[it]
+            threshold[it+1] = None
 
       elif opt.opdict['method'] == 'lrsk':
         # LOGISTIC REGRESSION (scikit learn)
         print "********* Logistic regression (sklearn) **********"
-        CLASS_test, pourcentages = implement_lr_sklearn(x_train,x_test,y_train,y_test,opt.types,opt.opdict)
+        CLASS_test, pourcentages, CLASS_train, theta_vec = implement_lr_sklearn(x_train,x_test,y_train,y_test,opt.types,opt.opdict)
+        theta,threshold = {},{}
+        for it in range(len(theta_vec)):
+          theta[it+1] = theta_vec[it]
+          threshold[it+1] = None
 
       elif opt.opdict['method'] == 'lr':
         # LOGISTIC REGRESSION
@@ -179,8 +184,11 @@ def classifier(opt):
         if 'learn_file' in sorted(opt.opdict):
           learn_filename = '%s_%d'%(opt.opdict['learn_file'],b+1)
           if os.path.exists(learn_filename):
-            wtr = read_binary_file(learn_filename)
-        CLASS_train,theta,CLASS_test,pourcentages,wtr = do_all_logistic_regression(x_train,y_train,x_test,y_test,output=True,perc=True,wtr=wtr)
+            wtr_ini = read_binary_file(learn_filename)
+            wtr = wtr_ini[:len(y_train)]
+            wtr = np.array(wtr)
+            wtr[wtr>len(wtr)-1] = wtr_ini[len(y_train):]
+        CLASS_train,theta,CLASS_test,threshold,pourcentages,wtr = do_all_logistic_regression(x_train,y_train,x_test,y_test,output=True,perc=True,wtr=wtr,ret_thres=True)
         if 'learn_file' in sorted(opt.opdict):
           if not os.path.exists(learn_filename):
             wtr = write_binary_file(learn_filename,wtr)
@@ -205,9 +213,18 @@ def classifier(opt):
             plt.show()
 
 
+      if opt.opdict['plot_prec_rec']:
+        from LR_functions import normalize,plot_precision_recall
+        x_train, x_test = normalize(x_train,x_test)
+        plot_precision_recall(x_train,y_train,x_test,y_test,theta)
+        plt.show()
+
+
       n_feat = x_train.shape[1] # number of features
       if len(opt.types) == 2:
         if opt.opdict['plot_sep'] or opt.opdict['save_sep']:
+          print "Theta values:",theta
+
           from LR_functions import normalize
           x_train, x_test = normalize(x_train,x_test)
 
@@ -224,11 +241,12 @@ def classifier(opt):
 
           if n_feat == 1:
             from LR_functions import hypothesis
-            from plot_functions import plot_hyp_func_1f
+            from plot_functions import plot_hyp_func_1f, plot_sep_1f
             mins=[x_train.min(),x_test.min()]
             maxs=[x_train.max(),x_test.max()]
             syn, hyp = hypothesis(mins,maxs,theta[1])
-            plot_hyp_func_1f(x_train,y_train,opt.types,syn,hyp,x_test_good,x_test_bad,text=text)
+            plot_sep_1f(x_train,y_train,theta=theta[1],str_t=opt.types,x_ok=x_test_good,x_bad=x_test_bad,text=text)
+            plot_hyp_func_1f(x_train,y_train,syn,hyp,threshold=threshold[1],str_t=opt.types,x_ok=x_test_good,x_bad=x_test_bad,text=text)
             name = opt.opdict['feat_list'][0]
 
           elif n_feat == 2:
@@ -358,6 +376,9 @@ def implement_svm(x_train,x_test,y_train,y_test,types,opdict,kern='NonLin'):
   """
   Implements SVM from scikit learn package.
   """
+  from LR_functions import normalize
+  x_train, x_test = normalize(x_train,x_test)
+
   # do grid search
   from sklearn.grid_search import GridSearchCV
   from sklearn import svm
@@ -401,8 +422,6 @@ def implement_svm(x_train,x_test,y_train,y_test,types,opdict,kern='NonLin'):
         plt.savefig('%s/figures/test_%s.png'%(opdict['outdir'],opdict['result_file'][8:]))
       plt.show()
 
-  print grid.best_estimator_.intercept_scaling
-
   if kern == 'Lin':
     return y_test_SVM,(p_tr,p_test),y_train_SVM,grid.best_estimator_.raw_coef_
   else:
@@ -414,6 +433,9 @@ def implement_lr_sklearn(x_train,x_test,y_train,y_test,types,opdict):
   """
   Implements logistic regression from scikit learn package.
   """
+  from LR_functions import normalize
+  #x_train, x_test = normalize(x_train,x_test)
+
   from sklearn.grid_search import GridSearchCV
   from sklearn.linear_model import LogisticRegression
 
@@ -449,7 +471,7 @@ def implement_lr_sklearn(x_train,x_test,y_train,y_test,types,opdict):
       if opdict['save_confusion']:
         plt.savefig('%s/figures/test_%s.png'%(opdict['outdir'],opdict['result_file'][8:]))
       plt.show()
-  return y_test_LR,(p_tr,p_test)
+  return y_test_LR,(p_tr,p_test),y_train_LR,grid.best_estimator_.raw_coef_
 
 # ================================================================
 

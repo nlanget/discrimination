@@ -6,24 +6,32 @@ import matplotlib.pyplot as plt
 import pandas as pd
 # ---------------------------------------------------
 # Plotting function for 1 feature
-def plot_hyp_func_1f(x,y,str_t,syn,hyp,x_ok=None,x_bad=None,text=None):
+def plot_hyp_func_1f(x,y,syn,hyp,str_t=None,threshold=None,x_ok=None,x_bad=None,text=None):
   """
   Plots the hypothesis function for one feature.
   Superimposed with histograms (training and test sets)
   x is a pandas DataFrame
   y is a pandas DataFrame
   """
-  num_t = np.unique(y.Type.values)
+  num_t = np.unique(y.values.ravel())
+  if not str_t:
+    str_t = map(str,list(num_t))
 
   fig = plt.figure()
   fig.set_facecolor('white')
 
-  x1 = x[y.Type==num_t[0]].values[:,0]
-  x2 = x[y.Type==num_t[1]].values[:,0]
+  x1 = x[y.values.ravel()==num_t[0]].values[:,0]
+  x2 = x[y.values.ravel()==num_t[1]].values[:,0]
 
   nn,b,p = plt.hist([x1,x2],25,histtype='stepfilled',alpha=.2,color=('b','g'),label=str_t)
   norm = np.mean([np.max(nn[0]),np.max(nn[1])])
   plt.plot(syn,norm*hyp,'y-',lw=2,label='hypothesis')
+
+  if threshold:
+    thres = np.ones(len(hyp))*threshold
+    imin = np.argmin(np.abs(thres-hyp))
+    t = syn[imin]
+    plt.plot([t,t],[0,np.max(nn)],'orange',lw=2.)
 
   if x_ok and x_bad:
     nn, b, p = plt.hist([x_ok,x_bad],25,normed=True,color=('k','r'),histtype='step',fill=False,ls='dashed',lw=2,label=['Test Set'])
@@ -37,7 +45,42 @@ def plot_hyp_func_1f(x,y,str_t,syn,hyp,x_ok=None,x_bad=None,text=None):
 
   plt.xlabel(x.columns[0])
   plt.title(x.columns[0])
-  plt.show()
+# ---------------------------------------------------
+def plot_sep_1f(x,y,theta=[],str_t=None,x_ok=None,x_bad=None,text=None):
+  """
+  Plots the boundary decision for one feature.
+  Superimposed with histograms (training and test sets)
+  x is a pandas DataFrame
+  y is a pandas DataFrame
+  """
+  num_t = np.unique(y.values.ravel())
+  if not str_t:
+    str_t = map(str,list(num_t))
+
+  fig = plt.figure()
+  fig.set_facecolor('white')
+
+  x1 = x[y.values.ravel()==num_t[0]].values[:,0]
+  x2 = x[y.values.ravel()==num_t[1]].values[:,0]
+
+  nn,b,p = plt.hist([x1,x2],25,histtype='stepfilled',alpha=.2,color=('b','g'),label=str_t)
+  if list(theta):
+    xplot = -theta[0]*1./theta[1]
+    #xplot = -1./theta[1]
+    plt.plot([xplot,xplot],[0,np.max(nn)],'orange',lw=2.)
+
+  if x_ok and x_bad:
+    nn, b, p = plt.hist([x_ok,x_bad],25,normed=True,color=('k','r'),histtype='step',fill=False,ls='dashed',lw=2,label=['Test Set'])
+
+  plt.legend()
+  if text:
+    plt.figtext(0.15,0.85,"%.2f %% %s"%(text[0],str_t[0]),color='b')
+    plt.figtext(0.15,0.8,"%.2f %% %s"%(text[1],str_t[1]),color='g')
+    plt.figtext(0.15,0.75,"%.2f %% test set"%text[2])
+    plt.figtext(0.15,0.7,"%.2f %% test set"%text[3],color='r')
+
+  plt.xlabel(x.columns[0])
+  plt.title(x.columns[0])
 # ---------------------------------------------------
 def plot_sep_2f(x_train,y_train,str_t,x_all,y_all,x_bad,theta=[],text=None):
   """
@@ -71,7 +114,6 @@ def plot_sep_2f(x_train,y_train,str_t,x_all,y_all,x_bad,theta=[],text=None):
       plt.ylabel(k)
       plt.ylim([-1,1])
       plt.title('%s and %s'%(x_all.columns[0],x_all.columns[1]))
-      plt.show()
 # ---------------------------------------------------
 # Plotting function for 2 features and degree = 2
 def plot_db(x,y,theta,lim=.1,title=None):
@@ -151,7 +193,6 @@ def plot_db_3d(x,y,theta,lim=.1,title=None):
   ax.set_zlabel(x.columns[2])
   if title:
     ax.set_title(title)
-  plt.show()
 # ---------------------------------------------------
 # Plot for multiclass
 def plot_multiclass_2d(x,theta,title=None):
