@@ -28,6 +28,39 @@ def write_binary_file(filename,dic):
     file.close()
 
 
+def name2num(df,col,names,keep_names=None):
+  """
+  Associates a number to a string.
+  df is a pandas DataFrame.
+  col is the name of the column of df for which we want the conversion to be done.
+  names is the list of all the existing and different names 
+  (Optional) keep_names is the list of names we really want to keep.
+  """
+
+  if not keep_names:
+    keep_names = names
+
+  nbtyp = []
+  for name in names:
+    nb = len(df[df[col]==name])
+    if nb > 5 and name in keep_names:
+      nbtyp.append((nb,name))
+    else:
+      df = df[df[col]!=name]
+  nbtyp.sort(reverse=True)
+  print nbtyp
+  names = [nbt[1] for nbt in nbtyp]
+  if 'nan' in names:
+    df = df[df[col]!='nan']
+    names.remove('nan')
+  for i,name in enumerate(names):
+    df[df[col]==name] = i
+ 
+  numt = [i for i in range(len(names)) if str(names[i]) in keep_names]
+
+  return df, numt
+
+
 class Options(object):
 
   def __init__(self):
@@ -37,7 +70,7 @@ class Options(object):
     self.opdict['option'] = 'norm' # could be 'norm' for classical seismic attributes or 'hash' for hash tables
 
     # Define directories and paths
-    self.opdict['dir'] = 'Piton'
+    self.opdict['dir'] = 'Ijen'
     self.opdict['channels'] = ['Z']#,'E','N']
 
     self.opdict['libdir'] = os.path.join('../lib',self.opdict['dir'])
@@ -51,7 +84,7 @@ class Options(object):
       self.piton()
 
     # Define options for classification functions
-    self.opdict['method'] = 'lr' # could be 'lr' (logistic regression),'svm' (Support Vector Machine from scikit.learn package),'ova' (1-vs-all extractor), '1b1' (1-by-1 extractor), 'lrsk' (Logistic regression from scikit.learn package)
+    self.opdict['method'] = 'svm' # could be 'lr' (logistic regression),'svm' (Support Vector Machine from scikit.learn package),'ova' (1-vs-all extractor), '1b1' (1-by-1 extractor), 'lrsk' (Logistic regression from scikit.learn package)
     self.opdict['plot_pdf'] = False # display the pdfs of the features
     self.opdict['save_pdf'] = False
     self.opdict['plot_confusion'] = False # display the confusion matrices
@@ -64,8 +97,8 @@ class Options(object):
     date = time.localtime()
     if self.opdict['option'] == 'norm':
       # Features "normales"
-      self.opdict['feat_all'] = ['AsDec','Bandwidth','CentralF','Centroid_time','Dur','Ene','Ene5-10','Ene0-5','F_low','F_up','Growth','IFslope','Kurto','MeanPredF','NbPeaks','PredF','RappMaxMean','RappMaxMeanTF','Skewness','sPredF','TimeMaxSpec','Width','ibw0','ibw1','ibw2','ibw3','ibw4','ibw5','ibw6','ibw7','ibw8','ibw9','if0','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9','Rectilinearity','Planarity','Azimuth','Incidence']
-      self.opdict['feat_list'] = ['Kurto']
+      self.opdict['feat_list'] = self.opdict['feat_all']
+      #self.opdict['feat_list'] = ['Kurto']
       #self.opdict['feat_log'] = ['AsDec']
       #self.opdict['feat_log'] = ['AsDec','Dur','Ene0-5','Growth','ibw0','MeanPredF','RappMaxMean','RappMaxMeanTF','TimeMaxSpec','v0','v8','v9'] # list of features to be normalized with np.log (makes data look more gaussians)
       #self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Growth','Kurto','RappMaxMean','RappMaxMeanTF','Skewness','TimeMaxSpec','Width']
@@ -91,7 +124,8 @@ class Options(object):
 
     if self.opdict['method'] == 'lr' or self.opdict['method'] == 'svm' or self.opdict['method'] == 'lrsk':
       #self.opdict['result_file'] = 'results_%s_%dc_%df'%(self.opdict['method'],len(self.opdict['Types']),len(self.opdict['feat_list']))
-      self.opdict['result_file'] = 'results_%s_%s'%(self.opdict['method'],self.opdict['feat_list'][0])
+      #self.opdict['result_file'] = 'results_%s_%s'%(self.opdict['method'],self.opdict['feat_list'][0])
+      self.opdict['result_file'] = 'results_svm_lin'
     else:
       self.opdict['result_file'] = '%s_%s_svm'%(self.opdict['method'].upper(),self.opdict['stations'][0])
     self.opdict['result_path'] = '%s/%s/%s'%(self.opdict['outdir'],self.opdict['method'].upper(),self.opdict['result_file'])
@@ -107,13 +141,15 @@ class Options(object):
     self.opdict['network'] = 'ID'
     self.opdict['stations'] = ['IJEN']
     #self.opdict['stations'] = ['DAM','IBLW','IGEN','IJEN','IMLB','IPAL','IPLA','IPSW','KWUI','MLLR','POS','POSI','PSG','PUN','RAUN','TRWI']
-    #self.opdict['Types'] = ['Hembusan','Hibrid','LF','Longsoran','Tektonik','Tremor','VulkanikA','VulkanikB']
+    self.opdict['Types'] = ['Hembusan','Hibrid','LF','Longsoran','Tektonik','Tremor','VulkanikA','VulkanikB']
     #self.opdict['Types'] = ['Tremor','VulkanikB','?']
-    self.opdict['Types'] = ['Tremor','VulkanikB']
+    #self.opdict['Types'] = ['Tremor','VulkanikB']
     self.opdict['datadir'] = os.path.join('../data',self.opdict['dir'],self.opdict['network'])
     self.opdict['feat_test'] = 'ijen_3006.csv'
-    self.opdict['label_test'] = 'Ijen_reclass_all.csv'
+    #self.opdict['label_test'] = 'Ijen_reclass_all.csv'
+    self.opdict['label_test'] = 'Ijen_class_all.csv'
     self.opdict['train_file'] = '%s/train_%d'%(self.opdict['libdir'],self.opdict['boot'])
+    self.opdict['feat_all'] = ['AsDec','Bandwidth','CentralF','Centroid_time','Dur','Ene20-30','Ene5-10','Ene0-5','F_low','F_up','Growth','IFslope','Kurto','MeanPredF','NbPeaks','PredF','RappMaxMean','RappMaxMeanTF','Skewness','sPredF','TimeMaxSpec','Width','ibw0','ibw1','ibw2','ibw3','ibw4','ibw5','ibw6','ibw7','ibw8','ibw9','if0','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9']
 
 
   def piton(self):
@@ -129,7 +165,7 @@ class Options(object):
     self.opdict['label_train'] = 'class_train_set.csv'
     self.opdict['label_test'] = 'class_test_set.csv'
     self.opdict['learn_file'] = os.path.join(self.opdict['libdir'],'learning_set')
-
+    self.opdict['feat_all'] = ['AsDec','Bandwidth','CentralF','Centroid_time','Dur','Ene','Ene5-10','Ene0-5','F_low','F_up','Growth','IFslope','Kurto','MeanPredF','NbPeaks','PredF','RappMaxMean','RappMaxMeanTF','Skewness','sPredF','TimeMaxSpec','Width','ibw0','ibw1','ibw2','ibw3','ibw4','ibw5','ibw6','ibw7','ibw8','ibw9','if0','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9','Rectilinearity','Planarity','Azimuth','Incidence']
 
   def data_for_LR(self):
 
@@ -214,30 +250,9 @@ class Options(object):
     """
     Associates numbers to event types.
     """
-    self.types = np.unique(self.y.values)
     self.st = self.opdict['types']
-    if not self.st: 
-      self.st = self.types
-
-    nbtyp = []
-    
-    for ty in self.types:
-      nb = len(self.y[self.y.Type==ty])
-      if nb > 5 and ty in self.st:
-        nbtyp.append((nb,ty))
-      else:
-        self.y = self.y[self.y.Type!=ty]
-    nbtyp.sort(reverse=True)
-    print nbtyp
-    self.types = [ty[1] for ty in nbtyp]
-    if 'nan' in self.types:
-      self.y = self.y[self.y.Type!='nan']
-      self.types.remove('nan')
-    for i,ty in enumerate(self.types):
-      self.y[self.y.Type==ty] = i
- 
-    self.numt = [i for i in range(len(self.types)) if str(self.types[i]) in self.st]
-
+    self.types = np.unique(self.y.Type.values)
+    self.y, self.numt = name2num(self.y,'Type',self.types,keep_names=self.st)
     self.x = self.x.reindex(index=self.y.index)
 
 
