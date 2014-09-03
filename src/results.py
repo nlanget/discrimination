@@ -20,7 +20,9 @@ class AnalyseResults(MultiOptions):
     self.opdict['class_auto_file'] = 'auto_class.csv'
     self.opdict['class_auto_path'] = '%s/%s/%s'%(self.opdict['outdir'],self.opdict['method'].upper(),self.opdict['class_auto_file'])
 
-    self.bootstrap()
+    self.bootstrap_overall()
+    self.bootstrap_per_class()
+    sys.exit()
     self.concatenate_results()
     self.display_results()
 
@@ -33,8 +35,8 @@ class AnalyseResults(MultiOptions):
     self.opdict['feat_list'] = dic['header']['features']
     self.opdict['label_filename'] = '%s/%s'%(self.opdict['libdir'],dic['header']['catalog'])
     print "Nb features :", len(self.opdict['feat_list'])
+    print "Types :", dic['header']['types']
     self.results = dic
-    print sorted(dic)
     self.opdict['stations'] = [key[0] for key in sorted(dic)]
     self.opdict['channels'] = [key[1] for key in sorted(dic)]
     self.opdict['Types'] = dic['header']['types']
@@ -113,20 +115,68 @@ class AnalyseResults(MultiOptions):
     plt.show()
 
 
-  def bootstrap(self):
+  def bootstrap_overall(self):
     """
-    In cases where several training sets draws were carried out.
-    Displays the mean classification rate as well as the standard deviation.
+    In cases where several training set draws were carried out.
+    Displays the mean global classification rate as well as the standard deviation.
     """
     self.read_result_file()
+    print "OVERALL STATISTICS"
     for key in sorted(self.results):
       print key
       p_test, p_train = [],[]
       for tir in sorted(self.results[key]):
         p_train.append(self.results[key][tir]['%'][0])
         p_test.append(self.results[key][tir]['%'][1])
+
       print "\t Training", np.mean(p_train), np.std(p_train)
+      print "\t   MAX", np.max(p_train), "tirage", np.argmax(p_train)
+      print "\t   MIN", np.min(p_train), "tirage", np.argmin(p_train)
       print "\t Test", np.mean(p_test), np.std(p_test)
+      print "\t   MAX", np.max(p_test), "tirage", np.argmax(p_test)
+      print "\t   MIN", np.min(p_test), "tirage", np.argmin(p_test)
+      print "\n"
+      
+
+  def bootstrap_per_class(self):
+    """
+    In cases where several training set draws were carried out.
+    Displays the mean classification rate as well as the standard deviation for 
+    each class of event.
+    """
+    from options import name2num
+    self.read_result_file()
+    labels = self.read_classification()
+    labels.index = labels.Date
+    labels = labels.reindex(columns=['Type'])
+
+    print "STATISTICS PER CLASS (TEST SET)"
+    for key in sorted(self.results):
+      print key
+
+      p = {}
+      for t in self.opdict['Types']:
+        p[t] = []
+
+      for tir in sorted(self.results[key]):
+        lab = labels.reindex(index=self.results[key][tir]['list_ev'])
+
+        df = pd.DataFrame(index=self.results[key][tir]['list_ev'])
+        df['Type'] = self.results[key][tir]['classification']
+
+        for t in self.opdict['Types']:
+          m = lab[lab.Type==t]
+          a = df[df.Type==t]
+          ev_m = np.array(m.index)
+          ev_a = np.array(a.index)
+          common = np.intersect1d(ev_a,ev_m)
+          p[t].append(len(common)*1./len(m)*100)
+
+      for t in self.opdict['Types']:
+        print "\t",t, np.mean(p[t]), np.std(p[t])
+        print "\t  MAX", np.max(p[t]), np.argmax(p[t])
+        print "\t  MIN", np.min(p[t]), np.argmin(p[t])
+      print "\n" 
 
 
   def read_manual_auto_files(self):
