@@ -55,6 +55,7 @@ def hypothesis(mins,maxs,theta):
 
 class CostFunction():
 
+
   def __init__(self,x,y,l):
     self.x = x # dataset (DataFrame type)
     self.y = y # label (DataFrame type)
@@ -62,6 +63,7 @@ class CostFunction():
     self.m = self.x.shape[0] # number of data set examples
     self.n = self.x.shape[1] # number of features
     self.x_mat = np.vstack((np.ones(self.m),self.x.T.values)) # np.array with the bias term
+
 
   def predict_y(self,theta):
     """
@@ -71,11 +73,12 @@ class CostFunction():
     y_pred = y_pred.ravel()
     return y_pred
 
+
   def compute_cost(self,theta):
     """
     Computes the cost function
     """
-    y_pred=self.predict_y(theta)
+    y_pred = self.predict_y(theta)
 
     jVal = 0
     for i in range(len(self.y)):
@@ -84,6 +87,7 @@ class CostFunction():
 
     return jVal
 
+
   def compute_gradient(self,theta):
     """
     Computes the gradient of the cost function
@@ -91,6 +95,7 @@ class CostFunction():
     y_pred = self.predict_y(theta)
     gradient = 1./self.m*np.dot(self.x_mat,y_pred-self.y)
     return gradient
+
 
   def cost_and_gradient(self,theta):
     """
@@ -107,6 +112,53 @@ class CostFunction():
 
     return jVal, gradient
 
+
+  def compute_hessian(self,theta):
+    """
+    Computes the Hessian matrix (second-order partial derivatives)
+    """
+    y_pred = self.predict_y(theta)
+    y_pred_multi = list(y_pred)*self.n
+
+    A = np.empty((self.n+1,self.n+1))
+    for i in range(self.n+1):
+      for j in range(i,self.n+1):
+        A[i,j] = np.dot(self.x_mat[i,:],self.x_mat[j,:])
+        print A[i,j].shape
+        raw_input('PPPPPPPp')
+        A[j,i] = A[i,j]
+
+    hessian = 1./self.m*A*y_pred*(1-y_pred)
+
+    return hessian
+
+
+  def plot_cost_function(self,params=None):
+    """
+    Plots the cost function.
+    """
+    from mpl_toolkits.mplot3d import Axes3D
+    pas = .1
+    thetas = np.arange(-10,11,pas)
+    xplot,yplot = np.meshgrid(thetas,thetas)
+    cost = np.zeros((len(thetas),len(thetas)))
+    for i,th1 in enumerate(thetas):
+      for j,th2 in enumerate(thetas):
+        th_vec = np.array([th1,th2])
+        cost[i,j] = self.compute_cost(th_vec)
+
+    fig = plt.figure()
+    fig.set_facecolor('white')
+    ax = fig.add_subplot(111,projection='3d')
+    ax.plot_wireframe(xplot,yplot,cost,color='k',cstride=int(pas*10),rstride=int(pas*10))
+    if list(params):
+      cost_min = self.compute_cost(params)
+      ax.scatter(params[0],params[1],cost_min,'ro')
+    ax.set_xlabel('Theta')
+    ax.set_ylabel('Theta')
+    ax.set_zlabel('Cost function')
+    plt.show()
+
 # ---------------------------------------------------
 
 def gradient_descent(CF,theta,opt=1,verbose=False):
@@ -117,8 +169,8 @@ def gradient_descent(CF,theta,opt=1,verbose=False):
     opt = 1: learning rate alpha is optimized at each iteration
     Default is opt = 0
   """
-  eps = 10**-4
-  alpha = 0.5
+  eps = 10**-5
+  alpha = 0.5#*10
   prev_cost = 1000
   cost = 0
   diff = np.abs(prev_cost-cost)
@@ -127,19 +179,21 @@ def gradient_descent(CF,theta,opt=1,verbose=False):
     cost, delta = CF.cost_and_gradient(theta)
     min_cost.append(cost)
 
-    if opt == 0:
-      theta[0]=theta[0]-alpha*delta[0]
-      theta[1:]=(1-alpha*CF.l*1./CF.m)*theta[1:]-alpha*delta[1:]
+    theta[0]=theta[0]-alpha*delta[0]
+    theta[1:]=(1-alpha*CF.l*1./CF.m)*theta[1:]-alpha*delta[1:]
 
     if opt == 1:
       # Update alpha at each iteration (convergence fastened) 
-      A = np.empty((CF.n,CF.n))
-      for i in range(CF.n):
-        for j in range(i,CF.n):
-          A[i,j] = np.dot(x[i,:],x[j,:])
-          A[j,i] = A[i,j]
-      A = 1./CF.m*A
-      alpha = np.dot(delta,delta)/(np.dot(delta,np.dot(A,delta)))
+      hess = CF.compute_hessian(theta)
+      #hess = 1./CF.m*hess
+      #delta = np.matrix(delta).T
+      #alpha = np.dot(delta.T,delta)/(np.dot(delta.T,np.dot(hess,delta)))
+      #alpha = alpha[0,0]
+
+      A = np.matrix(1./CF.m*A)
+      print type(delta[1:]), type(A)
+      alpha = np.dot(delta[1:].T,delta[1:])/(np.dot(delta[1:].T,np.dot(A,delta[1:])))
+      alpha = alpha[0,0]
 
     diff = np.abs(prev_cost-cost)
     prev_cost = cost
@@ -183,17 +237,19 @@ def logistic_reg(x,y,theta,l=0,verbose=0,method='g'):
     theta[k] = np.array(theta[k],dtype=float)
     CF = CostFunction(x,y.values[:,k-1],l)
 
+    verbose = False
     if verbose:
       if n == 1:
-        from PdF_log_reg import hypothesis_function
-        syn, hyp = hypothesis_function(x.min(),x.max(),theta[k])
-        plot_hyp_func(x,y[k],syn,hyp)
+        from plot_functions import plot_hyp_func_1f, plot_sep_1f
+        syn, hyp = hypothesis(x.min(),x.max(),theta[k])
+        plot_hyp_func_1f(x,y[k],syn,hyp,threshold=.5)
       if n == 2:
         plot_db(x,y[k],theta[k],lim=3,title='Initial decision boundary')
       if n == 3:
         plot_db_3d(x,y[k],theta[k],lim=3,title='Initial decision boundary')
 
-    stop = 10**-3
+    method = 'g'
+    stop = 10**-4
     if method == 'cg':
       # Conjugate gradient
       from scipy.optimize import fmin_cg
@@ -206,30 +262,36 @@ def logistic_reg(x,y,theta,l=0,verbose=0,method='g'):
       # Gradient descent
       theta[k],min_cost = gradient_descent(CF,theta[k],opt=0)
       allvecs = None
-  
+
+    verbose = False 
     if verbose:
       if allvecs: 
         min_cost = []
         for vec in allvecs:
           min_cost.append(CF.compute_cost(vec))
       nb_iter = len(min_cost)
-      plot_cost_function(nb_iter,min_cost)
+      plot_cost_function_iter(nb_iter,min_cost)
       plt.show()
 
+  verbose = False
   if verbose:
     if n == 1 and K == 1:
-      from PdF_log_reg import hypothesis_function
-      syn, hyp = hypothesis_function(x.min(),x.max(),theta[1])
-      plot_hyp_func(x,y[1],syn,hyp)
+      from plot_functions import plot_hyp_func_1f
+      syn, hyp = hypothesis(x.min(),x.max(),theta[1])
+      plot_hyp_func_1f(x,y[1],syn,hyp,threshold=.5)
     if n == 2:
       if K != 1:
+        from plot_functions import plot_multiclass_2d
         plot_multiclass_2d(x,theta)
       else:
+        from plot_functions import plot_db
         plot_db(x,y,theta[1],title='Decision boundary')
     if n == 3:
       if K != 1:
+        from plot_functions import plot_multiclass_3d
         plot_multiclass_3d(x,theta)
       else:
+        from plot_functions import plot_db_3d
         plot_db_3d(x,y,theta[1],title='Decision boundary')
     plt.show()
 
@@ -251,7 +313,7 @@ def degree_and_regularization(xtest,ytest,xcv,ycv,xtrain,ytrain,verbose=False):
   # Polynomial degrees vector
   DEG_MAX = 1
   degrees = np.array(range(1,DEG_MAX+1),dtype=int)
-  # Lambda vector (regulariztion coefficient)
+  # Lambda vector (regularization coefficient)
   lambdas = list(10.0 ** np.arange(-2, 5))
 
   all_theta = {}
@@ -268,11 +330,17 @@ def degree_and_regularization(xtest,ytest,xcv,ycv,xtrain,ytrain,verbose=False):
 
     # loop on lambda
     for l in lambdas:
+
+      #boot = 10
+      #for b in range(boot):
+      # Tirage aléatoire des valeurs initiales de theta dans l'intervalle [-1,1]
       theta = {}
       for k in range(1,K+1):
-        theta[k] = np.random.rand(xtrain_deg.shape[1]+1)
+        #theta[k] = np.random.rand(xtrain_deg.shape[1]+1)*2-1
+        theta[k] = np.zeros(xtrain_deg.shape[1]+1)
 
       theta = logistic_reg(xtrain_deg,ytrain,theta,l=l,verbose=0)
+
       all_theta[deg,l] = theta
       if verbose:
         print deg,l,theta
@@ -294,10 +362,12 @@ def degree_and_regularization(xtest,ytest,xcv,ycv,xtrain,ytrain,verbose=False):
           best_dl[k-1,:] = [deg,l]
           min_cv[k-1] = j_cv
 
+
   theta = {}
   for k in range(1,K+1):
     theta[k] = all_theta[best_dl[k-1][0],best_dl[k-1][1]][k]
 
+  verbose = False
   if verbose:
     print best_dl
     print theta
@@ -440,7 +510,6 @@ def plot_precision_recall(x_train,y_train,x_test,y_test,theta):
   Plots the precision and recall curves.
   Tests different thresholds.
   """
-  print theta
   precision, rappel = [],[]
   precision_tr, rappel_tr = [],[]
   thress = np.arange(0,1.05,.05)
@@ -452,7 +521,7 @@ def plot_precision_recall(x_train,y_train,x_test,y_test,theta):
       precision.append(true_pos*1./(true_pos+false_pos))
       rappel.append(true_pos*1./(true_pos+false_neg))
     else:
-      precision.append(0)
+      precision.append(1)
       rappel.append(0)
 
     y_pred_tr = test_hyp(x_train,theta,threshold=t,verbose=False)
@@ -462,7 +531,7 @@ def plot_precision_recall(x_train,y_train,x_test,y_test,theta):
       precision_tr.append(true_pos*1./(true_pos+false_pos))
       rappel_tr.append(true_pos*1./(true_pos+false_neg))
     else:
-      precision_tr.append(0)
+      precision_tr.append(1)
       rappel_tr.append(0)
 
   fig = plt.figure(figsize=(10,4))
@@ -502,7 +571,7 @@ def data_sets(x,y,wtr=None,verbose=False):
   mtest = int(0.2*m)
   mcv = int(0.2*m)
 
-  if not wtr:
+  if not list(wtr):
     wtr = list(np.random.permutation(m))
 
   xtrain = x.reindex(index=wtr[:mtraining])
@@ -559,6 +628,12 @@ def evaluation(x,y,wtr=np.array([]),learn=False,verbose=False):
 
   # Determination of the best hypothesis function
   best_dl,theta = degree_and_regularization(xtest,ytest,xcv,ycv,xtrain,ytrain,verbose=verbose)
+
+  plot_cost = False
+  if n==1 and plot_cost:
+    for k in range(1,K+1):
+      CF_train = CostFunction(x,y[k],best_dl[k-1][1])
+      CF_train.plot_cost_function(theta[k])
  
   # Misclassification error on test set
   dic_xtest,dic_xcv,dic_xtrain,dic_x = {},{},{},{}
@@ -636,7 +711,7 @@ def bad_class(x_test,list_i):
   x_bad = x_bad.reindex(index=list_i)
   return x_bad
 # ---------------------------------------------------
-def do_all_logistic_regression(x,y_all,x_testset,y_testset=None,norm=True,verbose=False,output=False,perc=False,wtr=np.array([])):
+def do_all_logistic_regression(x,y_all,x_testset,y_testset=None,norm=True,verbose=False,output=False,perc=False,wtr=np.array([]),ret_thres=False):
   """
   Implements the whole logistic regression process
   1) datasets normalization
@@ -648,6 +723,7 @@ def do_all_logistic_regression(x,y_all,x_testset,y_testset=None,norm=True,verbos
   If output = True: returns prediction for both training and test sets and theta vector
   If perc = True: returns the percentage rates of recovery of the training and test sets
   If wtr: indexes of the events in the following order : "true" training set (60%), CV set (20%) and test set (20%)
+  If ret_thres = True: returns the best threshold found after the precision and recall analysis
   """
   x.index = range(len(x.index))
   y_all.index = range(len(y_all.index))
@@ -705,8 +781,6 @@ def do_all_logistic_regression(x,y_all,x_testset,y_testset=None,norm=True,verbos
     p_test = 100-np.float(x_bad.shape[0]*100)/y_testset.shape[0]
     print "Correct classification: %.2f %%"%p_test
 
-    #plot_precision_recall(x,y,x_testset,y_testset,theta)
-
   #verbose=True
   if verbose and x.shape[1] < 5:
     list_key = x_unnorm.columns
@@ -731,7 +805,10 @@ def do_all_logistic_regression(x,y_all,x_testset,y_testset=None,norm=True,verbos
     plt.show()
 
   if output:
-    retlist = y_pred_train,theta,y_pred
+    if ret_thres:
+      retlist = y_pred_train,theta,y_pred,thres
+    else:
+      retlist = y_pred_train,theta,y_pred
   else:
     retlist = ()
   if perc:

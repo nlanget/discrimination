@@ -66,7 +66,6 @@ def plot_sep_1f(x,y,theta=[],str_t=None,x_ok=None,x_bad=None,text=None):
   nn,b,p = plt.hist([x1,x2],25,histtype='stepfilled',alpha=.2,color=('b','g'),label=str_t)
   if list(theta):
     xplot = -theta[0]*1./theta[1]
-    #xplot = -1./theta[1]
     plt.plot([xplot,xplot],[0,np.max(nn)],'orange',lw=2.)
 
   if x_ok and x_bad:
@@ -242,9 +241,9 @@ def plot_multiclass_3d(x,theta,title=None):
   if title:
     ax.set_title(title)
 # ---------------------------------------------------
-def plot_cost_function(iter,cost):
+def plot_cost_function_iter(iter,cost):
   """
-  Plots the minimum value of the cost function at each iteration
+  Plot the minimum value of the cost function at each iteration
   """
   fig = plt.figure()
   fig.set_facecolor('white')
