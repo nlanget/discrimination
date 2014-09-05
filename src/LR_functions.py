@@ -64,7 +64,6 @@ class CostFunction():
     self.n = self.x.shape[1] # number of features
     self.x_mat = np.vstack((np.ones(self.m),self.x.T.values)) # np.array with the bias term
 
-
   def predict_y(self,theta):
     """
     Computes the hypothesis function
@@ -309,6 +308,10 @@ def degree_and_regularization(xtest,ytest,xcv,ycv,xtrain,ytrain,verbose=False):
   mtest = xtest.shape[0] # size of test set
   mcv = xcv.shape[0] # size of cross-validation set
   mtraining = xtrain.shape[0] # size of training set
+  
+  print "\tSize of training set:", mtraining
+  print "\tSize of CV set:", mcv
+  print "\tSize of test set:", mtest
 
   # Polynomial degrees vector
   DEG_MAX = 1
@@ -617,10 +620,7 @@ def evaluation(x,y,wtr=np.array([]),learn=False,verbose=False):
   K = y.shape[1] # number of classes
 
   # Separation of the training set in: training/CV/test sets for learning curves calculation
-  if list(wtr):
-    xcv,ycv,xtest,ytest,xtrain,ytrain,wtr = data_sets(x,y,wtr=wtr,verbose=False)
-  else:
-    xcv,ycv,xtest,ytest,xtrain,ytrain,wtr = data_sets(x,y,verbose=False)
+  xcv,ycv,xtest,ytest,xtrain,ytrain,wtr = data_sets(x,y,wtr=wtr,verbose=False)
 
   mcv = xcv.shape[0]
   mtest = xtest.shape[0]
@@ -757,10 +757,7 @@ def do_all_logistic_regression(x,y_all,x_testset,y_testset=None,norm=True,verbos
   if norm:
     x,x_testset = normalize(x,x_testset)
 
-  if list(wtr):
-    theta,deg_and_lambda,thres,wtr = evaluation(x,y,wtr=wtr,learn=False,verbose=False)
-  else:
-    theta,deg_and_lambda,thres,wtr = evaluation(x,y,learn=False,verbose=False)
+  theta,deg_and_lambda,thres,wtr = evaluation(x,y,wtr=wtr,learn=False,verbose=False)
 
   for k in range(1,len(theta)+1):
     print "Class %d: degree = %d - lambda = %.1f - threshold = %.2f"%(k,int(deg_and_lambda[k-1,0]),deg_and_lambda[k-1,1],thres[k])
