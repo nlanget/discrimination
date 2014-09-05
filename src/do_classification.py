@@ -164,8 +164,8 @@ def classifier(opt):
           CLASS_test, pourcentages, CLASS_train, theta_vec = implement_svm(x_train,x_test,y_train,y_test,opt.types,opt.opdict,kern='Lin')
           theta,threshold = {},{}
           for it in range(len(theta_vec)):
-            theta[it+1] = theta_vec[it]
-            threshold[it+1] = None
+            theta[it+1] = np.append(theta_vec[it][-1],theta_vec[it][:-1])
+            threshold[it+1] = 0.5
 
       elif opt.opdict['method'] == 'lrsk':
         # LOGISTIC REGRESSION (scikit learn)
@@ -174,7 +174,7 @@ def classifier(opt):
         theta,threshold = {},{}
         for it in range(len(theta_vec)):
           theta[it+1] = theta_vec[it]
-          threshold[it+1] = None
+          threshold[it+1] = 0.5
 
       elif opt.opdict['method'] == 'lr':
         # LOGISTIC REGRESSION
@@ -187,7 +187,9 @@ def classifier(opt):
             wtr_ini = read_binary_file(learn_filename)
             wtr = wtr_ini[:len(y_train)]
             wtr = np.array(wtr)
-            wtr[wtr>len(wtr)-1] = wtr_ini[len(y_train):]
+            if len(wtr[wtr>len(wtr)-1]) > 0:
+              rep_wtr = np.array(wtr_ini[len(y_train):])
+              wtr[wtr>len(wtr)-1] = rep_wtr[rep_wtr<len(wtr)]
         CLASS_train,theta,CLASS_test,threshold,pourcentages,wtr = do_all_logistic_regression(x_train,y_train,x_test,y_test,output=True,perc=True,wtr=wtr,ret_thres=True)
         if 'learn_file' in sorted(opt.opdict):
           if not os.path.exists(learn_filename):
@@ -221,9 +223,10 @@ def classifier(opt):
 
 
       n_feat = x_train.shape[1] # number of features
-      if len(opt.types) == 2:
+      if len(opt.types) == 2 and n_feat < 4:
         if opt.opdict['plot_sep'] or opt.opdict['save_sep']:
           print "Theta values:",theta
+          print "Threshold:", threshold
 
           from LR_functions import normalize
           x_train, x_test = normalize(x_train,x_test)
@@ -242,15 +245,17 @@ def classifier(opt):
           if n_feat == 1:
             from LR_functions import hypothesis
             from plot_functions import plot_hyp_func_1f, plot_sep_1f
-            mins=[x_train.min(),x_test.min()]
-            maxs=[x_train.max(),x_test.max()]
+            mins = [x_train.min(),x_test.min()]
+            maxs = [x_train.max(),x_test.max()]
             syn, hyp = hypothesis(mins,maxs,theta[1])
-            plot_sep_1f(x_train,y_train,theta=theta[1],str_t=opt.types,x_ok=x_test_good,x_bad=x_test_bad,text=text)
+            #plot_sep_1f(x_train,y_train,theta=theta[1],str_t=opt.types,x_ok=x_test_good,x_bad=x_test_bad,text=text)
+            #from SVM_LR_plots import plot_hyp_func_1f
             plot_hyp_func_1f(x_train,y_train,syn,hyp,threshold=threshold[1],str_t=opt.types,x_ok=x_test_good,x_bad=x_test_bad,text=text)
             name = opt.opdict['feat_list'][0]
 
           elif n_feat == 2:
             from plot_functions import plot_sep_2f
+            #from SVM_LR_plots import plot_sep_2f
             plot_sep_2f(x_train,y_train.Type,opt.types,x_test,y_test.Type,x_test_bad,theta=theta[1],text=text)
             name = '%s_%s'%(opt.opdict['feat_list'][0],opt.opdict['feat_list'][1])
 
@@ -261,7 +266,7 @@ def classifier(opt):
             name = '%s_%s_%s'%(opt.opdict['feat_list'][0],opt.opdict['feat_list'][1],opt.opdict['feat_list'][2])
 
         if opt.opdict['save_sep']:
-          plt.savefig('%s/HYP/sep_%s.png'%(opt.opdict['fig_path'],name))
+          plt.savefig('%s/SVM_SEP/sep_%s.png'%(opt.opdict['fig_path'],name))
         if opt.opdict['plot_sep']:
           plt.show()
         else:

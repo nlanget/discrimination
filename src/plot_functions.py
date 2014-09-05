@@ -23,7 +23,7 @@ def plot_hyp_func_1f(x,y,syn,hyp,str_t=None,threshold=None,x_ok=None,x_bad=None,
   x1 = x[y.values.ravel()==num_t[0]].values[:,0]
   x2 = x[y.values.ravel()==num_t[1]].values[:,0]
 
-  nn,b,p = plt.hist([x1,x2],25,histtype='stepfilled',alpha=.2,color=('b','g'),label=str_t)
+  nn,b,p = plt.hist([x1,x2],25,normed=True,histtype='stepfilled',alpha=.2,color=('b','g'),label=str_t)
   norm = np.mean([np.max(nn[0]),np.max(nn[1])])
   plt.plot(syn,norm*hyp,'y-',lw=2,label='hypothesis')
 
@@ -36,6 +36,7 @@ def plot_hyp_func_1f(x,y,syn,hyp,str_t=None,threshold=None,x_ok=None,x_bad=None,
   if x_ok and x_bad:
     nn, b, p = plt.hist([x_ok,x_bad],25,normed=True,color=('k','r'),histtype='step',fill=False,ls='dashed',lw=2,label=['Test Set'])
 
+  plt.xlim([-1,1])
   plt.legend()
   if text:
     plt.figtext(0.15,0.85,"%.2f %% %s"%(text[0],str_t[0]),color='b')
@@ -63,7 +64,7 @@ def plot_sep_1f(x,y,theta=[],str_t=None,x_ok=None,x_bad=None,text=None):
   x1 = x[y.values.ravel()==num_t[0]].values[:,0]
   x2 = x[y.values.ravel()==num_t[1]].values[:,0]
 
-  nn,b,p = plt.hist([x1,x2],25,histtype='stepfilled',alpha=.2,color=('b','g'),label=str_t)
+  nn,b,p = plt.hist([x1,x2],25,normed=True,histtype='stepfilled',alpha=.2,color=('b','g'),label=str_t)
   if list(theta):
     xplot = -theta[0]*1./theta[1]
     plt.plot([xplot,xplot],[0,np.max(nn)],'orange',lw=2.)
@@ -71,6 +72,7 @@ def plot_sep_1f(x,y,theta=[],str_t=None,x_ok=None,x_bad=None,text=None):
   if x_ok and x_bad:
     nn, b, p = plt.hist([x_ok,x_bad],25,normed=True,color=('k','r'),histtype='step',fill=False,ls='dashed',lw=2,label=['Test Set'])
 
+  plt.xlim([-1,1])
   plt.legend()
   if text:
     plt.figtext(0.15,0.85,"%.2f %% %s"%(text[0],str_t[0]),color='b')
@@ -302,3 +304,5 @@ def dic2mat(degrees,lambdas,jlist,i_class):
     il=np.where(lambdas==key_l)[0]
     mat[il,id]=jlist[key_d,key_l][i_class-1]
   return mat
+
+
