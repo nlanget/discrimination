@@ -15,7 +15,10 @@ def classifier(opt):
   opt is an object of the class Options()
   """
 
-  opt.do_tri()
+  list_attr = opt.__dict__.keys()
+  if not 'x' in list_attr:
+    opt.do_tri()
+
   X = opt.x
   Y = opt.y
 
@@ -221,6 +224,8 @@ def classifier(opt):
         plot_precision_recall(x_train,y_train,x_test,y_test,theta)
         plt.show()
 
+      if theta:
+        opt.theta = theta
 
       n_feat = x_train.shape[1] # number of features
       if len(opt.types) == 2 and n_feat < 4:
@@ -284,7 +289,7 @@ def classifier(opt):
 
   dic_results['header'] = {}
   dic_results['header']['features'] = opt.opdict['feat_list']
-  dic_results['header']['types'] = opt.opdict['Types']
+  dic_results['header']['types'] = opt.opdict['types']
   dic_results['header']['catalog'] = opt.opdict['label_test']
 
   if opt.opdict['method'] == 'lr' or opt.opdict['method'] == 'lrsk' or opt.opdict['method'] == 'svm':

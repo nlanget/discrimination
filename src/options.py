@@ -28,7 +28,7 @@ def write_binary_file(filename,dic):
     file.close()
 
 
-def name2num(df,col,names,keep_names=None):
+def name2num(df_str,col,names,keep_names=None):
   """
   Associates a number to a string.
   df is a pandas DataFrame.
@@ -36,7 +36,8 @@ def name2num(df,col,names,keep_names=None):
   names is the list of all the existing and different names 
   (Optional) keep_names is the list of names we really want to keep.
   """
-
+  df = df_str.copy()
+  
   if not keep_names:
     keep_names = names
 
@@ -58,7 +59,7 @@ def name2num(df,col,names,keep_names=None):
  
   numt = [i for i in range(len(names)) if str(names[i]) in keep_names]
 
-  return df, numt
+  return df, names, numt
 
 
 class Options(object):
@@ -70,7 +71,7 @@ class Options(object):
     self.opdict['option'] = 'norm' # could be 'norm' for classical seismic attributes or 'hash' for hash tables
 
     # Define directories and paths
-    self.opdict['dir'] = 'Ijen'
+    self.opdict['dir'] = 'Piton'
     self.opdict['channels'] = ['Z']#,'E','N']
 
     self.opdict['libdir'] = os.path.join('../lib',self.opdict['dir'])
@@ -97,9 +98,9 @@ class Options(object):
     date = time.localtime()
     if self.opdict['option'] == 'norm':
       # Features "normales"
-      self.opdict['feat_list'] = self.opdict['feat_all']
-      #self.opdict['feat_list'] = ['Kurto']
-      #self.opdict['feat_log'] = ['AsDec']
+      #self.opdict['feat_list'] = self.opdict['feat_all']
+      self.opdict['feat_list'] = ['v9']
+      self.opdict['feat_log'] = ['v9']
       #self.opdict['feat_log'] = ['AsDec','Dur','Ene0-5','Growth','ibw0','MeanPredF','RappMaxMean','RappMaxMeanTF','TimeMaxSpec','v0','v8','v9'] # list of features to be normalized with np.log (makes data look more gaussians)
       #self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Growth','Kurto','RappMaxMean','RappMaxMeanTF','Skewness','TimeMaxSpec','Width']
       #self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Kurto','RappMaxMean','Skewness','TimeMaxSpec']
@@ -123,9 +124,8 @@ class Options(object):
     self.opdict['label_filename'] = '%s/%s'%(self.opdict['libdir'],self.opdict['label_test'])
 
     if self.opdict['method'] == 'lr' or self.opdict['method'] == 'svm' or self.opdict['method'] == 'lrsk':
-      #self.opdict['result_file'] = 'results_%s_%dc_%df'%(self.opdict['method'],len(self.opdict['Types']),len(self.opdict['feat_list']))
-      #self.opdict['result_file'] = 'results_%s_%s'%(self.opdict['method'],self.opdict['feat_list'][0])
-      self.opdict['result_file'] = 'results_svm_lin'
+      #self.opdict['result_file'] = 'results_%s_%dc_%df'%(self.opdict['method'],len(self.opdict['types']),len(self.opdict['feat_list']))
+      self.opdict['result_file'] = 'results_%s_%s'%(self.opdict['method'],self.opdict['feat_list'][0])
     else:
       self.opdict['result_file'] = '%s_%s_svm'%(self.opdict['method'].upper(),self.opdict['stations'][0])
     self.opdict['result_path'] = '%s/%s/%s'%(self.opdict['outdir'],self.opdict['method'].upper(),self.opdict['result_file'])
@@ -141,9 +141,9 @@ class Options(object):
     self.opdict['network'] = 'ID'
     self.opdict['stations'] = ['IJEN']
     #self.opdict['stations'] = ['DAM','IBLW','IGEN','IJEN','IMLB','IPAL','IPLA','IPSW','KWUI','MLLR','POS','POSI','PSG','PUN','RAUN','TRWI']
-    self.opdict['Types'] = ['Hembusan','Hibrid','LF','Longsoran','Tektonik','Tremor','VulkanikA','VulkanikB']
-    #self.opdict['Types'] = ['Tremor','VulkanikB','?']
-    #self.opdict['Types'] = ['Tremor','VulkanikB']
+    self.opdict['types'] = ['Hembusan','Hibrid','LF','Longsoran','Tektonik','Tremor','VulkanikA','VulkanikB']
+    #self.opdict['types'] = ['Tremor','VulkanikB','?']
+    #self.opdict['types'] = ['Tremor','VulkanikB']
     self.opdict['datadir'] = os.path.join('../data',self.opdict['dir'],self.opdict['network'])
     self.opdict['feat_test'] = 'ijen_3006.csv'
     #self.opdict['label_test'] = 'Ijen_reclass_all.csv'
@@ -154,7 +154,7 @@ class Options(object):
 
   def piton(self):
     self.opdict['stations'] = ['BOR']
-    self.opdict['Types'] = ['EB','VT']
+    self.opdict['types'] = ['EB','VT']
     self.opdict['datadir'] = os.path.join('../data/%s/full_data'%self.opdict['dir'])
     #self.opdict['feat_train'] = 'clement_train.csv'
     #self.opdict['feat_test'] = 'clement_test.csv'
@@ -252,7 +252,7 @@ class Options(object):
     """
     self.st = self.opdict['types']
     self.types = np.unique(self.y.Type.values)
-    self.y, self.numt = name2num(self.y,'Type',self.types,keep_names=self.st)
+    self.y, self.types, self.numt = name2num(self.y,'Type',self.types,keep_names=self.st)
     self.x = self.x.reindex(index=self.y.index)
 
 
@@ -435,8 +435,9 @@ class MultiOptions(Options):
     self.y = self.y.reindex(columns=['Date','Type'])
 
     # Do not select all classes
-    ind = self.y[self.y.Type==self.opdict['Types'][0]].index
-    for t in self.opdict['Types'][1:]:
+    self.y.Type = map(str,list(self.y.Type))
+    ind = self.y[self.y.Type==self.opdict['types'][0]].index
+    for t in self.opdict['types'][1:]:
       ind = ind.append(self.y[self.y.Type==t].index)
     self.y = self.y.reindex(index=ind)
 
@@ -534,7 +535,7 @@ class TestOptions(MultiOptions):
     self.opdict['dir'] = 'Test'
     self.opdict['stations'] = ['IJEN','KWUI']
     self.opdict['channels'] = ['Z']
-    self.opdict['Types'] = ['VulkanikB','Tremor']
+    self.opdict['types'] = ['VulkanikB','Tremor']
 
     self.opdict['libdir'] = os.path.join('../lib',self.opdict['dir'])
     self.opdict['outdir'] = os.path.join('../results',self.opdict['dir'])
