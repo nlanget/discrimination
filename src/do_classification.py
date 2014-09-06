@@ -228,6 +228,8 @@ def classifier(opt):
         opt.theta = theta
       if pourcentages:
         opt.success = pourcentages
+      if threshold:
+        opt.threshold = threshold
 
       n_feat = x_train.shape[1] # number of features
       if len(opt.types) == 2 and n_feat < 4:

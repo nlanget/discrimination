@@ -196,12 +196,13 @@ def plot_sep(opt):
 
     opt.opdict['method'] = 'lr'
 
-    theta_lr,rate_lr = {}, {}
+    theta_lr,rate_lr,t_lr = {}, {}, {}
     for b in range(1):
       opt.opdict['learn_file'] = os.path.join(opt.opdict['libdir'],'LR_%d'%b)
       classifier(opt)
       theta_lr[b] = opt.theta
       rate_lr[b] = opt.success
+      t_lr[b] = opt.threshold
 
     print "LR", theta_lr
     print "SVM", theta_svm
@@ -253,18 +254,24 @@ def plot_sep(opt):
     # Plot decision boundaries
     if len(theta_lr) < 2:
       if NB_class == 2:
-        axScatter.plot(x,1./theta_lr[0][1][2]*(-theta_lr[0][1][0]-theta_lr[0][1][1]*x),lw=2.,c='b',label='LR (%.1f%%)'%rate_lr[0][1])
-        axScatter.plot(x,1./theta_svm[1][2]*(-theta_svm[1][0]-theta_svm[1][1]*x),lw=2.,c='c',label='SVM (%.1f%%)'%rate_svm[1])
+        db_lr = -1./theta_lr[0][1][2]*(theta_lr[0][1][0]+np.log((1-t_lr[0][1])/t_lr[0][1])+theta_lr[0][1][1]*x)
+        axScatter.plot(x,db_lr,lw=2.,c='b',label='LR (%.1f%%)'%rate_lr[0][1])
+
+        db_svm = -1./theta_svm[1][2]*(theta_svm[1][0]+theta_svm[1][1]*x)
+        axScatter.plot(x,db_svm,lw=2.,c='c',label='SVM (%.1f%%)'%rate_svm[1])
       elif NB_class > 2:
         for i in range(NB_class):
-          axScatter.plot(x,1./theta_lr[0][i+1][2]*(-theta_lr[0][i+1][0]-theta_lr[0][i+1][1]*x),lw=1.,c='b')
-          axScatter.plot(x,1./theta_svm[i+1][2]*(-theta_svm[i+1][0]-theta_svm[i+1][1]*x),lw=1.,c='c')
+          db_lr = -1./theta_lr[0][i+1][2]*(theta_lr[0][i+1][0]+np.log((1-t_lr[0][i+1])/t_lr[0][i+1])+theta_lr[0][i+1][1]*x)
+          axScatter.plot(x,db_lr,lw=1.,c='b')
+          db_svm = -1./theta_svm[i+1][2]*(theta_svm[i+1][0]+theta_svm[i+1][1]*x)
+          axScatter.plot(x,db_svm,lw=1.,c='c')
       axScatter.legend(loc=4)
 
     else:
       rates = []
       for i in range(len(theta_lr)):
-        axScatter.plot(x,1./theta_lr[i][1][2]*(-theta_lr[i][1][0]-theta_lr[i][1][1]*x),lw=2.,c=(0,0.1*i,1))
+        db_lr = -1./theta_lr[i][1][2]*(theta_lr[i][1][0]+np.log((1-t_lr[i][1])/t_lr[i][1])+theta_lr[i][1][1]*x)
+        axScatter.plot(x,db_lr,lw=2.,c=(0,0.1*i,1))
         rates.append(rate_lr[i][1])
       print np.mean(rates),np.std(rates)
       axScatter.text(0.6*lim_plot,-0.9*lim_plot,r'%.1f$\pm$%.1f%%'%(np.mean(rates),np.std(rates)))
