@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 # ---------------------------------------------------
 # Plotting function for 1 feature
-def plot_hyp_func_1f(x,y,syn,hyp,str_t=None,threshold=None,x_ok=None,x_bad=None,text=None):
+def plot_hyp_func_1f(x,y,theta,str_t=None,threshold=None,x_ok=None,x_bad=None,text=None):
   """
   Plots the hypothesis function for one feature.
   Superimposed with histograms (training and test sets)
@@ -24,6 +24,10 @@ def plot_hyp_func_1f(x,y,syn,hyp,str_t=None,threshold=None,x_ok=None,x_bad=None,
   x2 = x[y.values.ravel()==num_t[1]].values[:,0]
 
   nn,b,p = plt.hist([x1,x2],25,normed=True,histtype='stepfilled',alpha=.2,color=('b','g'),label=str_t)
+
+  from LR_functions import g
+  syn = np.arange(-1,1,0.01)
+  hyp = g(theta[0]+theta[1]*syn)
   norm = np.mean([np.max(nn[0]),np.max(nn[1])])
   plt.plot(syn,norm*hyp,'y-',lw=2,label='hypothesis')
 
@@ -96,6 +100,18 @@ def plot_sep_2f(x_train,y_train,str_t,x_all,y_all,x_bad,theta=[],text=None):
       fig.set_facecolor('white')
       plt.scatter(x_all[key],x_all[k],c=list(y_all.values),cmap=plt.cm.gray,alpha=0.2)
       plt.scatter(x_train[key],x_train[k],c=list(y_train.values),cmap=plt.cm.winter,alpha=0.5)
+
+      from LR_functions import g
+      nbpts = 100
+      pas = 1./nbpts
+      x1 = np.arange(-1,1,pas)
+      x2 = np.arange(-1,1,pas)
+      x1, x2 = np.meshgrid(x1,x2)
+      proba = g(theta[0] + theta[1]*x1 + theta[2]*x2)
+      print x2.shape, x1.shape, proba.shape
+      CS = plt.contour(x1,x2,proba)
+      plt.clabel(CS, inline=.1, fontsize=10)
+
       if key in x_bad.columns:
         plt.scatter(x_bad[key],x_bad[k],c='r',alpha=0.2)
       if list(theta):

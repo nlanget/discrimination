@@ -40,19 +40,6 @@ def normalize(x,x_data):
 
 # ---------------------------------------------------
 
-def hypothesis(mins,maxs,theta):
-  """
-  Computes the hypothesis function in a range of values [mins,maxs]
-  given the parameters theta.
-  """
-  x_synth = pd.DataFrame(np.arange(np.min(mins),np.max(maxs),0.01))
-  mat = features_mat(x_synth)
-  hyp = g(np.dot(theta.reshape(1,len(theta)),mat))[0]
-
-  return x_synth.values[:,0],hyp
-
-# ---------------------------------------------------
-
 class CostFunction():
 
 

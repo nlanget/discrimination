@@ -251,17 +251,14 @@ def classifier(opt):
           text = [p_good_cl0,p_good_cl1,p_good_test,100-p_good_test]
 
           if n_feat == 1:
-            from LR_functions import hypothesis
             from plot_functions import plot_hyp_func_1f, plot_sep_1f
-            mins = [x_train.min(),x_test.min()]
-            maxs = [x_train.max(),x_test.max()]
-            syn, hyp = hypothesis(mins,maxs,theta[1])
             #plot_sep_1f(x_train,y_train,theta=theta[1],str_t=opt.types,x_ok=x_test_good,x_bad=x_test_bad,text=text)
             #from SVM_LR_plots import plot_hyp_func_1f
-            plot_hyp_func_1f(x_train,y_train,syn,hyp,threshold=threshold[1],str_t=opt.types,x_ok=x_test_good,x_bad=x_test_bad,text=text)
+            plot_hyp_func_1f(x_train,y_train,theta[1],threshold=threshold[1],str_t=opt.types,x_ok=x_test_good,x_bad=x_test_bad,text=text)
             name = opt.opdict['feat_list'][0]
 
           elif n_feat == 2:
+
             from plot_functions import plot_sep_2f
             #from SVM_LR_plots import plot_sep_2f
             plot_sep_2f(x_train,y_train.Type,opt.types,x_test,y_test.Type,x_test_bad,theta=theta[1],text=text)
