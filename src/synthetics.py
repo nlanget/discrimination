@@ -20,10 +20,10 @@ def create_synthetics(npts,sig_x,sig_y,theta,mean):
   theta : inclinaison (rotation) en radians
   mean : moyenne
   """
-  a=np.cos(theta)**2/(2*sig_x**2)+np.sin(theta)**2/(2*sig_y**2)
-  b=-np.sin(2*theta)/(4*sig_x**2)+np.sin(2*theta)/(4*sig_y**2)
-  c=np.sin(theta)**2/(2*sig_x**2)+np.cos(theta)**2/(2*sig_y**2)
-  cov=[[a,b],[b,c]]
+  a = np.cos(theta)**2/(2*sig_x**2)+np.sin(theta)**2/(2*sig_y**2)
+  b = -np.sin(2*theta)/(4*sig_x**2)+np.sin(2*theta)/(4*sig_y**2)
+  c = np.sin(theta)**2/(2*sig_x**2)+np.cos(theta)**2/(2*sig_y**2)
+  cov = [[a,b],[b,c]]
   return np.random.multivariate_normal(mean,cov,npts)
 
 
@@ -58,7 +58,7 @@ class Synthetics(MultiOptions):
     self.opdict['save_pdf'] = False
     self.opdict['plot_confusion'] = False # display the confusion matrices
     self.opdict['save_confusion'] = False
-    self.opdict['plot_sep'] = True # plot decision boundary
+    self.opdict['plot_sep'] = False # plot decision boundary
     self.opdict['save_sep'] = False
     self.opdict['plot_prec_rec'] = False # plot precision and recall
 
@@ -70,17 +70,36 @@ class Synthetics(MultiOptions):
 
   def fill_matrices(self):
     from math import pi
-    # Random data
-    NB_train = 400
-    NB_test = 1000
-    prop = (.3,.7)
 
-    NB_train_0 = int(NB_train*prop[0])
-    NB_train_1 = int(NB_train*prop[1])
-    NB_test_0 = int(NB_test*prop[0])
-    NB_test_1 = int(NB_test*prop[1])
-    print "Training set:", NB_train_0, NB_train_1
-    print "Test set:", NB_test_0, NB_test_1
+    # Random data
+    NB_class = 3
+    NB_test_all = 1200
+    NB_train_all = int(0.4*NB_test_all)
+    prop = (1./3,1./3,1./3)
+    #prop = (.5,.5)
+
+    if len(prop) != NB_class:
+      print "Warning ! Check number of classes and proportions"
+      sys.exit()
+    if np.sum(prop) != 1:
+      print "Warning ! Set correct proportions of the classes"
+      sys.exit()
+
+
+    self.NB_train, self.NB_test = {},{}
+    for i in range(NB_class):
+      self.NB_train[i] = int(NB_train_all*prop[i])
+      self.NB_test[i] = int(NB_test_all*prop[i])
+    print "Training set:", self.NB_train
+    print "Test set:", self.NB_test
+
+    if np.sum(self.NB_train.values()) != NB_train_all:
+      print "Warning ! Check the total number of training set samples and their repartition into classes"
+      sys.exit()
+    if np.sum(self.NB_test.values()) != NB_test_all:
+      print "Warning ! Check the total number of test set samples and their repartition into classes"
+      sys.exit()
+
 
     # Basis
     b_sig_x = 4
@@ -101,30 +120,55 @@ class Synthetics(MultiOptions):
       theta = 0
       mean = [.25,-.25]
 
-    s1 = create_synthetics(NB_train_0,b_sig_x,b_sig_y,b_theta,b_mean)
-    s2 = create_synthetics(NB_train_1,sig_x,sig_y,theta,mean)
+    if NB_class == 3:
+      sig_x_3c = 4
+      sig_y_3c = 5
+      theta_3c = pi/4
+      mean_3c = [.75,0]
+
+
+    s = {}
+    s[0] = create_synthetics(self.NB_train[0],b_sig_x,b_sig_y,b_theta,b_mean)
+    s[1] = create_synthetics(self.NB_train[1],sig_x,sig_y,theta,mean)
+    s_val = np.concatenate([s[0],s[1]])
+    if NB_class == 3:
+      s[2] = create_synthetics(self.NB_train[2],sig_x_3c,sig_y_3c,theta_3c,mean_3c)
+      s_val = np.concatenate([s_val,s[2]])
+
     x_train = {}
-    x_train['x1'] = np.concatenate((s1[:,0],s2[:,0]))
-    x_train['x2'] = np.concatenate((s1[:,1],s2[:,1]))
+    x_train['x1'] = s_val[:,0]
+    x_train['x2'] = s_val[:,1]
     x_train = pd.DataFrame(x_train)
     x_train.index = [(i,'STA','Z') for i in range(len(x_train))]
 
-    s1 = create_synthetics(NB_test_0,b_sig_x,b_sig_y,b_theta,b_mean)
-    s2 = create_synthetics(NB_test_1,sig_x,sig_y,theta,mean)
+    s = {}
+    s[0] = create_synthetics(self.NB_test[0],b_sig_x,b_sig_y,b_theta,b_mean)
+    s[1] = create_synthetics(self.NB_test[1],sig_x,sig_y,theta,mean)
+    s_val = np.concatenate([s[0],s[1]])
+    if NB_class == 3:
+      s[2] = create_synthetics(self.NB_test[2],sig_x_3c,sig_y_3c,theta_3c,mean_3c)
+      s_val = np.concatenate([s_val,s[2]])
+
     x_test = {}
-    x_test['x1'] = np.concatenate((s1[:,0],s2[:,0]))
-    x_test['x2'] = np.concatenate((s1[:,1],s2[:,1]))
+    x_test['x1'] = s_val[:,0]
+    x_test['x2'] = s_val[:,1]
     x_test = pd.DataFrame(x_test)
     x_test.index = [(i,'STA','Z') for i in range(len(x_test))]
 
-    y_train = pd.DataFrame(index=range(NB_train),columns=['Type','Date'])
-    y_train.Type = ['0']*NB_train
-    y_train.Type.values[NB_train_0:] = ['1']*NB_train_1
+    y_train = pd.DataFrame(index=range(NB_train_all),columns=['Type','Date'])
+    y_train.Type = ['0']*NB_train_all
+    lim = self.NB_train[0]
+    for i in range(1,NB_class):
+      y_train['Type'].values[lim:lim+self.NB_train[i]] = ['%d'%i]*self.NB_train[i]
+      lim = lim + self.NB_train[i]
     y_train['Date'] = y_train.index
 
-    y_test = pd.DataFrame(index=range(NB_test),columns=['Type','Date'])
-    y_test['Type'] = ['0']*NB_test
-    y_test['Type'].values[NB_test_0:] = ['1']*NB_test_1
+    y_test = pd.DataFrame(index=range(NB_test_all),columns=['Type','Date'])
+    y_test['Type'] = ['0']*NB_test_all
+    lim = self.NB_test[0]
+    for i in range(1,NB_class):
+      y_test['Type'].values[lim:lim+self.NB_test[i]] = ['%d'%i]*self.NB_test[i]
+      lim = lim + self.NB_test[i]
     y_test['Date'] = y_test.index
 
     x_train.to_csv('%s/features/%s_sep_train.csv'%(self.opdict['outdir'],self.sep))
@@ -139,10 +183,12 @@ def plot_sep(opt):
     opt.opdict['method'] = 'svm'
     classifier(opt)
     theta_svm = opt.theta
+    rate_svm = opt.success
 
     opt.opdict['method'] = 'lr'
     classifier(opt)
     theta_lr = opt.theta
+    rate_lr = opt.success
 
     print "LR", theta_lr
     print "SVM", theta_svm
@@ -182,13 +228,17 @@ def plot_sep(opt):
     x_train, x_test = normalize(x_train,x_test)
     x = x_test['x1']
     y = x_test['x2']
-    axScatter.scatter(x,y,c=list(y_test.Type.values),cmap=plt.cm.gray)
-    axScatter.plot(x,1./theta_lr[1][2]*(-theta_lr[1][0]-theta_lr[1][1]*x),lw=2.,c='b',label='LR')
-    axScatter.plot(x,1./theta_svm[1][2]*(-theta_svm[1][0]-theta_svm[1][1]*x),lw=2.,c='c',label='SVM')
+    axScatter.scatter(x,y,c=list(y_test.Type.values),cmap=plt.cm.gray_r)
+
+    axScatter.plot(x,1./theta_lr[1][2]*(-theta_lr[1][0]-theta_lr[1][1]*x),lw=2.,c='b',label='LR (%.1f%%)'%rate_lr[1])
+    axScatter.plot(x,1./theta_svm[1][2]*(-theta_svm[1][0]-theta_svm[1][1]*x),lw=2.,c='c',label='SVM (%.1f%%)'%rate_svm[1])
+    for i in range(1,len(opt.opdict['types'])):
+      axScatter.plot(x,1./theta_lr[i+1][2]*(-theta_lr[i+1][0]-theta_lr[i+1][1]*x),lw=2.,c='b')
+      axScatter.plot(x,1./theta_svm[i+1][2]*(-theta_svm[i+1][0]-theta_svm[i+1][1]*x),lw=2.,c='c')
     axScatter.legend(loc=4)
 
     # now determine nice limits by hand:
-    binwidth = 0.05
+    binwidth = 0.025
     xymax = np.max( [np.max(np.fabs(x)), np.max(np.fabs(y))] )
     lim = ( int(xymax/binwidth) + 1) * binwidth
 
@@ -196,21 +246,28 @@ def plot_sep(opt):
     axScatter.set_ylim((-lim, lim))
 
     bins = np.arange(-lim, lim + binwidth, binwidth)
-    axHistx.hist([x[:len(x)/2],x[len(x)/2:]], bins=bins,color=('w','k'),normed=1,histtype='stepfilled')
-    g_x_0 = mlab.normpdf(bins, np.mean(x[:len(x)/2]), np.std(x[:len(x)/2]))
-    axHistx.plot(bins,g_x_0,'r',lw=2.)
-    g_x_1 = mlab.normpdf(bins, np.mean(x[len(x)/2:]), np.std(x[len(x)/2:]))
-    axHistx.plot(bins,g_x_1,'y',lw=2.)
 
-    axHisty.hist(y[:len(y)/2],bins=bins,color=('w'),normed=1,orientation='horizontal',histtype='stepfilled')
-    axHisty.hist(y[len(y)/2:],bins=bins,color=('k'),normed=1,orientation='horizontal')
-    g_y_0 = mlab.normpdf(bins, np.mean(y[:len(y)/2]), np.std(y[:len(y)/2]))
-    axHisty.plot(g_y_0,bins,'r',lw=2.)
-    g_y_1 = mlab.normpdf(bins, np.mean(y[len(y)/2:]), np.std(y[len(y)/2:]))
-    axHisty.plot(g_y_1,bins,'y',lw=2.)
+    lim = 0
+    x_hist, y_hist = [],[]
+    g_x, g_y = {}, {}
+    colors = ('w','gray','k')
+    for i in range(len(opt.opdict['types'])):
+      x_hist.append(x[lim:lim+opt.NB_test[i]])
+      y_hist.append(y[lim:lim+opt.NB_test[i]])
+      g_x[i] = mlab.normpdf(bins, np.mean(x[lim:lim+opt.NB_test[i]]), np.std(x[lim:lim+opt.NB_test[i]]))
+      g_y[i] = mlab.normpdf(bins, np.mean(y[lim:lim+opt.NB_test[i]]), np.std(y[lim:lim+opt.NB_test[i]]))
+      axHisty.hist(y[lim:lim+opt.NB_test[i]],bins=bins,color=colors[i],normed=1,orientation='horizontal',histtype='stepfilled',alpha=.5)
+      lim = lim + opt.NB_test[i]
+    axHistx.hist(x_hist,bins=bins,color=colors,normed=1,histtype='stepfilled',alpha=.5)
+    #axHisty.hist(y_hist,bins=bins,color=colors,normed=1,orientation='horizontal',histtype='stepfilled')
 
-    axHistx.set_xlim( axScatter.get_xlim() )
-    axHisty.set_ylim( axScatter.get_ylim() )
+    colors = ('r','orange','y')
+    for key in sorted(g_x):
+      axHistx.plot(bins,g_x[key],color=colors[key],lw=2.)
+      axHisty.plot(g_y[key],bins,color=colors[key],lw=2.)
+
+    axHistx.set_xlim(axScatter.get_xlim())
+    axHisty.set_ylim(axScatter.get_ylim())
 
     axScatter.set_xlabel('x1')
     axScatter.set_ylabel('x2')
