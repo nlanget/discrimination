@@ -60,7 +60,7 @@ class Synthetics(MultiOptions):
     self.opdict['save_confusion'] = False
     self.opdict['plot_sep'] = False # plot decision boundary
     self.opdict['save_sep'] = False
-    self.opdict['plot_prec_rec'] = False # plot precision and recall
+    self.opdict['plot_prec_rec'] = True # plot precision and recall
 
     self.opdict['feat_filepath'] = '%s/features/%s'%(self.opdict['outdir'],self.opdict['feat_test'])
     self.opdict['label_filename'] = '%s/%s'%(self.opdict['libdir'],self.opdict['label_test'])
@@ -74,7 +74,7 @@ class Synthetics(MultiOptions):
     NB_test_all = 1200
     NB_train_all = int(0.4*NB_test_all)
     #prop = (1./3,1./3,1./3)
-    prop = (.1,.9)
+    prop = (.5,.5)
 
     if len(prop) != self.NB_class:
       print "Warning ! Check number of classes and proportions"
@@ -252,7 +252,7 @@ def plot_sep(opt):
     bins = np.arange(-lim_plot, lim_plot + binwidth, binwidth)
 
     # Plot decision boundaries
-    if len(theta_lr) < 2:
+    if len(theta_lr) < 2 and not opt.opdict['plot_prec_rec']:
       if NB_class == 2:
         db_lr = -1./theta_lr[0][1][2]*(theta_lr[0][1][0]+np.log((1-t_lr[0][1])/t_lr[0][1])+theta_lr[0][1][1]*x)
         axScatter.plot(x,db_lr,lw=2.,c='b',label='LR (%.1f%%)'%rate_lr[0][1])
@@ -264,17 +264,25 @@ def plot_sep(opt):
           db_lr = -1./theta_lr[0][i+1][2]*(theta_lr[0][i+1][0]+np.log((1-t_lr[0][i+1])/t_lr[0][i+1])+theta_lr[0][i+1][1]*x)
           axScatter.plot(x,db_lr,lw=1.,c='b')
           db_svm = -1./theta_svm[i+1][2]*(theta_svm[i+1][0]+theta_svm[i+1][1]*x)
-          axScatter.plot(x,db_svm,lw=1.,c='c')
+          axScatter.plot(x,db_svm,lw=2.,c='c')
       axScatter.legend(loc=4)
 
-    else:
+    elif len(theta_lr) > 1:
       rates = []
       for i in range(len(theta_lr)):
         db_lr = -1./theta_lr[i][1][2]*(theta_lr[i][1][0]+np.log((1-t_lr[i][1])/t_lr[i][1])+theta_lr[i][1][1]*x)
-        axScatter.plot(x,db_lr,lw=2.,c=(0,0.1*i,1))
+        axScatter.plot(x,db_lr,lw=1.,c=(0,0.1*i,1))
         rates.append(rate_lr[i][1])
       print np.mean(rates),np.std(rates)
       axScatter.text(0.6*lim_plot,-0.9*lim_plot,r'%.1f$\pm$%.1f%%'%(np.mean(rates),np.std(rates)))
+
+    elif opt.opdict['plot_prec_rec']:
+      for thres in np.arange(0,1.1,.1):
+        db_lr = -1./theta_lr[0][1][2]*(theta_lr[0][1][0]+np.log((1-thres)/thres)+theta_lr[0][1][1]*x)
+        axScatter.plot(x,db_lr,lw=1.,c=(0,thres,1))
+        if thres == t_lr[0][1]:
+          axScatter.plot(x,db_lr,lw=3.,c='midnightblue')
+      axScatter.text(0.6*lim_plot,-0.9*lim_plot,'LR (%.1f%%)'%rate_lr[0][1])
 
     axScatter.set_xlim((-lim_plot, lim_plot))
     axScatter.set_ylim((-lim_plot, lim_plot))
@@ -314,7 +322,7 @@ def plot_sep(opt):
     axScatter.set_xlabel('x1')
     axScatter.set_ylabel('x2')
 
-    plt.savefig('%s/Test_2c_ineq.png'%opt.opdict['fig_path'])
+    plt.savefig('%s/Test_2c_threshold.png'%opt.opdict['fig_path'])
     plt.show()
 
 

@@ -222,7 +222,6 @@ def classifier(opt):
         from LR_functions import normalize,plot_precision_recall
         x_train, x_test = normalize(x_train,x_test)
         plot_precision_recall(x_train,y_train,x_test,y_test,theta)
-        plt.show()
 
       if theta:
         opt.theta = theta
