@@ -34,13 +34,13 @@ class Synthetics(MultiOptions):
     self.opdict['dir'] = 'Test'
     self.opdict['stations'] = ['STA']
     self.opdict['channels'] = ['Z']
-    self.opdict['types'] = ['A','B']
+    self.opdict['types'] = ['A','B','C']
 
     self.opdict['libdir'] = os.path.join('../lib',self.opdict['dir'])
     self.opdict['outdir'] = os.path.join('../results',self.opdict['dir'])
     self.opdict['fig_path'] = '%s/figures'%self.opdict['outdir']
 
-    self.sep = 'well'
+    self.sep = 'bad'
     self.opdict['feat_train'] = '%s_%dc_train.csv'%(self.sep,len(self.opdict['types']))
     self.opdict['feat_test'] = '%s_%dc_test.csv'%(self.sep,len(self.opdict['types']))
     self.opdict['label_train'] = '%s_%dc_train.csv'%(self.sep,len(self.opdict['types']))
@@ -67,18 +67,19 @@ class Synthetics(MultiOptions):
 
   def set_params(self):
     # Random data
-    self.NB_class = 2
+    self.NB_class = len(self.opdict['types'])
     NB_test_all = 1200
     NB_train_all = int(0.4*NB_test_all)
+    prop = (0.6,0.3,0.1)
     #prop = (1./3,1./3,1./3)
-    prop = (.5,.5)
+    #prop = (.5,.5)
 
     if len(prop) != self.NB_class:
       print "Warning ! Check number of classes and proportions"
       sys.exit()
-    if np.sum(prop) != 1:
-      print "Warning ! Set correct proportions of the classes"
-      sys.exit()
+    #if (1-np.sum(prop)) < 10**-6:
+    #  print "Warning ! Set correct proportions of the classes"
+    #  sys.exit()
 
 
     self.NB_train, self.NB_test = {},{}
@@ -124,9 +125,9 @@ class Synthetics(MultiOptions):
 
     if self.NB_class == 3:
       sig_x_3c = 4
-      sig_y_3c = 5
+      sig_y_3c = 3
       theta_3c = pi/4
-      mean_3c = [.75,0]
+      mean_3c = [.55,0]
 
 
     s = {}
@@ -184,7 +185,6 @@ class Synthetics(MultiOptions):
 def plot_sep(opt):
 
     opt.set_params()
-    NB_class = len(opt.opdict['types'])
 
     from do_classification import classifier
     ### SVM ###
@@ -199,6 +199,7 @@ def plot_sep(opt):
     theta_lr,rate_lr,t_lr = {}, {}, {}
     for b in range(1):
       opt.opdict['learn_file'] = os.path.join(opt.opdict['libdir'],'LR_%d'%b)
+      #os.remove(opt.opdict['learn_file'])
       classifier(opt)
       theta_lr[b] = opt.theta
       rate_lr[b] = opt.success
@@ -214,16 +215,25 @@ def plot_sep(opt):
 
     # PLOTS
     plot_2f(theta_svm,rate_svm,t_svm,'SVM',x_train,x_test,y_test,opt.NB_test)
+    plt.savefig('%s/Test_3c_%s_SVM_ineq.png'%(opt.opdict['fig_path'],opt.sep))
     plt.show()
 
     if len(theta_lr) == 1:
       plot_2f(theta_lr[0],rate_lr[0],t_lr[0],'LR',x_train,x_test,y_test,opt.NB_test)
+      plt.savefig('%s/Test_3c_%s_LR_ineq.png'%(opt.opdict['fig_path'],opt.sep))
       plt.show()
       plot_2f_superimposed(theta_lr[0],rate_lr[0],t_lr[0],theta_svm,rate_svm,t_svm,x_train,x_test,y_test,opt.NB_test)
+      plt.savefig('%s/Test_3c_%s_ineq.png'%(opt.opdict['fig_path'],opt.sep))
       plt.show()
 
-    elif len(theta_lr) > 1 or opt.opdict['plot_prec_rec']:
+    elif len(theta_lr) > 1:
       plot_2f_variability(theta_lr,rate_lr,t_lr,'LR',x_train,x_test,y_test,opt.NB_test)
+      plt.savefig('%s/Test_2c_LR_%s.png'%(opt.opdict['fig_path'],opt.sep))
+      plt.show()
+
+    if opt.opdict['plot_prec_rec']:
+      plot_2f_variability(theta_lr,rate_lr,t_lr,'LR',x_train,x_test,y_test,opt.NB_test)
+      plt.savefig('%s/Test_2c_bad_ineq_threshold.png'%opt.opdict['fig_path'])
       plt.show()
 
 
