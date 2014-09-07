@@ -5,10 +5,7 @@ import sys, os, glob
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from matplotlib.ticker import NullFormatter
-import matplotlib.mlab as mlab
-
-
+from plot_2features import plot_2f, plot_2f_variability, plot_2f_superimposed
 
 def create_synthetics(npts,sig_x,sig_y,theta,mean):
   """
@@ -60,7 +57,7 @@ class Synthetics(MultiOptions):
     self.opdict['save_confusion'] = False
     self.opdict['plot_sep'] = False # plot decision boundary
     self.opdict['save_sep'] = False
-    self.opdict['plot_prec_rec'] = True # plot precision and recall
+    self.opdict['plot_prec_rec'] = False # plot precision and recall
 
     self.opdict['feat_filepath'] = '%s/features/%s'%(self.opdict['outdir'],self.opdict['feat_test'])
     self.opdict['label_filename'] = '%s/%s'%(self.opdict['libdir'],self.opdict['label_test'])
@@ -187,15 +184,18 @@ class Synthetics(MultiOptions):
 def plot_sep(opt):
 
     opt.set_params()
+    NB_class = len(opt.opdict['types'])
 
     from do_classification import classifier
+    ### SVM ###
     opt.opdict['method'] = 'svm'
     classifier(opt)
     theta_svm = opt.theta
     rate_svm = opt.success
+    t_svm = opt.threshold
 
+    ### LOGISTIC REGRESSION ###
     opt.opdict['method'] = 'lr'
-
     theta_lr,rate_lr,t_lr = {}, {}, {}
     for b in range(1):
       opt.opdict['learn_file'] = os.path.join(opt.opdict['libdir'],'LR_%d'%b)
@@ -212,118 +212,19 @@ def plot_sep(opt):
     y_train = pd.read_csv('%s/%s'%(opt.opdict['libdir'],opt.opdict['label_train']))
     y_test = pd.read_csv(opt.opdict['label_filename'])
 
-    NB_class = len(opt.opdict['types'])
-
-    #### PLOT ####
-    nullfmt = NullFormatter()
-
-    # definitions for the axes
-    left, width = 0.1, 0.65
-    bottom, height = 0.1, 0.65
-    bottom_h = left_h = left+width+0.02
-
-    rect_scatter = [left, bottom, width, height]
-    rect_histx = [left, bottom_h, width, 0.2]
-    rect_histy = [left_h, bottom, 0.2, height]
-
-    # start with a rectangular Figure
-    fig = plt.figure(1, figsize=(8,8))
-    fig.set_facecolor('white')
-
-    axScatter = plt.axes(rect_scatter)
-    axHistx = plt.axes(rect_histx)
-    axHisty = plt.axes(rect_histy)
-
-    # No labels
-    axHistx.xaxis.set_major_formatter(nullfmt)
-    axHisty.yaxis.set_major_formatter(nullfmt)
-
-    # Scatter plot:
-    from LR_functions import normalize
-    x_train, x_test = normalize(x_train,x_test)
-    x = x_test['x1']
-    y = x_test['x2']
-    axScatter.scatter(x,y,c=list(y_test.TypeNum.values),cmap=plt.cm.gray_r)
-
-    # Determine nice limits by hand
-    binwidth = 0.025
-    xymax = np.max( [np.max(np.fabs(x)), np.max(np.fabs(y))] )
-    lim_plot = ( int(xymax/binwidth) + 1) * binwidth
-    bins = np.arange(-lim_plot, lim_plot + binwidth, binwidth)
-
-    # Plot decision boundaries
-    if len(theta_lr) < 2 and not opt.opdict['plot_prec_rec']:
-      if NB_class == 2:
-        db_lr = -1./theta_lr[0][1][2]*(theta_lr[0][1][0]+np.log((1-t_lr[0][1])/t_lr[0][1])+theta_lr[0][1][1]*x)
-        axScatter.plot(x,db_lr,lw=2.,c='b',label='LR (%.1f%%)'%rate_lr[0][1])
-
-        db_svm = -1./theta_svm[1][2]*(theta_svm[1][0]+theta_svm[1][1]*x)
-        axScatter.plot(x,db_svm,lw=2.,c='c',label='SVM (%.1f%%)'%rate_svm[1])
-      elif NB_class > 2:
-        for i in range(NB_class):
-          db_lr = -1./theta_lr[0][i+1][2]*(theta_lr[0][i+1][0]+np.log((1-t_lr[0][i+1])/t_lr[0][i+1])+theta_lr[0][i+1][1]*x)
-          axScatter.plot(x,db_lr,lw=1.,c='b')
-          db_svm = -1./theta_svm[i+1][2]*(theta_svm[i+1][0]+theta_svm[i+1][1]*x)
-          axScatter.plot(x,db_svm,lw=2.,c='c')
-      axScatter.legend(loc=4)
-
-    elif len(theta_lr) > 1:
-      rates = []
-      for i in range(len(theta_lr)):
-        db_lr = -1./theta_lr[i][1][2]*(theta_lr[i][1][0]+np.log((1-t_lr[i][1])/t_lr[i][1])+theta_lr[i][1][1]*x)
-        axScatter.plot(x,db_lr,lw=1.,c=(0,0.1*i,1))
-        rates.append(rate_lr[i][1])
-      print np.mean(rates),np.std(rates)
-      axScatter.text(0.6*lim_plot,-0.9*lim_plot,r'%.1f$\pm$%.1f%%'%(np.mean(rates),np.std(rates)))
-
-    elif opt.opdict['plot_prec_rec']:
-      for thres in np.arange(0,1.1,.1):
-        db_lr = -1./theta_lr[0][1][2]*(theta_lr[0][1][0]+np.log((1-thres)/thres)+theta_lr[0][1][1]*x)
-        axScatter.plot(x,db_lr,lw=1.,c=(0,thres,1))
-        if thres == t_lr[0][1]:
-          axScatter.plot(x,db_lr,lw=3.,c='midnightblue')
-      axScatter.text(0.6*lim_plot,-0.9*lim_plot,'LR (%.1f%%)'%rate_lr[0][1])
-
-    axScatter.set_xlim((-lim_plot, lim_plot))
-    axScatter.set_ylim((-lim_plot, lim_plot))
-
-
-    # Plot histograms and PDFs
-    lim = 0
-    x_hist, y_hist = [],[]
-    g_x, g_y = {}, {}
-
-    if NB_class == 2:
-      colors = ('w','k')
-    elif NB_class == 3:
-      colors = ('w','gray','k')
-
-    for i in range(NB_class):
-      x_hist.append(x[lim:lim+opt.NB_test[i]])
-      y_hist.append(y[lim:lim+opt.NB_test[i]])
-      g_x[i] = mlab.normpdf(bins, np.mean(x[lim:lim+opt.NB_test[i]]), np.std(x[lim:lim+opt.NB_test[i]]))
-      g_y[i] = mlab.normpdf(bins, np.mean(y[lim:lim+opt.NB_test[i]]), np.std(y[lim:lim+opt.NB_test[i]]))
-      axHisty.hist(y[lim:lim+opt.NB_test[i]],bins=bins,color=colors[i],normed=1,orientation='horizontal',histtype='stepfilled',alpha=.5)
-      lim = lim + opt.NB_test[i]
-    axHistx.hist(x_hist,bins=bins,color=colors,normed=1,histtype='stepfilled',alpha=.5)
-
-    if NB_class == 2:
-      colors = ('r','y')
-    elif NB_class == 3:
-      colors = ('r','orange','y')
-
-    for key in sorted(g_x):
-      axHistx.plot(bins,g_x[key],color=colors[key],lw=2.)
-      axHisty.plot(g_y[key],bins,color=colors[key],lw=2.)
-
-    axHistx.set_xlim(axScatter.get_xlim())
-    axHisty.set_ylim(axScatter.get_ylim())
-
-    axScatter.set_xlabel('x1')
-    axScatter.set_ylabel('x2')
-
-    plt.savefig('%s/Test_2c_threshold.png'%opt.opdict['fig_path'])
+    # PLOTS
+    plot_2f(theta_svm,rate_svm,t_svm,'SVM',x_train,x_test,y_test,opt.NB_test)
     plt.show()
+
+    if len(theta_lr) == 1:
+      plot_2f(theta_lr[0],rate_lr[0],t_lr[0],'LR',x_train,x_test,y_test,opt.NB_test)
+      plt.show()
+      plot_2f_superimposed(theta_lr[0],rate_lr[0],t_lr[0],theta_svm,rate_svm,t_svm,x_train,x_test,y_test,opt.NB_test)
+      plt.show()
+
+    elif len(theta_lr) > 1 or opt.opdict['plot_prec_rec']:
+      plot_2f_variability(theta_lr,rate_lr,t_lr,'LR',x_train,x_test,y_test,opt.NB_test)
+      plt.show()
 
 
 def run_synthetics():
