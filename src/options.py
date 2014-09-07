@@ -85,7 +85,7 @@ class Options(object):
       self.piton()
 
     # Define options for classification functions
-    self.opdict['method'] = 'svm' # could be 'lr' (logistic regression),'svm' (Support Vector Machine from scikit.learn package),'ova' (1-vs-all extractor), '1b1' (1-by-1 extractor), 'lrsk' (Logistic regression from scikit.learn package)
+    self.opdict['method'] = 'lr' # could be 'lr' (logistic regression),'svm' (Support Vector Machine from scikit.learn package),'ova' (1-vs-all extractor), '1b1' (1-by-1 extractor), 'lrsk' (Logistic regression from scikit.learn package)
     self.opdict['plot_pdf'] = False # display the pdfs of the features
     self.opdict['save_pdf'] = False
     self.opdict['plot_confusion'] = False # display the confusion matrices
@@ -93,14 +93,15 @@ class Options(object):
     self.opdict['plot_sep'] = True # plot decision boundary
     self.opdict['save_sep'] = False
     self.opdict['plot_prec_rec'] = False # plot precision and recall
+    self.opdict['compare'] = True
 
     import time
     date = time.localtime()
     if self.opdict['option'] == 'norm':
       # Features "normales"
       #self.opdict['feat_list'] = self.opdict['feat_all']
-      self.opdict['feat_list'] = ['v9']
-      self.opdict['feat_log'] = ['v9']
+      self.opdict['feat_list'] = ['AsDec','KRapp']
+      #self.opdict['feat_log'] = ['v9']
       #self.opdict['feat_log'] = ['AsDec','Dur','Ene0-5','Growth','ibw0','MeanPredF','RappMaxMean','RappMaxMeanTF','TimeMaxSpec','v0','v8','v9'] # list of features to be normalized with np.log (makes data look more gaussians)
       #self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Growth','Kurto','RappMaxMean','RappMaxMeanTF','Skewness','TimeMaxSpec','Width']
       #self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Kurto','RappMaxMean','Skewness','TimeMaxSpec']
@@ -134,9 +135,6 @@ class Options(object):
 
     self.opdict['fig_path'] = '%s/figures'%self.opdict['outdir']
 
-    self.opdict['types'] = None
-
-
   def ijen(self):
     self.opdict['network'] = 'ID'
     self.opdict['stations'] = ['IJEN']
@@ -156,10 +154,10 @@ class Options(object):
     self.opdict['stations'] = ['BOR']
     self.opdict['types'] = ['EB','VT']
     self.opdict['datadir'] = os.path.join('../data/%s/full_data'%self.opdict['dir'])
-    #self.opdict['feat_train'] = 'clement_train.csv'
-    #self.opdict['feat_test'] = 'clement_test.csv'
-    self.opdict['feat_train'] = 'Piton_trainset.csv'
-    self.opdict['feat_test'] = 'Piton_testset.csv'
+    self.opdict['feat_train'] = 'clement_train.csv'
+    self.opdict['feat_test'] = 'clement_test.csv'
+    #self.opdict['feat_train'] = 'Piton_trainset.csv'
+    #self.opdict['feat_test'] = 'Piton_testset.csv'
     self.opdict['hash_train'] = 'HT_Piton_trainset.csv'
     self.opdict['hash_test'] = 'HT_Piton_testset.csv'
     self.opdict['label_train'] = 'class_train_set.csv'

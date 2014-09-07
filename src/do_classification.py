@@ -236,6 +236,13 @@ def classifier(opt):
           print "Theta values:",theta
           print "Threshold:", threshold
 
+        if opt.opdict['method']=='lr' and opt.opdict['compare']:
+          SVM_test, svm_p, SVM_train, theta_vec = implement_svm(x_train,x_test,y_train,y_test,opt.types,opt.opdict,kern='Lin')
+          theta_svm,t_svm = {},{}
+          for it in range(len(theta_vec)):
+            theta_svm[it+1] = np.append(theta_vec[it][-1],theta_vec[it][:-1])
+            t_svm[it+1] = 0.5
+
           from LR_functions import normalize
           x_train, x_test = normalize(x_train,x_test)
 
@@ -260,11 +267,12 @@ def classifier(opt):
           elif n_feat == 2:
 
             #from plot_functions import plot_sep_2f
-            #from SVM_LR_plots import plot_sep_2f
             #plot_sep_2f(x_train,y_train.Type,opt.types,x_test,y_test.Type,x_test_bad,theta=theta[1],text=text)
             from plot_2features import plot_2f_all
-            print y_test.columns
-            plot_2f_all(theta,threshold,opt.opdict['method'],x_train,y_train,x_test,y_test,x_test_bad,opt.types,text=text)
+            if opt.opdict['compare']:
+              plot_2f_all(theta,threshold,opt.opdict['method'],x_train,y_train,x_test,y_test,x_test_bad,opt.types,text=text,th_comp=theta_svm,t_comp=t_svm,p=svm_p)
+            else:
+              plot_2f_all(theta,threshold,opt.opdict['method'],x_train,y_train,x_test,y_test,x_test_bad,opt.types,text=text)
             name = '%s_%s'%(opt.opdict['feat_list'][0],opt.opdict['feat_list'][1])
 
           elif n_feat == 3:

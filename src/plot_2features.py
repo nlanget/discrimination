@@ -372,7 +372,7 @@ def plot_2f_superimposed(theta_lr,rate_lr,t_lr,theta_svm,rate_svm,t_svm,x_train,
 
 # *******************************************************************************
 
-def plot_2f_all(theta,t,method,x_train,y_train,x_test,y_test,x_bad,str_t,text=None):
+def plot_2f_all(theta,t,method,x_train,y_train,x_test,y_test,x_bad,str_t,text=None,th_comp=None,t_comp=None,p=None):
     """
     Plots decision boundaries for a discrimination problem with 
     2 features.
@@ -445,9 +445,13 @@ def plot_2f_all(theta,t,method,x_train,y_train,x_test,y_test,x_bad,str_t,text=No
     # Plot decision boundaries
     for i in sorted(theta):
       db = -1./theta[i][2]*(theta[i][0]+np.log((1-t[i])/t[i])+theta[i][1]*x_vec[0])
-      axScatter.plot(x_vec[0],db,lw=3.,c='purple',label=method.upper())
-      axScatter.contourf(x_vec, y_vec, map, cmap=plt.cm.gray, alpha=0.2)
-    axScatter.legend(loc=2)
+      axScatter.plot(x_vec[0],db,lw=3.,c='orange',label=method.upper())
+      if th_comp and t_comp:
+        db = -1./th_comp[i][2]*(th_comp[i][0]+np.log((1-t_comp[i])/t_comp[i])+th_comp[i][1]*x_vec[0])
+        axScatter.plot(x_vec[0],db,lw=3.,c='purple',label='SVM (%.2f%%)'%p[1])
+
+    axScatter.contourf(x_vec, y_vec, map, cmap=plt.cm.gray, alpha=0.2)
+    axScatter.legend(loc=2,prop={'size':10})
 
     if text:
        axScatter.text(0.7,0.95,"%.2f %% %s"%(text[0],str_t[0]),color='b',transform=axScatter.transAxes)
