@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.ticker import NullFormatter
 import matplotlib.mlab as mlab
+from scipy.stats.kde import gaussian_kde
 
 # *******************************************************************************
 
@@ -91,8 +92,8 @@ def plot_2f(theta,rate,t,method,x_train,x_test,y_test,NB_test):
     # Scatter plot:
     from LR_functions import normalize
     x_train, x_test = normalize(x_train,x_test)
-    x = x_test['x1']
-    y = x_test['x2']
+    x = x_test[x_test.columns[0]]
+    y = x_test[x_test.columns[1]]
     axScatter.scatter(x,y,c=list(y_test.TypeNum.values),cmap=plt.cm.gray_r)
 
     # Determine nice limits by hand
@@ -187,8 +188,8 @@ def plot_2f_variability(theta,rate,t,method,x_train,x_test,y_test,NB_test):
     # Scatter plot:
     from LR_functions import normalize
     x_train, x_test = normalize(x_train,x_test)
-    x = x_test['x1']
-    y = x_test['x2']
+    x = x_test[x_test.columns[0]]
+    y = x_test[x_test.columns[1]]
     axScatter.scatter(x,y,c=list(y_test.TypeNum.values),cmap=plt.cm.gray_r)
 
     # Determine nice limits by hand
@@ -312,8 +313,8 @@ def plot_2f_superimposed(theta_lr,rate_lr,t_lr,theta_svm,rate_svm,t_svm,x_train,
     # Scatter plot:
     from LR_functions import normalize
     x_train, x_test = normalize(x_train,x_test)
-    x = x_test['x1']
-    y = x_test['x2']
+    x = x_test[x_test.columns[0]]
+    y = x_test[x_test.columns[1]]
     axScatter.scatter(x,y,c=list(y_test.TypeNum.values),cmap=plt.cm.gray_r)
 
     # Determine nice limits by hand
@@ -361,6 +362,130 @@ def plot_2f_superimposed(theta_lr,rate_lr,t_lr,theta_svm,rate_svm,t_svm,x_train,
     for key in sorted(g_x):
       axHistx.plot(bins,g_x[key],color=colors[key],lw=2.)
       axHisty.plot(g_y[key],bins,color=colors[key],lw=2.)
+
+    axHistx.set_xlim(axScatter.get_xlim())
+    axHisty.set_ylim(axScatter.get_ylim())
+
+    axScatter.set_xlabel(x_test.columns[0])
+    axScatter.set_ylabel(x_test.columns[1])
+
+
+# *******************************************************************************
+
+def plot_2f_all(theta,t,method,x_train,y_train,x_test,y_test,x_bad,str_t,text=None):
+    """
+    Plots decision boundaries for a discrimination problem with 
+    2 features.
+    Superimposed with scatter plots of both training and test sets.
+    """
+
+    if len(theta) > 2:
+      NB_class = len(theta)
+      x_vec, y_vec, proba, map = class_multi_2f(theta)
+
+    elif len(theta) == 1:
+      NB_class = 2
+      x_vec, y_vec, proba, map = class_2c_2f(theta,t)
+
+    #### PLOT ####
+    nullfmt = NullFormatter()
+
+    # definitions for the axes
+    left, width = 0.1, 0.65
+    bottom, height = 0.1, 0.65
+    bottom_h = left_h = left+width+0.02
+
+    rect_scatter = [left, bottom, width, height]
+    rect_histx = [left, bottom_h, width, 0.2]
+    rect_histy = [left_h, bottom, 0.2, height]
+
+    # start with a rectangular Figure
+    fig = plt.figure(1, figsize=(8,8))
+    fig.set_facecolor('white')
+
+    axScatter = plt.axes(rect_scatter)
+    axHistx = plt.axes(rect_histx)
+    axHisty = plt.axes(rect_histy)
+
+    # No labels
+    axHistx.xaxis.set_major_formatter(nullfmt)
+    axHisty.yaxis.set_major_formatter(nullfmt)
+
+    # Scatter plot:
+    from LR_functions import normalize
+    x_train, x_test = normalize(x_train,x_test)
+    feat_1 = x_test.columns[0]
+    feat_2 = x_test.columns[1]
+    axScatter.scatter(x_test[feat_1],x_test[feat_2],c=list(y_test.Type.values),cmap=plt.cm.gray,alpha=.2)
+    axScatter.scatter(x_train[feat_1],x_train[feat_2],c=list(y_train.Type.values),cmap=plt.cm.winter,alpha=.5)
+    axScatter.scatter(x_bad[feat_1],x_bad[feat_2],c='r',alpha=.2)
+
+    # Determine nice limits by hand
+    binwidth = 0.025
+    maxi_1 = np.max([np.max(x_test[feat_1]),np.max(x_train[feat_1])])
+    mini_1 = np.min([np.min(x_test[feat_1]),np.min(x_train[feat_1])])
+    lim_plot_sup_1 = (int(maxi_1/binwidth)+2)*binwidth
+    lim_plot_inf_1 = (int(mini_1/binwidth)-2)*binwidth
+    if lim_plot_sup_1 > 1: 
+      lim_plot_sup_1 = 1
+    if lim_plot_inf_1 < -1:
+      lim_plot_inf_1 = -1
+    bins_1 = np.arange(lim_plot_inf_1, lim_plot_sup_1 + binwidth, binwidth)
+
+    maxi_2 = np.max([np.max(x_test[feat_2]),np.max(x_train[feat_2])])
+    mini_2 = np.min([np.min(x_test[feat_2]),np.min(x_train[feat_2])])
+    lim_plot_sup_2 = (int(maxi_2/binwidth)+2)*binwidth
+    lim_plot_inf_2 = (int(mini_2/binwidth)-2)*binwidth
+    if lim_plot_sup_2 > 1: 
+      lim_plot_sup_2 = 1
+    if lim_plot_inf_2 < -1:
+      lim_plot_inf_2 = -1
+    bins_2 = np.arange(lim_plot_inf_2, lim_plot_sup_2 + binwidth, binwidth)
+
+    # Plot decision boundaries
+    for i in sorted(theta):
+      db = -1./theta[i][2]*(theta[i][0]+np.log((1-t[i])/t[i])+theta[i][1]*x_vec[0])
+      axScatter.plot(x_vec[0],db,lw=3.,c='purple',label=method.upper())
+      axScatter.contourf(x_vec, y_vec, map, cmap=plt.cm.gray, alpha=0.2)
+    axScatter.legend(loc=2)
+
+    if text:
+       axScatter.text(0.7,0.95,"%.2f %% %s"%(text[0],str_t[0]),color='b',transform=axScatter.transAxes)
+       axScatter.text(0.7,0.9,"%.2f %% %s"%(text[1],str_t[1]),color='g',transform=axScatter.transAxes)
+       axScatter.text(0.7,0.85,"%.2f %% test set"%text[2],transform=axScatter.transAxes)
+       axScatter.text(0.7,0.8,"%.2f %% test set"%text[3],color='r',transform=axScatter.transAxes)
+
+    axScatter.set_xlim((lim_plot_inf_1, lim_plot_sup_1))
+    axScatter.set_ylim((lim_plot_inf_2, lim_plot_sup_2))
+
+    # Plot histograms and PDFs
+    x_hist, y_hist = [],[]
+    g_x, g_y = {}, {}
+
+    if NB_class > 2:
+      colors = ('w','gray','k')
+    elif NB_class == 2:
+      colors = ('k','w')
+    for i in range(NB_class):
+      index = y_test[y_test.Type.values==i].index
+      x1 = x_test.reindex(columns=[feat_1],index=index).values
+      x2 = x_test.reindex(columns=[feat_2],index=index).values
+      x_hist.append(x1)
+      y_hist.append(x2)
+      kde = gaussian_kde(x1.ravel())
+      g_x[i] = kde(bins_1)
+      kde = gaussian_kde(x2.ravel())
+      g_y[i] = kde(bins_2)
+      axHisty.hist(x2,bins=bins_2,color=colors[i],normed=1,orientation='horizontal',histtype='stepfilled',alpha=.5)
+    axHistx.hist(x_hist,bins=bins_1,color=colors,normed=1,histtype='stepfilled',alpha=.5)
+
+    if NB_class > 2:
+      colors = ('r','orange','y')
+    elif NB_class == 2:
+      colors = ('y','r')
+    for key in sorted(g_x):
+      axHistx.plot(bins_1,g_x[key],color=colors[key],lw=2.)
+      axHisty.plot(g_y[key],bins_2,color=colors[key],lw=2.)
 
     axHistx.set_xlim(axScatter.get_xlim())
     axHisty.set_ylim(axScatter.get_ylim())

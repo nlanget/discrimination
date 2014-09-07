@@ -259,9 +259,12 @@ def classifier(opt):
 
           elif n_feat == 2:
 
-            from plot_functions import plot_sep_2f
+            #from plot_functions import plot_sep_2f
             #from SVM_LR_plots import plot_sep_2f
-            plot_sep_2f(x_train,y_train.Type,opt.types,x_test,y_test.Type,x_test_bad,theta=theta[1],text=text)
+            #plot_sep_2f(x_train,y_train.Type,opt.types,x_test,y_test.Type,x_test_bad,theta=theta[1],text=text)
+            from plot_2features import plot_2f_all
+            print y_test.columns
+            plot_2f_all(theta,threshold,opt.opdict['method'],x_train,y_train,x_test,y_test,x_test_bad,opt.types,text=text)
             name = '%s_%s'%(opt.opdict['feat_list'][0],opt.opdict['feat_list'][1])
 
           elif n_feat == 3:
