@@ -180,7 +180,7 @@ def plot_2f(theta,rate,t,method,x_train,x_test,y_test,th_comp=None,t_comp=None,p
 
 # *******************************************************************************
 
-def plot_2f_synthetics(theta,rate,t,method,x_train,x_test,y_test,th_comp=None,t_comp=None,p=None):
+def plot_2f_synthetics(theta,rate,t,method,x_train,x_test,y_test,y_train=None,th_comp=None,t_comp=None,p=None):
     """
     For synthetic tests.
     """
@@ -226,6 +226,8 @@ def plot_2f_synthetics(theta,rate,t,method,x_train,x_test,y_test,th_comp=None,t_
     x = x_test[feat_1]
     y = x_test[feat_2]
     axScatter.scatter(x,y,c=list(y_test.NumType.values),cmap=plt.cm.gray)
+    if y_train:
+      axScatter.scatter(x_train[feat_1],x_train[feat_2],c=list(y_train.NumType.values),cmap=plt.cm.YlOrRd)
 
     # Determine nice limits by hand
     binwidth = 0.025
@@ -258,6 +260,8 @@ def plot_2f_synthetics(theta,rate,t,method,x_train,x_test,y_test,th_comp=None,t_
     # Plot histograms and PDFs
     x_hist, y_hist = [],[]
     g_x, g_y = {}, {}
+    if y_train:
+      g_x_train, g_y_train = {}, {}
 
     if NB_class > 2:
       colors = ('k','gray','w')
@@ -272,6 +276,13 @@ def plot_2f_synthetics(theta,rate,t,method,x_train,x_test,y_test,th_comp=None,t_
       g_x[i] = mlab.normpdf(bins, np.mean(x1), np.std(x1))
       g_y[i] = mlab.normpdf(bins, np.mean(x2), np.std(x2))
       axHisty.hist(x2,bins=bins,color=colors[i],normed=1,orientation='horizontal',histtype='stepfilled',alpha=.5)
+      if y_train:
+        index = y_train[y_train.NumType.values==i].index
+        x1 = x_train.reindex(columns=[feat_1],index=index).values
+        x2 = x_train.reindex(columns=[feat_2],index=index).values
+        g_x_train[i] = mlab.normpdf(bins, np.mean(x1), np.std(x1))
+        g_y_train[i] = mlab.normpdf(bins, np.mean(x2), np.std(x2))
+
     axHistx.hist(x_hist,bins=bins,color=colors,normed=1,histtype='stepfilled',alpha=.5)
 
     if NB_class > 2:
@@ -281,6 +292,9 @@ def plot_2f_synthetics(theta,rate,t,method,x_train,x_test,y_test,th_comp=None,t_
     for key in sorted(g_x):
       axHistx.plot(bins,g_x[key],color=colors[key],lw=2.)
       axHisty.plot(g_y[key],bins,color=colors[key],lw=2.)
+      if y_train:
+        axHistx.plot(bins,g_x_train[key],color=colors[key],lw=1.,ls='--')
+        axHisty.plot(g_y_train[key],bins,color=colors[key],lw=1.,ls='--')
 
     axHistx.set_xlim(axScatter.get_xlim())
     axHisty.set_ylim(axScatter.get_ylim())

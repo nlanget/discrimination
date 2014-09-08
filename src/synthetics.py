@@ -220,17 +220,16 @@ def plot_sep(opt):
     y_train = opt.train_y
     y_test = opt.y
 
-
     # PLOTS
-    plot_2f_synthetics(theta_svm,rate_svm,t_svm,'SVM',x_train,x_test,y_test)
+    plot_2f_synthetics(theta_svm,rate_svm,t_svm,'SVM',x_train,x_test,y_test,y_train=y_train)
     plt.savefig('%s/Test_3c_%s_SVM_ineq.png'%(opt.opdict['fig_path'],opt.sep))
     plt.show()
 
     if len(theta_lr) == 1:
-      plot_2f_synthetics(theta_lr[0],rate_lr[0],t_lr[0],'LR',x_train,x_test,y_test)
+      plot_2f_synthetics(theta_lr[0],rate_lr[0],t_lr[0],'LR',x_train,x_test,y_test,y_train=y_train)
       plt.savefig('%s/Test_3c_%s_LR_ineq.png'%(opt.opdict['fig_path'],opt.sep))
       plt.show()
-      plot_2f_synthetics(theta_lr[0],rate_lr[0],t_lr[0],'LR',x_train,x_test,y_test,th_comp=theta_svm,p=rate_svm,t_comp=t_svm)
+      plot_2f_synthetics(theta_lr[0],rate_lr[0],t_lr[0],'LR',x_train,x_test,y_test,th_comp=theta_svm,p=rate_svm,t_comp=t_svm,y_train=y_train)
       plt.savefig('%s/Test_3c_%s_ineq.png'%(opt.opdict['fig_path'],opt.sep))
       plt.show()
 

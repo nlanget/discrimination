@@ -140,6 +140,11 @@ def classifier(opt):
         print "Test set: Incoherence in x and y dimensions"
         sys.exit()
 
+      opt.train_x = x_train
+      opt.x = x_test
+      opt.train_y = y_train
+      opt.y = y_test
+
       if opt.opdict['plot_pdf']:
         if 'train_x' in list_attr:
           opt.plot_superposed_pdfs(g_train,save=opt.opdict['save_pdf'])
