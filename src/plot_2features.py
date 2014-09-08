@@ -51,7 +51,7 @@ def class_multi_2f(thetas):
 
 # *******************************************************************************
 
-def plot_2f(theta,rate,t,method,x_train,x_test,y_test,NB_test):
+def plot_2f(theta,rate,t,method,x_train,x_test,y_test,th_comp=None,t_comp=None,p=None):
     """
     Plots decision boundaries for a discrimination problem with 
     2 features.
@@ -92,9 +92,140 @@ def plot_2f(theta,rate,t,method,x_train,x_test,y_test,NB_test):
     # Scatter plot:
     from LR_functions import normalize
     x_train, x_test = normalize(x_train,x_test)
-    x = x_test[x_test.columns[0]]
-    y = x_test[x_test.columns[1]]
-    axScatter.scatter(x,y,c=list(y_test.TypeNum.values),cmap=plt.cm.gray_r)
+
+    feat_1 = x_test.columns[0]
+    feat_2 = x_test.columns[1]
+    x = x_test[feat_1]
+    y = x_test[feat_2]
+    axScatter.scatter(x,y,c=list(y_test.NumType.values),cmap=plt.cm.gray)
+
+    # Determine nice limits by hand
+    binwidth = 0.025
+    maxi_1 = np.max([np.max(x_test[feat_1]),np.max(x_train[feat_1])])
+    mini_1 = np.min([np.min(x_test[feat_1]),np.min(x_train[feat_1])])
+    lim_plot_sup_1 = (int(maxi_1/binwidth)+2)*binwidth
+    lim_plot_inf_1 = (int(mini_1/binwidth)-2)*binwidth
+    if lim_plot_sup_1 > 1: 
+      lim_plot_sup_1 = 1
+    if lim_plot_inf_1 < -1:
+      lim_plot_inf_1 = -1
+    bins_1 = np.arange(lim_plot_inf_1, lim_plot_sup_1 + binwidth, binwidth)
+
+    maxi_2 = np.max([np.max(x_test[feat_2]),np.max(x_train[feat_2])])
+    mini_2 = np.min([np.min(x_test[feat_2]),np.min(x_train[feat_2])])
+    lim_plot_sup_2 = (int(maxi_2/binwidth)+2)*binwidth
+    lim_plot_inf_2 = (int(mini_2/binwidth)-2)*binwidth
+    if lim_plot_sup_2 > 1: 
+      lim_plot_sup_2 = 1
+    if lim_plot_inf_2 < -1:
+      lim_plot_inf_2 = -1
+    bins_2 = np.arange(lim_plot_inf_2, lim_plot_sup_2 + binwidth, binwidth)
+
+    # Plot decision boundaries
+    if th_comp and t_comp:
+      colors = ['b','c']
+    else:
+      colors = ['pink']
+    for i in sorted(theta):
+      db = -1./theta[i][2]*(theta[i][0]+np.log((1-t[i])/t[i])+theta[i][1]*x_vec[0])
+      axScatter.plot(x_vec[0],db,lw=2.,c=colors[0])
+      if th_comp and t_comp:
+        db = -1./th_comp[i][2]*(th_comp[i][0]+np.log((1-t_comp[i])/t_comp[i])+th_comp[i][1]*x_vec[0])
+        axScatter.plot(x_vec[0],db,lw=3.,c=colors[1])
+
+    axScatter.contourf(x_vec, y_vec, map, cmap=plt.cm.gray, alpha=0.2)
+
+    label = ['%s (%.2f%%)'%(method.upper(),rate[1])]
+    if th_comp and t_comp:
+      label.append('SVM (%.2f%%)'%p[1])
+    axScatter.legend(label,loc=4,prop={'size':14})
+
+    axScatter.set_xlim((lim_plot_inf_1, lim_plot_sup_1))
+    axScatter.set_ylim((lim_plot_inf_2, lim_plot_sup_2))
+
+    # Plot histograms and PDFs
+    x_hist, y_hist = [],[]
+    g_x, g_y = {}, {}
+
+    if NB_class > 2:
+      colors = ('k','gray','w')
+    elif NB_class == 2:
+      colors = ('k','w')
+    for i in range(NB_class):
+      index = y_test[y_test.NumType.values==i].index
+      x1 = x_test.reindex(columns=[feat_1],index=index).values
+      x2 = x_test.reindex(columns=[feat_2],index=index).values
+      x_hist.append(x1)
+      y_hist.append(x2)
+      kde = gaussian_kde(x1.ravel())
+      g_x[i] = kde(bins_1)
+      kde = gaussian_kde(x2.ravel())
+      g_y[i] = kde(bins_2)
+      axHisty.hist(x2,bins=bins_2,color=colors[i],normed=1,orientation='horizontal',histtype='stepfilled',alpha=.5)
+    axHistx.hist(x_hist,bins=bins_1,color=colors,normed=1,histtype='stepfilled',alpha=.5)
+
+    if NB_class > 2:
+      colors = ('y','orange','r')
+    elif NB_class == 2:
+      colors = ('y','r')
+    for key in sorted(g_x):
+      axHistx.plot(bins_1,g_x[key],color=colors[key],lw=2.)
+      axHisty.plot(g_y[key],bins_2,color=colors[key],lw=2.)
+
+    axHistx.set_xlim(axScatter.get_xlim())
+    axHisty.set_ylim(axScatter.get_ylim())
+
+    axScatter.set_xlabel(feat_1)
+    axScatter.set_ylabel(feat_2)
+
+# *******************************************************************************
+
+def plot_2f_synthetics(theta,rate,t,method,x_train,x_test,y_test,th_comp=None,t_comp=None,p=None):
+    """
+    For synthetic tests.
+    """
+
+    if len(theta) > 2:
+      NB_class = len(theta)
+      x_vec, y_vec, proba, map = class_multi_2f(theta)
+
+    elif len(theta) == 1:
+      NB_class = 2
+      x_vec, y_vec, proba, map = class_2c_2f(theta,t)
+
+    #### PLOT ####
+    nullfmt = NullFormatter()
+
+    # definitions for the axes
+    left, width = 0.1, 0.65
+    bottom, height = 0.1, 0.65
+    bottom_h = left_h = left+width+0.02
+
+    rect_scatter = [left, bottom, width, height]
+    rect_histx = [left, bottom_h, width, 0.2]
+    rect_histy = [left_h, bottom, 0.2, height]
+
+    # start with a rectangular Figure
+    fig = plt.figure(1, figsize=(8,8))
+    fig.set_facecolor('white')
+
+    axScatter = plt.axes(rect_scatter)
+    axHistx = plt.axes(rect_histx)
+    axHisty = plt.axes(rect_histy)
+
+    # No labels
+    axHistx.xaxis.set_major_formatter(nullfmt)
+    axHisty.yaxis.set_major_formatter(nullfmt)
+
+    # Scatter plot:
+    from LR_functions import normalize
+    x_train, x_test = normalize(x_train,x_test)
+
+    feat_1 = x_test.columns[0]
+    feat_2 = x_test.columns[1]
+    x = x_test[feat_1]
+    y = x_test[feat_2]
+    axScatter.scatter(x,y,c=list(y_test.NumType.values),cmap=plt.cm.gray)
 
     # Determine nice limits by hand
     binwidth = 0.025
@@ -103,37 +234,50 @@ def plot_2f(theta,rate,t,method,x_train,x_test,y_test,NB_test):
     bins = np.arange(-lim_plot, lim_plot + binwidth, binwidth)
 
     # Plot decision boundaries
+    if th_comp:
+      colors = ['b','c']
+    else:
+      colors = ['pink']
     for i in sorted(theta):
       db = -1./theta[i][2]*(theta[i][0]+np.log((1-t[i])/t[i])+theta[i][1]*x_vec[0])
-      axScatter.plot(x_vec[0],db,lw=2.,c='pink')
-      axScatter.contourf(x_vec, y_vec, map, cmap=plt.cm.gray, alpha=0.2)
-    axScatter.legend(['%s (%.1f%%)'%(method,rate[1])],loc=4)
+      axScatter.plot(x_vec[0],db,lw=2.,c=colors[0])
+      if th_comp and t_comp:
+        db = -1./th_comp[i][2]*(th_comp[i][0]+np.log((1-t_comp[i])/t_comp[i])+th_comp[i][1]*x_vec[0])
+        axScatter.plot(x_vec[0],db,lw=3.,c=colors[1])
+
+    axScatter.contourf(x_vec, y_vec, map, cmap=plt.cm.gray, alpha=0.3)
+
+    label = ['%s (%.2f%%)'%(method.upper(),rate[1])]
+    if th_comp and t_comp:
+      label.append('SVM (%.2f%%)'%p[1])
+    axScatter.legend(label,loc=4,prop={'size':14})
 
     axScatter.set_xlim((-lim_plot, lim_plot))
     axScatter.set_ylim((-lim_plot, lim_plot))
 
     # Plot histograms and PDFs
-    lim = 0
     x_hist, y_hist = [],[]
     g_x, g_y = {}, {}
 
     if NB_class > 2:
-      colors = ('w','gray','k')
+      colors = ('k','gray','w')
     elif NB_class == 2:
-      colors = ('w','k')
+      colors = ('k','w')
     for i in range(NB_class):
-      x_hist.append(x[lim:lim+NB_test[i]])
-      y_hist.append(y[lim:lim+NB_test[i]])
-      g_x[i] = mlab.normpdf(bins, np.mean(x[lim:lim+NB_test[i]]), np.std(x[lim:lim+NB_test[i]]))
-      g_y[i] = mlab.normpdf(bins, np.mean(y[lim:lim+NB_test[i]]), np.std(y[lim:lim+NB_test[i]]))
-      axHisty.hist(y[lim:lim+NB_test[i]],bins=bins,color=colors[i],normed=1,orientation='horizontal',histtype='stepfilled',alpha=.5)
-      lim = lim + NB_test[i]
+      index = y_test[y_test.NumType.values==i].index
+      x1 = x_test.reindex(columns=[feat_1],index=index).values
+      x2 = x_test.reindex(columns=[feat_2],index=index).values
+      x_hist.append(x1)
+      y_hist.append(x2)
+      g_x[i] = mlab.normpdf(bins, np.mean(x1), np.std(x1))
+      g_y[i] = mlab.normpdf(bins, np.mean(x2), np.std(x2))
+      axHisty.hist(x2,bins=bins,color=colors[i],normed=1,orientation='horizontal',histtype='stepfilled',alpha=.5)
     axHistx.hist(x_hist,bins=bins,color=colors,normed=1,histtype='stepfilled',alpha=.5)
 
     if NB_class > 2:
-      colors = ('r','orange','y')
+      colors = ('y','orange','r')
     elif NB_class == 2:
-      colors = ('r','y')
+      colors = ('y','r')
     for key in sorted(g_x):
       axHistx.plot(bins,g_x[key],color=colors[key],lw=2.)
       axHisty.plot(g_y[key],bins,color=colors[key],lw=2.)
@@ -141,12 +285,12 @@ def plot_2f(theta,rate,t,method,x_train,x_test,y_test,NB_test):
     axHistx.set_xlim(axScatter.get_xlim())
     axHisty.set_ylim(axScatter.get_ylim())
 
-    axScatter.set_xlabel(x_test.columns[0])
-    axScatter.set_ylabel(x_test.columns[1])
+    axScatter.set_xlabel(feat_1)
+    axScatter.set_ylabel(feat_2)
 
 # *******************************************************************************
 
-def plot_2f_variability(theta,rate,t,method,x_train,x_test,y_test,NB_test):
+def plot_2f_synth_var(theta,rate,t,method,x_train,x_test,y_test):
     """
     Plots decision boundaries for a discrimination problem with 
     2 classes and 2 features.
@@ -188,9 +332,12 @@ def plot_2f_variability(theta,rate,t,method,x_train,x_test,y_test,NB_test):
     # Scatter plot:
     from LR_functions import normalize
     x_train, x_test = normalize(x_train,x_test)
-    x = x_test[x_test.columns[0]]
-    y = x_test[x_test.columns[1]]
-    axScatter.scatter(x,y,c=list(y_test.TypeNum.values),cmap=plt.cm.gray_r)
+
+    feat_1 = x_test.columns[0]
+    feat_2 = x_test.columns[1]
+    x = x_test[feat_1]
+    y = x_test[feat_2]
+    axScatter.scatter(x,y,c=list(y_test.NumType.values),cmap=plt.cm.gray)
 
     # Determine nice limits by hand
     binwidth = 0.025
@@ -239,27 +386,28 @@ def plot_2f_variability(theta,rate,t,method,x_train,x_test,y_test,NB_test):
     axScatter.set_ylim((-lim_plot, lim_plot))
 
     # Plot histograms and PDFs
-    lim = 0
     x_hist, y_hist = [],[]
     g_x, g_y = {}, {}
 
     if NB_class > 2:
-      colors = ('w','gray','k')
+      colors = ('k','gray','w')
     elif NB_class == 2:
-      colors = ('w','k')
+      colors = ('k','w')
     for i in range(NB_class):
-      x_hist.append(x[lim:lim+NB_test[i]])
-      y_hist.append(y[lim:lim+NB_test[i]])
-      g_x[i] = mlab.normpdf(bins, np.mean(x[lim:lim+NB_test[i]]), np.std(x[lim:lim+NB_test[i]]))
-      g_y[i] = mlab.normpdf(bins, np.mean(y[lim:lim+NB_test[i]]), np.std(y[lim:lim+NB_test[i]]))
-      axHisty.hist(y[lim:lim+NB_test[i]],bins=bins,color=colors[i],normed=1,orientation='horizontal',histtype='stepfilled',alpha=.5)
-      lim = lim + NB_test[i]
+      index = y_test[y_test.NumType.values==i].index
+      x1 = x_test.reindex(columns=[feat_1],index=index).values
+      x2 = x_test.reindex(columns=[feat_2],index=index).values
+      x_hist.append(x1)
+      y_hist.append(x2)
+      g_x[i] = mlab.normpdf(bins, np.mean(x1), np.std(x1))
+      g_y[i] = mlab.normpdf(bins, np.mean(x2), np.std(x2))
+      axHisty.hist(x2,bins=bins,color=colors[i],normed=1,orientation='horizontal',histtype='stepfilled',alpha=.5)
     axHistx.hist(x_hist,bins=bins,color=colors,normed=1,histtype='stepfilled',alpha=.5)
 
     if NB_class > 2:
-      colors = ('r','orange','y')
+      colors = ('y','orange','r')
     elif NB_class == 2:
-      colors = ('r','y')
+      colors = ('y','r')
     for key in sorted(g_x):
       axHistx.plot(bins,g_x[key],color=colors[key],lw=2.)
       axHisty.plot(g_y[key],bins,color=colors[key],lw=2.)
@@ -267,112 +415,13 @@ def plot_2f_variability(theta,rate,t,method,x_train,x_test,y_test,NB_test):
     axHistx.set_xlim(axScatter.get_xlim())
     axHisty.set_ylim(axScatter.get_ylim())
 
-    axScatter.set_xlabel(x_test.columns[0])
-    axScatter.set_ylabel(x_test.columns[1])
-
-# *******************************************************************************
-
-def plot_2f_superimposed(theta_lr,rate_lr,t_lr,theta_svm,rate_svm,t_svm,x_train,x_test,y_test,NB_test):
-    """
-    Compares decision boundaries of the SVM and LR.
-    Map the LR results.
-    """
-
-    if len(theta_lr) > 2:
-      NB_class = len(theta_lr)
-      x_vec, y_vec, proba, map = class_multi_2f(theta_lr)
-
-    elif len(theta_lr) == 1:
-      NB_class = 2
-      x_vec, y_vec, proba, map = class_2c_2f(theta_lr,t_lr)
-
-    #### PLOT ####
-    nullfmt = NullFormatter()
-
-    # definitions for the axes
-    left, width = 0.1, 0.65
-    bottom, height = 0.1, 0.65
-    bottom_h = left_h = left+width+0.02
-
-    rect_scatter = [left, bottom, width, height]
-    rect_histx = [left, bottom_h, width, 0.2]
-    rect_histy = [left_h, bottom, 0.2, height]
-
-    # start with a rectangular Figure
-    fig = plt.figure(1, figsize=(8,8))
-    fig.set_facecolor('white')
-
-    axScatter = plt.axes(rect_scatter)
-    axHistx = plt.axes(rect_histx)
-    axHisty = plt.axes(rect_histy)
-
-    # No labels
-    axHistx.xaxis.set_major_formatter(nullfmt)
-    axHisty.yaxis.set_major_formatter(nullfmt)
-
-    # Scatter plot:
-    from LR_functions import normalize
-    x_train, x_test = normalize(x_train,x_test)
-    x = x_test[x_test.columns[0]]
-    y = x_test[x_test.columns[1]]
-    axScatter.scatter(x,y,c=list(y_test.TypeNum.values),cmap=plt.cm.gray_r)
-
-    # Determine nice limits by hand
-    binwidth = 0.025
-    xymax = np.max( [np.max(np.fabs(x)), np.max(np.fabs(y))] )
-    lim_plot = ( int(xymax/binwidth) + 1) * binwidth
-    bins = np.arange(-lim_plot, lim_plot + binwidth, binwidth)
-
-    # Plot decision boundaries
-    for i in sorted(theta_lr):
-      db_lr = -1./theta_lr[i][2]*(theta_lr[i][0]+np.log((1-t_lr[i])/t_lr[i])+theta_lr[i][1]*x_vec[0])
-      axScatter.plot(x_vec[0],db_lr,lw=2.,c='b')
-
-      db_svm = -1./theta_svm[i][2]*(theta_svm[i][0]+np.log((1-t_svm[i])/t_svm[i])+theta_svm[i][1]*x_vec[0])
-      axScatter.plot(x_vec[0],db_svm,lw=2.,c='c')
-
-      axScatter.contourf(x_vec, y_vec, map, cmap=plt.cm.gray, alpha=0.2)
-    axScatter.legend(['LR (%.1f%%)'%rate_lr[1],'SVM (%.1f%%)'%rate_svm[1]],loc=4)
-
-    axScatter.set_xlim((-lim_plot, lim_plot))
-    axScatter.set_ylim((-lim_plot, lim_plot))
-
-    # Plot histograms and PDFs
-    lim = 0
-    x_hist, y_hist = [],[]
-    g_x, g_y = {}, {}
-
-    if NB_class > 2:
-      colors = ('w','gray','k')
-    elif NB_class == 2:
-      colors = ('w','k')
-    for i in range(NB_class):
-      x_hist.append(x[lim:lim+NB_test[i]])
-      y_hist.append(y[lim:lim+NB_test[i]])
-      g_x[i] = mlab.normpdf(bins, np.mean(x[lim:lim+NB_test[i]]), np.std(x[lim:lim+NB_test[i]]))
-      g_y[i] = mlab.normpdf(bins, np.mean(y[lim:lim+NB_test[i]]), np.std(y[lim:lim+NB_test[i]]))
-      axHisty.hist(y[lim:lim+NB_test[i]],bins=bins,color=colors[i],normed=1,orientation='horizontal',histtype='stepfilled',alpha=.5)
-      lim = lim + NB_test[i]
-    axHistx.hist(x_hist,bins=bins,color=colors,normed=1,histtype='stepfilled',alpha=.5)
-
-    if NB_class > 2:
-      colors = ('r','orange','y')
-    elif NB_class == 2:
-      colors = ('r','y')
-    for key in sorted(g_x):
-      axHistx.plot(bins,g_x[key],color=colors[key],lw=2.)
-      axHisty.plot(g_y[key],bins,color=colors[key],lw=2.)
-
-    axHistx.set_xlim(axScatter.get_xlim())
-    axHisty.set_ylim(axScatter.get_ylim())
-
-    axScatter.set_xlabel(x_test.columns[0])
-    axScatter.set_ylabel(x_test.columns[1])
+    axScatter.set_xlabel(feat_1)
+    axScatter.set_ylabel(feat_2)
 
 
 # *******************************************************************************
 
-def plot_2f_all(theta,t,method,x_train,y_train,x_test,y_test,x_bad,str_t,text=None,th_comp=None,t_comp=None,p=None):
+def plot_2f_all(theta,t,rate,method,x_train,y_train,x_test,y_test,x_bad,str_t,text=None,th_comp=None,t_comp=None,p=None):
     """
     Plots decision boundaries for a discrimination problem with 
     2 features.
@@ -416,8 +465,8 @@ def plot_2f_all(theta,t,method,x_train,y_train,x_test,y_test,x_bad,str_t,text=No
     x_train, x_test = normalize(x_train,x_test)
     feat_1 = x_test.columns[0]
     feat_2 = x_test.columns[1]
-    axScatter.scatter(x_test[feat_1],x_test[feat_2],c=list(y_test.Type.values),cmap=plt.cm.gray,alpha=.2)
-    axScatter.scatter(x_train[feat_1],x_train[feat_2],c=list(y_train.Type.values),cmap=plt.cm.winter,alpha=.5)
+    axScatter.scatter(x_test[feat_1],x_test[feat_2],c=list(y_test.NumType.values),cmap=plt.cm.gray,alpha=.2)
+    axScatter.scatter(x_train[feat_1],x_train[feat_2],c=list(y_train.NumType.values),cmap=plt.cm.winter,alpha=.5)
     axScatter.scatter(x_bad[feat_1],x_bad[feat_2],c='r',alpha=.2)
 
     # Determine nice limits by hand
@@ -445,13 +494,17 @@ def plot_2f_all(theta,t,method,x_train,y_train,x_test,y_test,x_bad,str_t,text=No
     # Plot decision boundaries
     for i in sorted(theta):
       db = -1./theta[i][2]*(theta[i][0]+np.log((1-t[i])/t[i])+theta[i][1]*x_vec[0])
-      axScatter.plot(x_vec[0],db,lw=3.,c='orange',label=method.upper())
+      axScatter.plot(x_vec[0],db,lw=3.,c='orange')
       if th_comp and t_comp:
         db = -1./th_comp[i][2]*(th_comp[i][0]+np.log((1-t_comp[i])/t_comp[i])+th_comp[i][1]*x_vec[0])
-        axScatter.plot(x_vec[0],db,lw=3.,c='purple',label='SVM (%.2f%%)'%p[1])
+        axScatter.plot(x_vec[0],db,lw=3.,c='purple')
 
     axScatter.contourf(x_vec, y_vec, map, cmap=plt.cm.gray, alpha=0.2)
-    axScatter.legend(loc=2,prop={'size':10})
+
+    label = ['%s (%.2f%%)'%(method.upper(),rate[1])]
+    if th_comp and t_comp:
+      label.append('SVM (%.2f%%)'%p[1])
+    axScatter.legend(label,loc=2,prop={'size':10})
 
     if text:
        axScatter.text(0.7,0.95,"%.2f %% %s"%(text[0],str_t[0]),color='b',transform=axScatter.transAxes)
@@ -467,11 +520,11 @@ def plot_2f_all(theta,t,method,x_train,y_train,x_test,y_test,x_bad,str_t,text=No
     g_x, g_y = {}, {}
 
     if NB_class > 2:
-      colors = ('w','gray','k')
+      colors = ('k','gray','w')
     elif NB_class == 2:
       colors = ('k','w')
     for i in range(NB_class):
-      index = y_test[y_test.Type.values==i].index
+      index = y_test[y_test.NumType.values==i].index
       x1 = x_test.reindex(columns=[feat_1],index=index).values
       x2 = x_test.reindex(columns=[feat_2],index=index).values
       x_hist.append(x1)
@@ -484,7 +537,7 @@ def plot_2f_all(theta,t,method,x_train,y_train,x_test,y_test,x_bad,str_t,text=No
     axHistx.hist(x_hist,bins=bins_1,color=colors,normed=1,histtype='stepfilled',alpha=.5)
 
     if NB_class > 2:
-      colors = ('r','orange','y')
+      colors = ('y','orange','r')
     elif NB_class == 2:
       colors = ('y','r')
     for key in sorted(g_x):

@@ -5,7 +5,7 @@ import sys, os, glob
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from plot_2features import plot_2f, plot_2f_variability, plot_2f_superimposed
+from plot_2features import plot_2f_synthetics, plot_2f_synth_var
 
 def create_synthetics(npts,sig_x,sig_y,theta,mean):
   """
@@ -34,13 +34,13 @@ class Synthetics(MultiOptions):
     self.opdict['dir'] = 'Test'
     self.opdict['stations'] = ['STA']
     self.opdict['channels'] = ['Z']
-    self.opdict['types'] = ['A','B','C']
+    self.opdict['types'] = ['A','B']
 
     self.opdict['libdir'] = os.path.join('../lib',self.opdict['dir'])
     self.opdict['outdir'] = os.path.join('../results',self.opdict['dir'])
     self.opdict['fig_path'] = '%s/figures'%self.opdict['outdir']
 
-    self.sep = 'bad'
+    self.sep = 'very_well'
     self.opdict['feat_train'] = '%s_%dc_train.csv'%(self.sep,len(self.opdict['types']))
     self.opdict['feat_test'] = '%s_%dc_test.csv'%(self.sep,len(self.opdict['types']))
     self.opdict['label_train'] = '%s_%dc_train.csv'%(self.sep,len(self.opdict['types']))
@@ -58,6 +58,7 @@ class Synthetics(MultiOptions):
     self.opdict['plot_sep'] = False # plot decision boundary
     self.opdict['save_sep'] = False
     self.opdict['plot_prec_rec'] = False # plot precision and recall
+    self.opdict['compare'] = False
 
     self.opdict['feat_filepath'] = '%s/features/%s'%(self.opdict['outdir'],self.opdict['feat_test'])
     self.opdict['label_filename'] = '%s/%s'%(self.opdict['libdir'],self.opdict['label_test'])
@@ -70,9 +71,11 @@ class Synthetics(MultiOptions):
     self.NB_class = len(self.opdict['types'])
     NB_test_all = 1200
     NB_train_all = int(0.4*NB_test_all)
-    prop = (0.6,0.3,0.1)
-    #prop = (1./3,1./3,1./3)
-    #prop = (.5,.5)
+    if self.NB_class == 2:
+      prop = (.5,.5)
+    elif self.NB_class == 3:
+      prop = (1./3,1./3,1./3)
+      #prop = (0.25,0.5,0.25)
 
     if len(prop) != self.NB_class:
       print "Warning ! Check number of classes and proportions"
@@ -116,6 +119,11 @@ class Synthetics(MultiOptions):
       sig_y = 7
       theta = 0
       mean = [.85,-.5]
+    elif self.sep == 'very_well':
+      sig_x = 4
+      sig_y = 3
+      theta = pi/4
+      mean = [1.5,.9]
     elif self.sep == 'bad':
       # Badly separated
       sig_x = 4
@@ -127,8 +135,7 @@ class Synthetics(MultiOptions):
       sig_x_3c = 4
       sig_y_3c = 3
       theta_3c = pi/4
-      mean_3c = [.55,0]
-
+      mean_3c = [.5,-.1]
 
     s = {}
     s[0] = create_synthetics(self.NB_train[0],b_sig_x,b_sig_y,b_theta,b_mean)
@@ -208,21 +215,22 @@ def plot_sep(opt):
     print "LR", theta_lr
     print "SVM", theta_svm
 
-    x_train = pd.read_csv('%s/features/%s'%(opt.opdict['outdir'],opt.opdict['feat_train']),index_col=False)
-    x_test = pd.read_csv(opt.opdict['feat_filepath'],index_col=False)
-    y_train = pd.read_csv('%s/%s'%(opt.opdict['libdir'],opt.opdict['label_train']))
-    y_test = pd.read_csv(opt.opdict['label_filename'])
+    x_train = opt.train_x
+    x_test = opt.x
+    y_train = opt.train_y
+    y_test = opt.y
+
 
     # PLOTS
-    plot_2f(theta_svm,rate_svm,t_svm,'SVM',x_train,x_test,y_test,opt.NB_test)
+    plot_2f_synthetics(theta_svm,rate_svm,t_svm,'SVM',x_train,x_test,y_test)
     plt.savefig('%s/Test_3c_%s_SVM_ineq.png'%(opt.opdict['fig_path'],opt.sep))
     plt.show()
 
     if len(theta_lr) == 1:
-      plot_2f(theta_lr[0],rate_lr[0],t_lr[0],'LR',x_train,x_test,y_test,opt.NB_test)
+      plot_2f_synthetics(theta_lr[0],rate_lr[0],t_lr[0],'LR',x_train,x_test,y_test)
       plt.savefig('%s/Test_3c_%s_LR_ineq.png'%(opt.opdict['fig_path'],opt.sep))
       plt.show()
-      plot_2f_superimposed(theta_lr[0],rate_lr[0],t_lr[0],theta_svm,rate_svm,t_svm,x_train,x_test,y_test,opt.NB_test)
+      plot_2f_synthetics(theta_lr[0],rate_lr[0],t_lr[0],'LR',x_train,x_test,y_test,th_comp=theta_svm,p=rate_svm,t_comp=t_svm)
       plt.savefig('%s/Test_3c_%s_ineq.png'%(opt.opdict['fig_path'],opt.sep))
       plt.show()
 
@@ -232,7 +240,7 @@ def plot_sep(opt):
       plt.show()
 
     if opt.opdict['plot_prec_rec']:
-      plot_2f_variability(theta_lr,rate_lr,t_lr,'LR',x_train,x_test,y_test,opt.NB_test)
+      plot_2f_synth_var(theta_lr,rate_lr,t_lr,'LR',x_train,x_test,y_test,opt.NB_test)
       plt.savefig('%s/Test_2c_bad_ineq_threshold.png'%opt.opdict['fig_path'])
       plt.show()
 
