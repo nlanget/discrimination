@@ -122,8 +122,8 @@ def classifier(opt):
       x_train = x_train.reindex(index=y_train.index)
       x_test = x_test.reindex(index=y_test.index)
 
-      print "# types in the test set:",len(np.unique(y_test.values.ravel()))
-      print "# types in the training set:",len(np.unique(y_train.values.ravel()))
+      print "# types in the test set:",len(np.unique(y_test.NumType.values.ravel()))
+      print "# types in the training set:",len(np.unique(y_train.NumType.values.ravel()))
       x_train.index = range(x_train.shape[0])
       y_train.index = range(y_train.shape[0])
       print x_train.shape, y_train.shape
@@ -199,7 +199,7 @@ def classifier(opt):
             wtr = write_binary_file(learn_filename,wtr)
         print "\t Training set"
         for i in range(K):
-          print i, opt.types[i], len(np.where(y_train.values[:,0]==i)[0]), len(np.where(CLASS_train==i)[0])
+          print i, opt.types[i], len(np.where(y_train.NumType.values==i)[0]), len(np.where(CLASS_train==i)[0])
         print "\n"
         if opt.opdict['boot'] == 1:
           confusion(y_train,CLASS_train,opt.types,'Training','Logistic regression',plot=opt.opdict['plot_confusion'])
@@ -208,7 +208,7 @@ def classifier(opt):
 
         print "\t Test set"
         for i in range(K):
-          print i, opt.types[i], len(np.where(y_test.values[:,0]==i)[0]), len(np.where(CLASS_test==i)[0])
+          print i, opt.types[i], len(np.where(y_test.NumType.values==i)[0]), len(np.where(CLASS_test==i)[0])
         print "\n"
         if opt.opdict['boot'] == 1:
           confusion(y_test,CLASS_test,opt.types,'Test','Logistic regression',plot=opt.opdict['plot_confusion'])
@@ -231,7 +231,7 @@ def classifier(opt):
         opt.threshold = threshold
 
       n_feat = x_train.shape[1] # number of features
-      if len(opt.types) == 2 and n_feat < 4:
+      if n_feat < 4:
         if opt.opdict['plot_sep'] or opt.opdict['save_sep']:
           print "Theta values:",theta
           print "Threshold:", threshold
@@ -246,16 +246,19 @@ def classifier(opt):
           from LR_functions import normalize
           x_train, x_test = normalize(x_train,x_test)
 
-          x_train_good = x_train.reindex(index=y_train[y_train.Type.values==CLASS_train].index)
-          x_train_bad = x_train.reindex(index=y_train[y_train.Type.values!=CLASS_train].index)
+          x_train_good = x_train.reindex(index=y_train[y_train.NumType.values==CLASS_train].index)
+          x_train_bad = x_train.reindex(index=y_train[y_train.NumType.values!=CLASS_train].index)
           good_train = y_train.reindex(index=x_train_good.index)
-          p_good_cl0 = len(good_train[good_train.Type==0])*1./len(y_train[y_train.Type==0])*100
-          p_good_cl1 = len(good_train[good_train.Type==1])*1./len(y_train[y_train.Type==1])*100
 
-          x_test_good = x_test.reindex(index=y_test[y_test.Type.values==CLASS_test].index)
-          x_test_bad = x_test.reindex(index=y_test[y_test.Type.values!=CLASS_test].index)
-          p_good_test = len(x_test_good)*1./len(x_test)*100
-          text = [p_good_cl0,p_good_cl1,p_good_test,100-p_good_test]
+          x_test_good = x_test.reindex(index=y_test[y_test.NumType.values==CLASS_test].index)
+          x_test_bad = x_test.reindex(index=y_test[y_test.NumType.values!=CLASS_test].index)
+
+          text = None
+          if len(opt.opdict['types']) == 2:
+            p_good_cl0 = len(good_train[good_train.NumType==0])*1./len(y_train[y_train.NumType==0])*100
+            p_good_cl1 = len(good_train[good_train.NumType==1])*1./len(y_train[y_train.NumType==1])*100
+            p_good_test = len(x_test_good)*1./len(x_test)*100
+            text = [p_good_cl0,p_good_cl1,p_good_test,100-p_good_test]
 
           if n_feat == 1:
             from plot_functions import plot_hyp_func_1f, plot_sep_1f
@@ -265,20 +268,19 @@ def classifier(opt):
             name = opt.opdict['feat_list'][0]
 
           elif n_feat == 2:
-
             #from plot_functions import plot_sep_2f
-            #plot_sep_2f(x_train,y_train.Type,opt.types,x_test,y_test.Type,x_test_bad,theta=theta[1],text=text)
+            #plot_sep_2f(x_train,y_train.NumType,opt.types,x_test,y_test.NumType,x_test_bad,theta=theta[1],text=text)
             from plot_2features import plot_2f_all
-            if opt.opdict['compare']:
-              plot_2f_all(theta,threshold,opt.opdict['method'],x_train,y_train,x_test,y_test,x_test_bad,opt.types,text=text,th_comp=theta_svm,t_comp=t_svm,p=svm_p)
+            if opt.opdict['method']=='lr' and opt.opdict['compare']:
+              plot_2f_all(theta,threshold,pourcentages,opt.opdict['method'],x_train,y_train,x_test,y_test,x_test_bad,opt.types,text=text,th_comp=theta_svm,t_comp=t_svm,p=svm_p)
             else:
               plot_2f_all(theta,threshold,opt.opdict['method'],x_train,y_train,x_test,y_test,x_test_bad,opt.types,text=text)
             name = '%s_%s'%(opt.opdict['feat_list'][0],opt.opdict['feat_list'][1])
 
           elif n_feat == 3:
             from plot_functions import plot_db_3d
-            plot_db_3d(x_train,y_train.Type,theta[1],title='Training set')
-            plot_db_3d(x_test,y_test.Type,theta[1],title='Test set')
+            plot_db_3d(x_train,y_train.NumType,theta[1],title='Training set')
+            plot_db_3d(x_test,y_test.NumType,theta[1],title='Test set')
             name = '%s_%s_%s'%(opt.opdict['feat_list'][0],opt.opdict['feat_list'][1],opt.opdict['feat_list'][2])
 
         if opt.opdict['save_sep']:
@@ -323,7 +325,7 @@ def create_training_set(y_ref,numt):
   y_train = pd.DataFrame(columns=y.columns)
   list_index = np.array([])
   for i in numt:
-    a = y[y.Type==i]
+    a = y[y.NumType==i]
     nb = int(np.floor(0.4*len(a)))
     if nb < 3:
       nb = 3
@@ -349,7 +351,7 @@ def create_training_set_fix(y_ref,numt):
   y_train = pd.DataFrame(columns=y.columns)
   list_index = np.array([])
   for i in numt:
-    a = y[y.Type==i]
+    a = y[y.NumType==i]
     if len(a) < 3:
       continue
     aperm = np.random.permutation(a.index)
@@ -412,7 +414,7 @@ def implement_svm(x_train,x_test,y_train,y_test,types,opdict,kern='NonLin'):
   elif kern == 'Lin':
     param_grid = dict(C=C_range)
     grid = GridSearchCV(svm.LinearSVC(), param_grid=param_grid, n_jobs=-1)
-  grid.fit(x_train.values, y_train.values.ravel())
+  grid.fit(x_train.values, y_train.NumType.values.ravel())
   print "The best classifier is: ", grid.best_estimator_
   if kern == 'NonLin':
     print "Number of support vectors for each class: ", grid.best_estimator_.n_support_
@@ -420,22 +422,22 @@ def implement_svm(x_train,x_test,y_train,y_test,types,opdict,kern='NonLin'):
   y_test_SVM = grid.best_estimator_.predict(x_test)
 
   print "\t *Training set"
-  diff = y_train.values.ravel() - y_train_SVM
+  diff = y_train.NumType.values.ravel() - y_train_SVM
   p_tr = float(len(np.where(diff==0)[0]))/y_train.shape[0]*100
   print "Correct classification: %.2f%%"%p_tr
-  for i in range(len(np.unique(y_train.values))):
-    print i, types[i], len(np.where(y_train.values[:,0]==i)[0]), len(np.where(y_train_SVM==i)[0])
+  for i in range(len(np.unique(y_train.NumType.values))):
+    print i, types[i], len(np.where(y_train.NumType.values==i)[0]), len(np.where(y_train_SVM==i)[0])
   if opdict['boot'] == 1:
     confusion(y_train,y_train_SVM,types,'Training','SVM',plot=opdict['plot_confusion'])
     if opdict['plot_confusion'] and opdict['save_confusion']:
       plt.savefig('%s/figures/training_%s.png'%(opdict['outdir'],opdict['result_file'][8:]))
 
   print "\t *Test set"
-  diff = y_test.values.ravel() - y_test_SVM
+  diff = y_test.NumType.values.ravel() - y_test_SVM
   p_test = float(len(np.where(diff==0)[0]))/y_test.shape[0]*100
   print "Correct classification: %.2f%%"%p_test
-  for i in range(len(np.unique(y_train.values))):
-    print i, types[i], len(np.where(y_test.values[:,0]==i)[0]), len(np.where(y_test_SVM==i)[0])
+  for i in range(len(np.unique(y_train.NumType.values))):
+    print i, types[i], len(np.where(y_test.NumType.values==i)[0]), len(np.where(y_test_SVM==i)[0])
   if opdict['boot'] == 1:
     confusion(y_test,y_test_SVM,types,'Test','SVM',plot=opdict['plot_confusion'])
     if opdict['plot_confusion']:
@@ -464,28 +466,28 @@ def implement_lr_sklearn(x_train,x_test,y_train,y_test,types,opdict):
   C_range = 10.0 ** np.arange(-2, 5)
   param_grid = dict(C=C_range)
   grid = GridSearchCV(LogisticRegression(), param_grid=param_grid, n_jobs=-1)
-  grid.fit(x_train.values, y_train.values.ravel())
+  grid.fit(x_train.values, y_train.NumType.values.ravel())
   print "The best classifier is: ", grid.best_estimator_
   y_train_LR = grid.best_estimator_.predict(x_train)
   y_test_LR = grid.best_estimator_.predict(x_test)
 
   print "\t *Training set"
-  diff = y_train.values.ravel() - y_train_LR
+  diff = y_train.NumType.values.ravel() - y_train_LR
   p_tr = float(len(np.where(diff==0)[0]))/y_train.shape[0]*100
   print "Correct classification: %.2f%%"%p_tr
-  for i in range(len(np.unique(y_train.values))):
-    print i, types[i], len(np.where(y_train.values[:,0]==i)[0]), len(np.where(y_train_LR==i)[0])
+  for i in range(len(np.unique(y_train.NumType.values))):
+    print i, types[i], len(np.where(y_train.NumType.values==i)[0]), len(np.where(y_train_LR==i)[0])
   if opdict['boot'] == 1:
     confusion(y_train,y_train_LR,types,'Training','LR',plot=opdict['plot_confusion'])
     if opdict['plot_confusion'] and opdict['save_confusion']:
       plt.savefig('%s/figures/training_%s.png'%(opdict['outdir'],opdict['result_file'][8:]))
 
   print "\t *Test set"
-  diff = y_test.values.ravel() - y_test_LR
+  diff = y_test.NumType.values.ravel() - y_test_LR
   p_test = float(len(np.where(diff==0)[0]))/y_test.shape[0]*100
   print "Correct classification: %.2f%%"%p_test
-  for i in range(len(np.unique(y_train.values))):
-    print i, types[i], len(np.where(y_test.values[:,0]==i)[0]), len(np.where(y_test_LR==i)[0])
+  for i in range(len(np.unique(y_train.NumType.values))):
+    print i, types[i], len(np.where(y_test.NumType.values==i)[0]), len(np.where(y_test_LR==i)[0])
   if opdict['boot'] == 1:
     confusion(y_test,y_test_LR,types,'Test','LR',plot=opdict['plot_confusion'])
     if opdict['plot_confusion']:
@@ -559,12 +561,12 @@ def one_by_one(opt,x_test_ref0,y_test_ref0,otimes_ref,boot=1,method='lr'):
 
       EXT[n]['nb_tot'].append(len(x_test))
       for t in numt:
-        EXT[n]['nb_%s'%types[t]].append(len(y_test[y_test.Type==t]))
+        EXT[n]['nb_%s'%types[t]].append(len(y_test[y_test.NumType==t]))
 
-      y_train[y_train_ref.Type==n] = 0
-      y_test[y_test_ref.Type==n] = 0
-      y_train[y_train_ref.Type!=n] = 1
-      y_test[y_test_ref.Type!=n] = 1
+      y_train[y_train_ref.NumType==n] = 0
+      y_test[y_test_ref.NumType==n] = 0
+      y_train[y_train_ref.NumType!=n] = 1
+      y_test[y_test_ref.NumType!=n] = 1
 
       t = [types[n],'Rest']
       print y_train.shape[0], y_test.shape[0]
@@ -587,24 +589,24 @@ def one_by_one(opt,x_test_ref0,y_test_ref0,otimes_ref,boot=1,method='lr'):
           gamma_range = 10.0 ** np.arange(-3,3)
           param_grid = dict(gamma=gamma_range, C=C_range)
           grid = GridSearchCV(svm.SVC(kernel='rbf'), param_grid=param_grid, n_jobs=-1)
-        grid.fit(x_train.values, y_train.values.ravel())
+        grid.fit(x_train.values, y_train.NumType.values.ravel())
         LR_train = grid.best_estimator_.predict(x_train)
         LR_test = grid.best_estimator_.predict(x_test)
 
       print "\t Training set"
       for i in range(2):
-        print i, t[i], len(np.where(y_train.values[:,0]==i)[0]), len(np.where(LR_train==i)[0])
+        print i, t[i], len(np.where(y_train.NumType.values[:,0]==i)[0]), len(np.where(LR_train==i)[0])
       print "\n"
       cmat_train = confusion(y_train,LR_train,types,'training','LogReg',plot=False,output=True)
 
       print "\t Test set"
       for i in range(2):
-        print i, t[i], len(np.where(y_test.values[:,0]==i)[0]), len(np.where(LR_test==i)[0])
+        print i, t[i], len(np.where(y_test.NumType.values[:,0]==i)[0]), len(np.where(LR_test==i)[0])
       print "\n"
       cmat_test = confusion(y_test,LR_test,types,'test','LogReg',plot=False,output=True)
 
       # Fill the dictionary
-      i_com = np.where((y_test.values.ravel()-LR_test)==0)[0]
+      i_com = np.where((y_test.NumType.values.ravel()-LR_test)==0)[0]
       i_lr = np.where(LR_test==0)[0]
       i_ok_class = np.intersect1d(i_com,i_lr) # events classified in the class of interest by the LR and identical to the manual classification
 
@@ -614,13 +616,13 @@ def one_by_one(opt,x_test_ref0,y_test_ref0,otimes_ref,boot=1,method='lr'):
       sub_dic["nb_other"],sub_dic["i_other"] = [],[]
       for k in range(len_numt):
         if k != n:
-          i_other_man = list(y_test_ref[y_test_ref.Type==k].index)
+          i_other_man = list(y_test_ref[y_test_ref.NumType==k].index)
           ii = np.intersect1d(i_lr,i_other_man)
           sub_dic["nb_other"].append((types[k],len(ii)))
           sub_dic["i_other"].append((types[k],otimes[ii]))
       sub_dic["rate_%s"%types[n]] = (cmat_train[0,0],cmat_test[0,0])
       sub_dic["rate_rest"] = (cmat_train[1,1],cmat_test[1,1])
-      sub_dic["nb_manuals"] = ((types[n],len(y_test[y_test.Type==0])),('Rest',len(y_test[y_test.Type==1])))
+      sub_dic["nb_manuals"] = ((types[n],len(y_test[y_test.NumType==0])),('Rest',len(y_test[y_test.NumType==1])))
 
       i_ok = np.where(LR_test!=0)[0]
       y_test_ref = y_test_ref.reindex(index=i_ok)
@@ -675,10 +677,10 @@ def one_vs_all(opt,x_test,y_test_ref,otimes_ref,boot=1,method='lr'):
 
       y_train = y_train_ref.copy()
       y_test = y_test_ref.copy()
-      y_train[y_train_ref.Type==n] = 0
-      y_test[y_test_ref.Type==n] = 0
-      y_train[y_train_ref.Type!=n] = 1
-      y_test[y_test_ref.Type!=n] = 1
+      y_train[y_train_ref.NumType==n] = 0
+      y_test[y_test_ref.NumType==n] = 0
+      y_train[y_train_ref.NumType!=n] = 1
+      y_test[y_test_ref.NumType!=n] = 1
 
       print y_train.shape[0], y_test.shape[0]
 
@@ -701,27 +703,27 @@ def one_vs_all(opt,x_test,y_test_ref,otimes_ref,boot=1,method='lr'):
           gamma_range = 10.0 ** np.arange(-3,3)
           param_grid = dict(gamma=gamma_range, C=C_range)
           grid = GridSearchCV(svm.SVC(kernel='rbf'), param_grid=param_grid, n_jobs=-1)
-        grid.fit(x_train.values, y_train.values.ravel())
+        grid.fit(x_train.values, y_train.NumType.values.ravel())
         LR_train = grid.best_estimator_.predict(x_train)
         LR_test = grid.best_estimator_.predict(x_test)
 
       print "\t Training set"
       for i in range(2):
-        print i, print_type[i], len(np.where(y_train.values[:,0]==i)[0]), len(np.where(LR_train==i)[0])
+        print i, print_type[i], len(np.where(y_train.NumType.values[:,0]==i)[0]), len(np.where(LR_train==i)[0])
       print "\n"
       cmat_train = confusion(y_train,LR_train,types,'training','LogReg',plot=True,output=True)
       plt.close()
 
       print "\t Test set"
       for i in range(2):
-        print i, print_type[i], len(np.where(y_test.values[:,0]==i)[0]), len(np.where(LR_test==i)[0])
+        print i, print_type[i], len(np.where(y_test.NumType.values[:,0]==i)[0]), len(np.where(LR_test==i)[0])
       print "\n"
       cmat_test = confusion(y_test,LR_test,types,'test','LogReg',plot=True,output=True)
       plt.close()
 
       # Fill the dictionary
       sub_dic={}
-      i_com = np.where((y_test.values.ravel()-LR_test)==0)[0]
+      i_com = np.where((y_test.NumType.values.ravel()-LR_test)==0)[0]
       i_lr = np.where(LR_test==0)[0]
       i_ok_class = np.intersect1d(i_com,i_lr) # events classified in the class of interest by the LR and identical to the manual classification
       sub_dic["nb"] = len(i_lr) # total number of events classified in the class of interest
@@ -730,13 +732,13 @@ def one_vs_all(opt,x_test,y_test_ref,otimes_ref,boot=1,method='lr'):
       sub_dic["nb_other"],sub_dic["i_other"] = [],[]
       for k in range(len_numt):
         if k != n:
-          i_other_man = list(y_test_ref[y_test_ref.Type==k].index)
+          i_other_man = list(y_test_ref[y_test_ref.NumType==k].index)
           ii = np.intersect1d(i_lr,i_other_man)
           sub_dic["nb_other"].append((types[k],len(ii))) # number of events belonging to another class
           sub_dic["i_other"].append((types[k],otimes[ii])) # index of events belonging to another class
       sub_dic["rate_%s"%types[n]] = (cmat_train[0,0],cmat_test[0,0]) # % success rate of the extracted class
       sub_dic["rate_rest"] = (cmat_train[1,1],cmat_test[1,1]) # % success rate of the rest
-      sub_dic["nb_manuals"] = ((types[n],len(y_test[y_test.Type==0])),('Rest',len(y_test[y_test.Type==1])))
+      sub_dic["nb_manuals"] = ((types[n],len(y_test[y_test.NumType==0])),('Rest',len(y_test[y_test.NumType==1])))
       dic[types[n]] = sub_dic
 
     DIC[b] = dic

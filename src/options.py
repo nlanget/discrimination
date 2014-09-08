@@ -54,9 +54,10 @@ def name2num(df_str,col,names,keep_names=None):
   if 'nan' in names:
     df = df[df[col]!='nan']
     names.remove('nan')
+  df = df.reindex(columns=[col,'Num%s'%col])
   for i,name in enumerate(names):
-    df[df[col]==name] = i
- 
+    df['Num%s'%col][df[col]==name] = i
+
   numt = [i for i in range(len(names)) if str(names[i]) in keep_names]
 
   return df, names, numt

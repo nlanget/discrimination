@@ -544,6 +544,7 @@ def plot_precision_recall(x_train,y_train,x_test,y_test,theta):
   plt.ylim([0.3,1.1])
   plt.figtext(0.49,0.88,'(b)')
   #plt.savefig('/home/nadege/Dropbox/Figures/Piton/Clement/KRapp_prec_rec.png')
+  #plt.savefig('../results/Test/figures/prec_rec_bad.png')
   plt.show()
 
 # ---------------------------------------------------
@@ -722,20 +723,20 @@ def do_all_logistic_regression(x,y_all,x_testset,y_testset=None,norm=True,verbos
   x_test_unnorm = x_testset.copy()
 
   # For multiclass: separation of values in y for "one-vs-all" strategy
-  K = len(np.unique(y_all.values)) # Number of classes
+  K = len(np.unique(y_all.NumType.values)) # Number of classes
   print "Number of events - training set = %d"%y_all.shape[0]
   print "Number of events - test set = %d"%x_testset.shape[0]
   print "Number of features = %d"%x.shape[1]
   print "Number of classes = %d"%K
   if K > 2:
-    y = y_all.copy().reindex(columns=[])
+    y = y_all.reindex(columns=[])
     for i in range(K):
-      a = y_all.copy()
-      a[y_all!=i] = 0
-      a[y_all==i] = 1
+      a = y_all.reindex(columns=['NumType'])
+      a[y_all.NumType!=i] = 0
+      a[y_all.NumType==i] = 1
       y[i] = a.values[:,0]
   else:
-    y = y_all.copy()
+    y = y_all.reindex(columns=['NumType'])
 
   y.columns = range(1,y.shape[1]+1) # Class numbering begins at 1 (instead of 0)
 
@@ -754,13 +755,13 @@ def do_all_logistic_regression(x,y_all,x_testset,y_testset=None,norm=True,verbos
   y_pred_train = test_hyp(x,theta,deg=deg,threshold=thres[1],verbose=False)
 
   print "\nTRAINING SET"
-  p_tr = np.float(len(np.where(y_pred_train-y_all.Type==0)[0]))*100/y.shape[0]
+  p_tr = np.float(len(np.where(y_pred_train-y_all.NumType==0)[0]))*100/y.shape[0]
   print "Correct classification: %.2f %%"%p_tr
 
   # Test hypothesis function on test set
   y_pred = test_hyp(x_testset,theta,deg=deg,threshold=thres[1],verbose=False)
   if y_testset:
-    x_bad = bad_class(x_test_unnorm,np.where(y_pred-y_testset.values[:,0]!=0)[0])
+    x_bad = bad_class(x_test_unnorm,np.where(y_pred-y_testset.NumType!=0)[0])
     print "TEST SET"
     p_test = 100-np.float(x_bad.shape[0]*100)/y_testset.shape[0]
     print "Correct classification: %.2f %%"%p_test
