@@ -242,54 +242,57 @@ def classifier(opt):
           print "Threshold:", threshold
 
         if opt.opdict['method']=='lr' and opt.opdict['compare']:
+          dir = 'LR_SVM_SEP'
           SVM_test, svm_p, SVM_train, theta_vec = implement_svm(x_train,x_test,y_train,y_test,opt.types,opt.opdict,kern='Lin')
           theta_svm,t_svm = {},{}
           for it in range(len(theta_vec)):
             theta_svm[it+1] = np.append(theta_vec[it][-1],theta_vec[it][:-1])
             t_svm[it+1] = 0.5
+        else:
+          dir = '%s_SEP'%opt.opdict['method']
 
-          from LR_functions import normalize
-          x_train, x_test = normalize(x_train,x_test)
+        from LR_functions import normalize
+        x_train, x_test = normalize(x_train,x_test)
 
-          x_train_good = x_train.reindex(index=y_train[y_train.NumType.values==CLASS_train].index)
-          x_train_bad = x_train.reindex(index=y_train[y_train.NumType.values!=CLASS_train].index)
-          good_train = y_train.reindex(index=x_train_good.index)
+        x_train_good = x_train.reindex(index=y_train[y_train.NumType.values==CLASS_train].index)
+        x_train_bad = x_train.reindex(index=y_train[y_train.NumType.values!=CLASS_train].index)
+        good_train = y_train.reindex(index=x_train_good.index)
 
-          x_test_good = x_test.reindex(index=y_test[y_test.NumType.values==CLASS_test].index)
-          x_test_bad = x_test.reindex(index=y_test[y_test.NumType.values!=CLASS_test].index)
+        x_test_good = x_test.reindex(index=y_test[y_test.NumType.values==CLASS_test].index)
+        x_test_bad = x_test.reindex(index=y_test[y_test.NumType.values!=CLASS_test].index)
 
-          text = None
-          if len(opt.opdict['types']) == 2:
-            p_good_cl0 = len(good_train[good_train.NumType==0])*1./len(y_train[y_train.NumType==0])*100
-            p_good_cl1 = len(good_train[good_train.NumType==1])*1./len(y_train[y_train.NumType==1])*100
-            p_good_test = len(x_test_good)*1./len(x_test)*100
-            text = [p_good_cl0,p_good_cl1,p_good_test,100-p_good_test]
+        text = None
+        if len(opt.opdict['types']) == 2:
+          p_good_cl0 = len(good_train[good_train.NumType==0])*1./len(y_train[y_train.NumType==0])*100
+          p_good_cl1 = len(good_train[good_train.NumType==1])*1./len(y_train[y_train.NumType==1])*100
+          p_good_test = len(x_test_good)*1./len(x_test)*100
+          text = [p_good_cl0,p_good_cl1,p_good_test,100-p_good_test]
 
-          if n_feat == 1:
-            from plot_functions import plot_hyp_func_1f, plot_sep_1f
-            #plot_sep_1f(x_train,y_train,theta=theta[1],str_t=opt.types,x_ok=x_test_good,x_bad=x_test_bad,text=text)
-            #from SVM_LR_plots import plot_hyp_func_1f
-            plot_hyp_func_1f(x_train,y_train,theta[1],threshold=threshold[1],str_t=opt.types,x_ok=x_test_good,x_bad=x_test_bad,text=text)
-            name = opt.opdict['feat_list'][0]
+        if n_feat == 1:
+          from plot_functions import plot_hyp_func_1f, plot_sep_1f
+          #plot_sep_1f(x_train,y_train,theta=theta[1],str_t=opt.types,x_ok=x_test_good,x_bad=x_test_bad,text=text)
+          #from SVM_LR_plots import plot_hyp_func_1f
+          plot_hyp_func_1f(x_train,y_train,theta[1],threshold=threshold[1],str_t=opt.types,x_ok=x_test_good,x_bad=x_test_bad,text=text)
+          name = opt.opdict['feat_list'][0]
 
-          elif n_feat == 2:
-            #from plot_functions import plot_sep_2f
-            #plot_sep_2f(x_train,y_train.NumType,opt.types,x_test,y_test.NumType,x_test_bad,theta=theta[1],text=text)
-            from plot_2features import plot_2f_all
-            if opt.opdict['method']=='lr' and opt.opdict['compare']:
-              plot_2f_all(theta,threshold,pourcentages,opt.opdict['method'],x_train,y_train,x_test,y_test,x_test_bad,opt.types,text=text,th_comp=theta_svm,t_comp=t_svm,p=svm_p)
-            else:
-              plot_2f_all(theta,threshold,opt.opdict['method'],x_train,y_train,x_test,y_test,x_test_bad,opt.types,text=text)
-            name = '%s_%s'%(opt.opdict['feat_list'][0],opt.opdict['feat_list'][1])
+        elif n_feat == 2:
+          #from plot_functions import plot_sep_2f
+          #plot_sep_2f(x_train,y_train.NumType,opt.types,x_test,y_test.NumType,x_test_bad,theta=theta[1],text=text)
+          from plot_2features import plot_2f_all
+          if opt.opdict['method']=='lr' and opt.opdict['compare']:
+            plot_2f_all(theta,threshold,pourcentages,opt.opdict['method'],x_train,y_train,x_test,y_test,x_test_bad,opt.types,text=text,th_comp=theta_svm,t_comp=t_svm,p=svm_p)
+          else:
+            plot_2f_all(theta,threshold,pourcentages,opt.opdict['method'],x_train,y_train,x_test,y_test,x_test_bad,opt.types,text=text)
+          name = '%s_%s'%(opt.opdict['feat_list'][0],opt.opdict['feat_list'][1])
 
-          elif n_feat == 3:
-            from plot_functions import plot_db_3d
-            plot_db_3d(x_train,y_train.NumType,theta[1],title='Training set')
-            plot_db_3d(x_test,y_test.NumType,theta[1],title='Test set')
-            name = '%s_%s_%s'%(opt.opdict['feat_list'][0],opt.opdict['feat_list'][1],opt.opdict['feat_list'][2])
+        elif n_feat == 3:
+          from plot_functions import plot_db_3d
+          plot_db_3d(x_train,y_train.NumType,theta[1],title='Training set')
+          plot_db_3d(x_test,y_test.NumType,theta[1],title='Test set')
+          name = '%s_%s_%s'%(opt.opdict['feat_list'][0],opt.opdict['feat_list'][1],opt.opdict['feat_list'][2])
 
         if opt.opdict['save_sep']:
-          plt.savefig('%s/SVM_SEP/sep_%s.png'%(opt.opdict['fig_path'],name))
+          plt.savefig('%s/%s/CL_sep_%s.png'%(opt.opdict['fig_path'],dir,name))
         if opt.opdict['plot_sep']:
           plt.show()
         else:
