@@ -63,6 +63,21 @@ def name2num(df_str,col,names,keep_names=None):
   return df, names, numt
 
 
+def conversion(df1,df2,col):
+  """
+  Adds a column Num to df2 in accordance to df1
+  """
+  str = np.unique(df1[col].values)
+  df2 = df2.reindex(columns=[col,'Num%s'%col])
+
+  for s in str:
+    nb = df1['Num%s'%col][df1[col]==s].values[0]
+    df2['Num%s'%col][df2[col]==s] = nb
+
+  return df2
+
+
+
 class Options(object):
 
   def __init__(self):
