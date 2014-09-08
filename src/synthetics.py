@@ -188,6 +188,60 @@ class Synthetics(MultiOptions):
     y_test.to_csv(self.opdict['label_filename'],index=False)
 
 
+  def plot_PDFs(self):
+    """
+    Plot probability density functions
+    """
+    import matplotlib.mlab as mlab
+    NB_class = len(self.opdict['types'])
+    feat_1 = self.x.columns[0]
+    feat_2 = self.x.columns[1]
+
+    binwidth = .05
+    lim_sup_1 = (int(np.max(self.x[feat_1])/binwidth)+2)*binwidth
+    lim_inf_1 = (int(np.min(self.x[feat_1])/binwidth)-2)*binwidth
+    bins_1 = np.arange(lim_inf_1, lim_sup_1 + binwidth, binwidth)
+    lim_sup_2 = (int(np.max(self.x[feat_2])/binwidth)+2)*binwidth
+    lim_inf_2 = (int(np.min(self.x[feat_2])/binwidth)-2)*binwidth
+    bins_2 = np.arange(lim_inf_2, lim_sup_2 + binwidth, binwidth)
+
+    x_hist, y_hist = [],[]
+    g_x, g_y = {}, {}
+    for i in range(NB_class):
+      index = self.y[self.y.NumType.values==i].index
+      x1 = self.x.reindex(columns=[feat_1],index=index).values
+      x2 = self.x.reindex(columns=[feat_2],index=index).values
+      g_x[i] = mlab.normpdf(bins_1, np.mean(x1), np.std(x1))
+      g_y[i] = mlab.normpdf(bins_2, np.mean(x2), np.std(x2))
+      x_hist.append(x1)
+      y_hist.append(x2)
+
+    if NB_class > 2:
+      colors_g = ('y','orange','r')
+      colors_h = ('k','gray','w')
+    elif NB_class == 2:
+      colors_g = ('y','r')
+      colors_h = ('k','w')
+
+    fig = plt.figure()
+    fig.set_facecolor('white')
+    plt.hist(x_hist,bins=bins_1,color=colors_h,normed=1,histtype='stepfilled',alpha=.5)
+    for key in sorted(g_x):
+      plt.plot(bins_1,g_x[key],color=colors_g[key],lw=2.,label='Class %s'%self.opdict['types'][key])
+    plt.xlabel(feat_1)
+    plt.legend(loc=2)
+    plt.savefig('%s/histo_%s.png'%(self.opdict['fig_path'],feat_1))
+
+    fig = plt.figure()
+    fig.set_facecolor('white')
+    plt.hist(y_hist,bins=bins_2,color=colors_h,normed=1,histtype='stepfilled',alpha=.5)
+    for key in sorted(g_y):
+      plt.plot(bins_2,g_y[key],color=colors_g[key],lw=2.,label='Class %s'%self.opdict['types'][key])
+    plt.xlabel(feat_2)
+    plt.legend(loc=2)
+    plt.savefig('%s/histo_%s.png'%(self.opdict['fig_path'],feat_2))
+    plt.show()
+
 
 def plot_sep(opt):
 
@@ -200,6 +254,8 @@ def plot_sep(opt):
     theta_svm = opt.theta
     rate_svm = opt.success
     t_svm = opt.threshold
+
+    opt.plot_PDFs()
 
     ### LOGISTIC REGRESSION ###
     opt.opdict['method'] = 'lr'
@@ -222,25 +278,25 @@ def plot_sep(opt):
 
     # PLOTS
     plot_2f_synthetics(theta_svm,rate_svm,t_svm,'SVM',x_train,x_test,y_test,y_train=y_train)
-    plt.savefig('%s/Test_3c_%s_SVM_ineq.png'%(opt.opdict['fig_path'],opt.sep))
+    plt.savefig('%s/Test_%dc_%s_SVM_ineq.png'%(len(opt.types),opt.opdict['fig_path'],opt.sep))
     plt.show()
 
     if len(theta_lr) == 1:
       plot_2f_synthetics(theta_lr[0],rate_lr[0],t_lr[0],'LR',x_train,x_test,y_test,y_train=y_train)
-      plt.savefig('%s/Test_3c_%s_LR_ineq.png'%(opt.opdict['fig_path'],opt.sep))
+      plt.savefig('%s/Test_%dc_%s_LR_ineq.png'%(len(opt.types),opt.opdict['fig_path'],opt.sep))
       plt.show()
       plot_2f_synthetics(theta_lr[0],rate_lr[0],t_lr[0],'LR',x_train,x_test,y_test,th_comp=theta_svm,p=rate_svm,t_comp=t_svm,y_train=y_train)
-      plt.savefig('%s/Test_3c_%s_ineq.png'%(opt.opdict['fig_path'],opt.sep))
+      plt.savefig('%s/Test_3c_%s_ineq.png'%(len(opt.types),opt.opdict['fig_path'],opt.sep))
       plt.show()
 
     elif len(theta_lr) > 1:
       plot_2f_variability(theta_lr,rate_lr,t_lr,'LR',x_train,x_test,y_test,opt.NB_test)
-      plt.savefig('%s/Test_2c_LR_%s.png'%(opt.opdict['fig_path'],opt.sep))
+      plt.savefig('%s/Test_%dc_LR_%s.png'%(len(opt.types),opt.opdict['fig_path'],opt.sep))
       plt.show()
 
     if opt.opdict['plot_prec_rec']:
       plot_2f_synth_var(theta_lr,rate_lr,t_lr,'LR',x_train,x_test,y_test,opt.NB_test)
-      plt.savefig('%s/Test_2c_bad_ineq_threshold.png'%opt.opdict['fig_path'])
+      plt.savefig('%s/Test_%dc_bad_ineq_threshold.png'%(len(opt.types),opt.opdict['fig_path']))
       plt.show()
 
 
