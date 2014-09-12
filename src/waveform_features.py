@@ -304,6 +304,7 @@ def growth_over_decay(trace):
   emax = np.argmax(trace.tr_env[trace.ponset:trace.tend])+trace.ponset
   tmax = time[emax]
   p = (tmax - ti)/(tf - tmax)
+  print ti, tmax, tf, p
   return p
 
 
@@ -512,6 +513,8 @@ def spectrogram(trace,plot=False):
       #print i, j, f[maxa][j]/f[maxa][i]
   # Keep the interesting part of the spectrogram only
   lim = 150
+  f_complete = f
+  a_complete = a
   f = f[:lim]
   a = a[:lim]
   specgram = specgram[specgram.shape[0]-lim:,:]
@@ -539,73 +542,91 @@ def spectrogram(trace,plot=False):
     from mpl_toolkits.mplot3d import Axes3D
     G = gridspec.GridSpec(3,2)
 
-    fig = plt.figure(figsize=(12,6))
+    fig = plt.figure(figsize=(12,7))
     fig.set_facecolor('white')
-    ax1 = fig.add_subplot(G[0,0])
+
+    gs1 = gridspec.GridSpec(3,1)
+    ax1 = fig.add_subplot(gs1[0])
     ax1.plot(data,'k')
     ax1.plot([trace.ponset,trace.ponset],[np.min(data),np.max(data)],'r',lw=2.)
-    #ax1.plot([nimp*npts/len(time),nimp*npts/len(time)],[np.min(data),np.max(data)],'r--',lw=2.)
-    #ax1.plot([mins,mins],[np.min(data),np.max(data)],'r--',lw=2.)
     ax1.plot([cmax*npts/len(time),cmax*npts/len(time)],[np.min(data),np.max(data)],'y',lw=2.)
     ax1.plot([durf*1./trace.dt,durf*1./trace.dt],[np.min(data),np.max(data)],'b',lw=2.)
-    #ax1.plot([ponset+trace.dur*1./trace.dt,ponset+trace.dur*1./trace.dt],[np.min(data),np.max(data)],'b--',lw=2.)
     ax1.set_xlim([0,len(data)])
     ax1.set_title('Signal')
     ax1.set_xticklabels('')
 
-    ax2 = fig.add_subplot(G[1,0])
-    ax2.imshow(specgram,interpolation="nearest",cmap=plt.cm.jet,extent=extent,vmin=0,vmax=np.max(specgram)*1./3)
+    ax2 = fig.add_subplot(gs1[1])
+    ax2.specgram(data,Fs=Fs,NFFT=nfft,pad_to=mult,noverlap=nlap)
     ax2.set_xlim([0,end])
     ax2.axis('tight')
     ax2.set_xticklabels('')
     ax2.set_ylabel('Frequency (Hz)')
     ax2.set_title('Spectrogram')
 
-    ax3 = fig.add_subplot(G[2,0])
+    ax3 = fig.add_subplot(gs1[2])
     ax3.plot(time,evolf,'k')
     if val:
       ax3.plot(tval,val,'r')
     ax3.set_xlim([0,time[-1]])
     ax3.set_xlabel('Time (s)')
     ax3.set_ylabel('Frequency (Hz)')
-    ax3.set_title('Evolution of the predominant frequency with time')
+    ax3.set_title('Predominant frequency')
 
-    ax4 = fig.add_subplot(G[:3,1],projection='3d')
-    tplot,fplot = np.meshgrid(time,f[::-1])
-    ax4.plot_surface(tplot,fplot,specgram,alpha=1.)
+    gs1.tight_layout(fig, rect=[None, None, 0.45, None])
+
+    gs2 = gridspec.GridSpec(1,2)
+    ax4 = fig.add_subplot(gs2[0,0])
+    ax4.specgram(data,Fs=Fs,NFFT=nfft,pad_to=mult,noverlap=nlap)
+    ax4.set_xlim([0,end])
+    ax4.axis('tight')
     ax4.set_xlabel('Time (s)')
     ax4.set_ylabel('Frequency (Hz)')
-    ax4.set_zlabel('Amplitude of the spectrum')
+    ax4.set_title('Spectrogram')
+    
+    ax5 = fig.add_subplot(gs2[0,1])
+    ax5.plot(a_complete,f_complete,'k')
+    ax5.set_yticklabels('')
+    ax5.set_title('Complete time stack')
+    gs2.tight_layout(fig, rect=[0.45, 0.50, None, None])
 
-    fig = plt.figure(figsize=(10,4))
-    fig.set_facecolor('white')
-    G = gridspec.GridSpec(1,2)
-    ax5 = fig.add_subplot(G[:,0])
-    ax5.plot(f,a,'k')
-    if f[np.argmax(a)]-w/2 > 0:
-      ax5.plot([f[np.argmax(a)]-w/2.,f[np.argmax(a)]+w/2.],[0.1*np.max(a),0.1*np.max(a)],'y')
-    else:
-      ax5.plot([0,w],[0.1*np.max(a),0.1*np.max(a)],'y')
-    ax5.plot(f[maxa],a[maxa],'ro')
-    ax5.set_xlabel('Frequency (Hz)')
-    ax5.set_title('Stack in time')
-
-    from obspy.signal import envelope
-    ax6 = fig.add_subplot(G[:,1])
+    gs3 = gridspec.GridSpec(1,2)
+    ax6 = fig.add_subplot(gs3[0,0])
     ax6.plot(time,b,'k')
-    #ax6.plot(time[maxb],b[maxb],'ro')
-    #ax6.plot([time[0],time[-1]],[rms,rms],'r')
     ax6.plot([time[0],time[-1]],[level,level],'r')
     ax6.plot([time[idurf],time[idurf]],[np.min(b),np.max(b)],'b')
     ax6.plot([time[ponset],time[ponset]],[np.min(b),np.max(b)],'b')
+    ax6.set_xlim([0,time[len(b)-1]])
     ax6.set_xlabel('Time (s)')
-    ax6.set_title('Stack in frequency')
+    ax6.set_ylabel(' ')
+    ax6.set_title('Frequency stack')
 
-#    fig = plt.figure()
-#    fig.set_facecolor('white')
-#    plt.plot(absc,hob.T)
-#    plt.plot(ts,s_hob.T,ls='--')
-#    plt.xlabel('Relative time (s)')
+    ax7 = fig.add_subplot(gs3[0,1])
+    ax7.plot(f,a,'k')
+    if f[np.argmax(a)]-w/2 > 0:
+      ax7.plot([f[np.argmax(a)]-w/2.,f[np.argmax(a)]+w/2.],[0.1*np.max(a),0.1*np.max(a)],'y')
+    else:
+      ax7.plot([0,w],[0.1*np.max(a),0.1*np.max(a)],'y')
+    ax7.plot(f[maxa],a[maxa],'ro')
+    ax7.set_title('Zoomed-in time stack')
+    ax7.set_xlabel('Frequency (Hz)')
+
+    gs3.tight_layout(fig, rect=[0.465, None, None, 0.50])
+
+    top = min(gs1.top, gs2.top)
+    bottom = max(gs1.bottom, gs3.bottom)
+
+    gs1.update(top=top, bottom=bottom)
+    gs2.update(top=top)
+    gs3.update(bottom=bottom)
+
+    plt.figtext(.06,.96,'(a)',fontsize=16)
+    plt.figtext(.06,.65,'(b)',fontsize=16)
+    plt.figtext(.06,.35,'(c)',fontsize=16)
+    plt.figtext(.49,.96,'(d)',fontsize=16)
+    plt.figtext(.75,.96,'(e)',fontsize=16)
+    plt.figtext(.49,.46,'(f)',fontsize=16)
+    plt.figtext(.75,.46,'(g)',fontsize=16)
+
     plt.show()
 
 
@@ -802,10 +823,13 @@ def instant_bw(trace, env, dt, TF, ponset=0, tend=0, plot=False):
   hilb = np.fft.ifft(-1j * np.sign(freqs) * TF)
   analytic = trace + 1j * hilb
 
-  if env.any() and env.all():
+  if list(env):
     A = env
   else: 
     A = np.abs(analytic)
+
+  phase = np.angle(analytic,deg=False)
+  ifreq = 1./(2*pi) * np.gradient(np.unwrap(phase)) * 1./dt
 
   gradA = np.gradient(A) * 1./dt
   ibw = np.sqrt((1./(2*pi*A) * gradA)**2)
@@ -826,13 +850,14 @@ def instant_bw(trace, env, dt, TF, ponset=0, tend=0, plot=False):
     fig = plt.figure()
     fig.set_facecolor('white')
     ax1 = fig.add_subplot(211,title='Analytic signal')
-    ax1.plot(time,trace,'k',label='real')
+    ax1.plot(time,trace,'k',lw=2.,label='real')
     ax1.plot(time,hilb,'r',label='imag')
     ax1.plot(time,A,'g',label='envelope')
     ax1.legend()
     ax1.set_xticklabels('')
-    ax2 = fig.add_subplot(212,title='Instantaneous bandwidth')
+    ax2 = fig.add_subplot(212,title='Instantaneous bandwidth and frequency')
     ax2.plot(time[10:-10],ibw[10:-10],'k')
+    ax2.plot(time[10:],ifreq[10:],'g')
     #ax2.plot(tval,val,'r')
     ax2.set_xlabel('Time (s)')
     plt.show()
