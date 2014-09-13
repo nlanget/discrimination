@@ -22,6 +22,7 @@ class SeismicTraces():
 
   def __init__(self,mat,comp,train=None):
     self.read_file(mat,comp,train)
+    self.process_envelope()
     self.dt = .01
     self.station = 'BOR'
     self.t0 = 0
@@ -262,7 +263,7 @@ def read_data_for_features_extraction(set='test',save=False):
         d_mean = (df.Dur[(i,'BOR',comp)] + df.Dur[(i,'BOR','E')] + df.Dur[(i,'BOR','Z')])/3.
         po_mean = int((df.Ponset[(i,'BOR',comp)] + df.Ponset[(i,'BOR','E')] + df.Ponset[(i,'BOR','Z')])/3)
         s.read_all_files(mat,train=[i,'EB'])
-        rect, plan, az, iang = polarization_analysis(s,d_mean,po_mean,plot=False)
+        rect, plan, az, iang = polarization_analysis(s,d_mean,po_mean,plot=True)
         if 'Rectilinearity' in list_features:
           df.Rectilinearity[(i,'BOR','Z')], df.Rectilinearity[(i,'BOR','N')], df.Rectilinearity[(i,'BOR','E')] = rect, rect, rect
         if 'Planarity' in list_features:
@@ -297,7 +298,7 @@ def read_data_for_features_extraction(set='test',save=False):
         d_mean = (df.Dur[(i+neb,'BOR',comp)] + df.Dur[(i+neb,'BOR','E')] + df.Dur[(i+neb,'BOR','Z')])/3.
         po_mean = int((df.Ponset[(i+neb,'BOR',comp)] + df.Ponset[(i+neb,'BOR','E')] + df.Ponset[(i+neb,'BOR','Z')])/3)
         s.read_all_files(mat,train=[i,'VT'])
-        rect, plan, az, iang = polarization_analysis(s,d_mean,po_mean,plot=False)
+        rect, plan, az, iang = polarization_analysis(s,d_mean,po_mean,plot=True)
         if 'Rectilinearity' in list_features:
           df.Rectilinearity[(i+neb,'BOR','Z')], df.Rectilinearity[(i+neb,'BOR','N')], df.Rectilinearity[(i+neb,'BOR','E')] = rect, rect, rect
         if 'Planarity' in list_features:
@@ -333,7 +334,7 @@ def extract_norm_features(s,list_features,dic):
 
       # Mean of the predominant frequency
       from waveform_features import spectrogram
-      s, dic['MeanPredF'], dic['TimeMaxSpec'], dic['NbPeaks'], dic['Width'], hob, vals, dic['sPredF'] = spectrogram(s,plot=True)
+      s, dic['MeanPredF'], dic['TimeMaxSpec'], dic['NbPeaks'], dic['Width'], hob, vals, dic['sPredF'] = spectrogram(s,plot=False)
       for i in range(len(vals)):
         dic['v%d'%i] = vals[i]
       dic['Dur'] = s.dur
@@ -369,7 +370,7 @@ def extract_norm_features(s,list_features,dic):
       if 'RappMaxMean' in list_features:
         # Max over mean ratio of the envelope
         from waveform_features import max_over_mean
-        dic['RappMaxMean'] = max_over_mean(s.tr[s.i1:s.i2])
+        dic['RappMaxMean'] = max_over_mean(s.tr[s.ponset:s.tend])
 
       if 'AsDec' in list_features:
         # Ascendant phase duration over descendant phase duration
@@ -377,6 +378,7 @@ def extract_norm_features(s,list_features,dic):
         p = growth_over_decay(s)
         if p > 0:
           dic['AsDec'] = p
+        s.display_traces()
 
       if 'Growth' in list_features:
         from waveform_features import desc_and_asc
@@ -385,14 +387,14 @@ def extract_norm_features(s,list_features,dic):
       if 'Skewness' in list_features:
         # Skewness
         from waveform_features import skewness
-        sk = skewness(s.tr_env[s.i1:s.i2])
+        sk = skewness(s.tr_env[s.ponset:s.tend])
         dic['Skewness'] = sk
         #s.amplitude_distribution()
 
       if 'Kurto' in list_features: 
         # Kurtosis
         from waveform_features import kurtosis_envelope
-        k = kurtosis_envelope(s.tr_env[s.i1:s.i2])
+        k = kurtosis_envelope(s.tr_env[s.ponset:s.tend])
         dic['Kurto'] = k
 
       if ('F_low' in list_features) or ('F_up' in list_features):
@@ -445,9 +447,18 @@ def polarization_analysis(S,dur,ponset,plot=False):
   from Hammer et al. 2012
   """
 
-  cov_mat = np.cov((S.tr_z,S.tr_n,S.tr_e))
+  i1, i2 = ponset-50, ponset+200
+  zz = S.tr_z[i1:i2]
+  nn = S.tr_n[i1:i2]
+  ee = S.tr_e[i1:i2]
+
+  cov_mat = np.cov((zz,nn,ee))
+  #cov_mat = np.cov((S.tr_z,S.tr_n,S.tr_e))
   vals, vecs = np.linalg.eig(cov_mat)
 
+  print len(S.tr_z)
+  print cov_mat.shape
+  
   vals_sort,vecs_sort = np.sort(vals)[::-1], np.array([])
   for i in range(len(vals)):
     ind = np.where(vals == vals_sort[i])[0]
@@ -486,56 +497,87 @@ def polarization_analysis(S,dur,ponset,plot=False):
       for j in range(len(x)):
         [x[i,j],y[i,j],z[i,j]] = np.dot([x[i,j],y[i,j],z[i,j]], rotation) + center
 
-    # Plot
-    fig = plt.figure()
-    fig.set_facecolor('white')
-
-    ax = fig.add_subplot(111, projection='3d')
-    ax.plot_wireframe(x, y, z, rstride=4, cstride=4, color='k', alpha=0.2)
-    ax.set_xlabel('Z')
-    ax.set_ylabel('N')
-    ax.set_zlabel('E')
-    ax.set_title('Polarisation ellipsoid')
-
     # Plot particle motion
-    i1, i2 = ponset-100, ponset+int(dur*1./S.dt)
     import matplotlib.gridspec as gridspec
-    G = gridspec.GridSpec(6,4)
+    from mpl_toolkits.mplot3d import Axes3D
+    G = gridspec.GridSpec(3,2)
 
-    fig = plt.figure(figsize=(12,5))
+    fig = plt.figure(figsize=(12,7))
     fig.set_facecolor('white')
 
-    ax1 = fig.add_subplot(G[:2,:2],title='Comp Z')
-    ax1.plot(S.tr_z,'k')
-    ax1.plot(range(i1,i2),S.tr_z[i1:i2],'r')
+    time = np.arange(0,len(S.tr_z)*S.dt,S.dt)
+
+    gs1 = gridspec.GridSpec(3,1)
+    ax1 = fig.add_subplot(gs1[0])
+    ax1.plot(time,S.tr_z,'k')
+    ax1.plot(time[range(i1,i2)],S.tr_z[i1:i2],'r')
+    ax1.set_xlim([0,time[len(S.tr_z)-1]])
+    ax1.set_title('Vertical component')
     ax1.set_xticklabels('')
 
-    ax2 = fig.add_subplot(G[2:4,:2],title='Comp N')
-    ax2.plot(S.tr_n,'k')
-    ax2.plot(range(i1,i2),S.tr_n[i1:i2],'r')
+    ax2 = fig.add_subplot(gs1[1])
+    ax2.plot(time,S.tr_n,'k')
+    ax2.plot(time[range(i1,i2)],S.tr_n[i1:i2],'r')
+    ax2.set_xlim([0,time[len(S.tr_n)-1]])
+    ax2.set_title('North component')
     ax2.set_xticklabels('')
 
-    ax3 = fig.add_subplot(G[4:,:2],title='Comp E')
-    ax3.plot(S.tr_e,'k')
-    ax3.plot(range(i1,i2),S.tr_e[i1:i2],'r')
+    ax3 = fig.add_subplot(gs1[2])
+    ax3.plot(time,S.tr_e,'k')
+    ax3.plot(time[range(i1,i2)],S.tr_e[i1:i2],'r')
+    ax3.set_xlim([0,time[len(S.tr_e)-1]])
+    ax3.set_title('East component')
+    ax3.set_xlabel('Time (s)')
 
-    ax1 = fig.add_subplot(G[:3,2])
-    ax1.plot(S.tr_n[i1:i2],S.tr_z[i1:i2],'k')
-    ax1.set_xlabel('N')
-    ax1.set_ylabel('Z')
+    gs1.tight_layout(fig, rect=[None, None, 0.45, None])
 
-    ax2 = fig.add_subplot(G[3:,2])
-    ax2.plot(S.tr_n[i1:i2],S.tr_e[i1:i2],'k')
-    ax2.set_xlabel('N')
-    ax2.set_ylabel('E')
-
-    ax3 = fig.add_subplot(G[:3,3])
-    ax3.plot(S.tr_z[i1:i2],S.tr_e[i1:i2],'k')
-    ax3.set_xlabel('Z')
-    ax3.set_ylabel('E')
+    gs2 = gridspec.GridSpec(1,2)
+    ax4 = fig.add_subplot(gs2[0,0])
+    ax4.plot(S.tr_n[i1:i2],S.tr_z[i1:i2],'k')
+    ax4.set_xlabel('N')
+    ax4.set_ylabel('Z')
  
-    fig.suptitle(S.station)
+    ax5 = fig.add_subplot(gs2[0,1])
+    ax5.plot(S.tr_n[i1:i2],S.tr_e[i1:i2],'k')
+    ax5.set_xlabel('N')
+    ax5.set_ylabel('E')
+
+    gs2.tight_layout(fig, rect=[0.45, 0.50, None, None])
+
+    gs3 = gridspec.GridSpec(1,2)
+    ax6 = fig.add_subplot(gs3[0,0])
+    ax6.plot(S.tr_z[i1:i2],S.tr_e[i1:i2],'k')
+    ax6.set_xlabel('Z')
+    ax6.set_ylabel('E')
+
+    ax7 = fig.add_subplot(gs3[0,1],projection='3d')
+    ax7.plot_wireframe(x, y, z, rstride=4, cstride=4, color='k', alpha=0.2)
+    ax7.set_xlabel('Z')
+    ax7.set_ylabel('N')
+    ax7.set_zlabel('E')
+    ax7.set_xticklabels('')
+    ax7.set_yticklabels('')
+    ax7.set_zticklabels('')
+
+    gs3.tight_layout(fig, rect=[0.45, None, None, 0.50])
+
+    top = min(gs1.top, gs2.top)
+    bottom = max(gs1.bottom, gs3.bottom)
+
+    gs1.update(top=top, bottom=bottom)
+    gs2.update(top=top)
+    gs3.update(bottom=bottom)
+
+    plt.figtext(.06,.96,'(a)',fontsize=16)
+    plt.figtext(.06,.65,'(b)',fontsize=16)
+    plt.figtext(.06,.35,'(c)',fontsize=16)
+    plt.figtext(.52,.96,'(d)',fontsize=16)
+    plt.figtext(.78,.96,'(e)',fontsize=16)
+    plt.figtext(.52,.48,'(f)',fontsize=16)
+    plt.figtext(.78,.46,'(g) Ellipsoid',fontsize=16)
+
     plt.show()
+
 
   return rect, plan, az, iang
 
