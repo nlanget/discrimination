@@ -484,7 +484,10 @@ def implement_svm(x_train,x_test,y_train,y_test,types,opdict,kern='NonLin',proba
   output['label_test_SVM'] = y_test_SVM
   output['success'] = (p_tr,p_test)
   if proba:
-    output['probas'] = grid.best_estimator_.predict_proba(x_test)
+    probabilities = grid.best_estimator_.predict_proba(x_test)
+    output['probas'] = {}
+    for k in range(NB_class):
+      output['probas'][types[k]] = probabilities[:,k]
   if kern == 'Lin':
     output['label_train_SVM'] = y_train_SVM
     output['thetas'] = grid.best_estimator_.raw_coef_

@@ -17,7 +17,7 @@ def new_catalogue(opt):
       m.Type[date] = a.Type[date]
 
   m['Date'] = m.index
-  m.to_csv('../lib/Ijen/Ijen_3class_all_SVM.csv',index=False)
+  m.to_csv('../lib/Ijen/1709_Ijen_3class_all_SVM.csv',index=False)
 
 # ================================================================
 
@@ -31,28 +31,41 @@ def plot_on_pdf(opt):
 
   m = opt.man
   a = opt.auto
- 
+
   opt.data_for_LR()
-  comp = 'Z'
+  opt.opdict['channels'] = 'Z'
   opt.opdict['stations'] = ['IJEN']
   for sta in opt.opdict['stations']:
-    opt.x, opt.y = opt.features_onesta(sta,'Z')
-    opt.verify_index()
-    opt.types = np.unique(opt.y.Type.values)
+    for comp in opt.opdict['channels']:
+      opt.x, opt.y = opt.features_onesta(sta,comp)
+      opt.verify_index()
+      opt.types = opt.opdict['Types']
 
-    for t in opt.types:
-      if t == '?':
-        continue
-      list_dates = []
-      for date in m.index:
-        if m.Type[date] == '?' and a.Type[date] == t:
-          list_dates.append(date)
-      print "Found %d events automatically classified as '%s' instead of '?'"%(len(list_dates),t)
-      for feat in opt.opdict['feat_list']:
-        df = opt.x.reindex(columns=[feat],index=list_dates)
-        list_coord = [m.Type[list_dates].values,df[feat].values,a.Type[list_dates].values]
-        list_coord = np.array(list_coord)
-        opt.plot_one_pdf(feat,list_coord)
+      for t in opt.types:
+        if t == '?':
+          continue
+
+        list_dates = []
+        for date in m.index:
+          if m.Type[date] == '?' and a.Type[date] == t:
+            list_dates.append(date)
+
+        if 'proba' in sorted(opt.results[(sta, comp)][0]):
+          dico = opt.results[(sta, comp)][0]
+          i_dates = np.where(np.in1d(dico['list_ev'],list_dates))[0]
+          probas = dico['proba'][t][i_dates]
+          probas = np.array(['%.1f'%item for item in probas])
+
+        print "Found %d events automatically classified as '%s' instead of '?'"%(len(list_dates),t)
+
+        for feat in opt.opdict['feat_list']:
+          df = opt.x.reindex(columns=[feat],index=list_dates)
+          list_coord = [m.Type[list_dates].values,df[feat].values,a.Type[list_dates].values]
+          if 'proba' in sorted(opt.results[(sta, comp)][0]):
+            list_coord.append(probas)
+
+          list_coord = np.array(list_coord)
+          opt.plot_one_pdf(feat,list_coord)
 
 # ================================================================
  
@@ -71,7 +84,7 @@ def plot_waveforms(opt):
   for sta in opt.opdict['stations']:
 
     for t in opt.types:
-      if t == '?' or t == 'Tremor':
+      if t == '?' or t == 'VulkanikB':
         continue
       list_dates = []
       for date in m.index:
@@ -82,7 +95,9 @@ def plot_waveforms(opt):
             file = files[0]
             st = read(file)
             st.filter('bandpass',freqmin=1,freqmax=10)
+            print date, 'autoclass = ', t
             st.plot()
+            #st.plot(outfile='')
 
 # ================================================================
 
@@ -106,7 +121,7 @@ def compare_pdfs_reclass():
       opt.compute_pdfs()
       g1 = opt.gaussians
 
-      opt.opdict['label_filename'] = '%s/Ijen_reclass_all.csv'%opt.opdict['libdir']
+      opt.opdict['label_filename'] = '%s/Ijen_3class_all_SVM.csv'%opt.opdict['libdir']
       opt.x, opt.y = opt.features_onesta(sta,comp)
       opt.classname2number()
       opt.compute_pdfs()
@@ -121,7 +136,7 @@ def compare_pdfs_reclass():
           plt.plot(g2[feat]['vec'],g2[feat][t],ls='--',color=c[it])
         plt.title(feat)
         plt.legend()
-        #plt.savefig('../results/Ijen/comp_BrutReclass_%s.png'%feat)
+        plt.savefig('../results/Ijen/comp_BrutReclass_%s.png'%feat)
         plt.show()
       
 # ================================================================
@@ -221,13 +236,13 @@ def plot_test_vs_train():
 
 if __name__ == '__main__':
 
-  plot_test_vs_train()
+  #plot_test_vs_train()
 
   from results import AnalyseResults
   res = AnalyseResults()
 
   #new_catalogue(res)
   #plot_on_pdf(res)
-  #plot_waveforms(res)
+  plot_waveforms(res)
   #compare_pdfs_reclass()
   #compare_pdfs_train()

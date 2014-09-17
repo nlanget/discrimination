@@ -66,6 +66,7 @@ def name2num(df_str,col,names,keep_names=None):
 def conversion(df1,df2,col):
   """
   Adds a column Num to df2 in accordance to df1
+  where the column col is a list of str
   """
   str = np.unique(df1[col].values)
   df2 = df2.reindex(columns=[col,'Num%s'%col])
@@ -87,13 +88,13 @@ class Options(object):
     self.opdict['option'] = 'norm' # could be 'norm' for classical seismic attributes or 'hash' for hash tables
 
     # Define directories and paths
-    self.opdict['dir'] = 'Piton'
-    self.opdict['channels'] = ['Z']#,'E','N']
+    self.opdict['dir'] = 'Ijen'
+    self.opdict['channels'] = ['Z','E','N']
 
     self.opdict['libdir'] = os.path.join('../lib',self.opdict['dir'])
     self.opdict['outdir'] = os.path.join('../results',self.opdict['dir'])
 
-    self.opdict['boot'] = 10 # number of iterations (a new training set is generated at each 'iteration')
+    self.opdict['boot'] = 1 # number of iterations (a new training set is generated at each 'iteration')
 
     if self.opdict['dir'] == 'Ijen':
       self.ijen()
@@ -101,25 +102,26 @@ class Options(object):
       self.piton()
 
     # Define options for classification functions
-    self.opdict['method'] = 'lr' # could be 'lr' (logistic regression),'svm' (Support Vector Machine from scikit.learn package),'ova' (1-vs-all extractor), '1b1' (1-by-1 extractor), 'lrsk' (Logistic regression from scikit.learn package)
+    self.opdict['method'] = 'svm' # could be 'lr' (logistic regression),'svm' (Support Vector Machine from scikit.learn package),'ova' (1-vs-all extractor), '1b1' (1-by-1 extractor), 'lrsk' (Logistic regression from scikit.learn package)
+    self.opdict['probas'] = True
     self.opdict['plot_pdf'] = False # display the pdfs of the features
     self.opdict['save_pdf'] = False
     self.opdict['plot_confusion'] = False # display the confusion matrices
     self.opdict['save_confusion'] = False
-    self.opdict['plot_sep'] = True # plot decision boundary
+    self.opdict['plot_sep'] = False # plot decision boundary
     self.opdict['save_sep'] = False
     self.opdict['plot_prec_rec'] = False # plot precision and recall
-    self.opdict['compare'] = True
+    self.opdict['compare'] = False # compare SVM and LR decision boundaries on plots
 
     import time
     date = time.localtime()
     if self.opdict['option'] == 'norm':
       # Features "normales"
       #self.opdict['feat_list'] = self.opdict['feat_all']
-      self.opdict['feat_list'] = ['AsDec','KRapp']
+      #self.opdict['feat_list'] = ['Dur']
       #self.opdict['feat_log'] = ['v9']
       #self.opdict['feat_log'] = ['AsDec','Dur','Ene0-5','Growth','ibw0','MeanPredF','RappMaxMean','RappMaxMeanTF','TimeMaxSpec','v0','v8','v9'] # list of features to be normalized with np.log (makes data look more gaussians)
-      #self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Growth','Kurto','RappMaxMean','RappMaxMeanTF','Skewness','TimeMaxSpec','Width']
+      self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Growth','Kurto','RappMaxMean','RappMaxMeanTF','Skewness','TimeMaxSpec','Width']
       #self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Kurto','RappMaxMean','Skewness','TimeMaxSpec']
       #self.opdict['feat_list'] = ['Dur','F_up','Growth','Kurto','RappMaxMean','RappMaxMeanTF','TimeMaxSpec','Width']
       #self.opdict['feat_list'] = ['CentralF','Centroid_time','Dur','Ene0-5','F_up','Growth','IFslope','Kurto','MeanPredF','RappMaxMean','RappMaxMeanTF','Skewness','TimeMaxSpec','Width','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9']
@@ -141,8 +143,8 @@ class Options(object):
     self.opdict['label_filename'] = '%s/%s'%(self.opdict['libdir'],self.opdict['label_test'])
 
     if self.opdict['method'] == 'lr' or self.opdict['method'] == 'svm' or self.opdict['method'] == 'lrsk':
-      #self.opdict['result_file'] = 'results_%s_%dc_%df'%(self.opdict['method'],len(self.opdict['types']),len(self.opdict['feat_list']))
-      self.opdict['result_file'] = 'results_%s_%s'%(self.opdict['method'],self.opdict['feat_list'][0])
+      self.opdict['result_file'] = '1709_results_%s_%dc_%df'%(self.opdict['method'],len(self.opdict['types']),len(self.opdict['feat_list']))
+      #self.opdict['result_file'] = 'results_%s_%s'%(self.opdict['method'],self.opdict['feat_list'][0])
     else:
       self.opdict['result_file'] = '%s_%s_svm'%(self.opdict['method'].upper(),self.opdict['stations'][0])
     self.opdict['result_path'] = '%s/%s/%s'%(self.opdict['outdir'],self.opdict['method'].upper(),self.opdict['result_file'])
@@ -155,13 +157,13 @@ class Options(object):
     self.opdict['network'] = 'ID'
     self.opdict['stations'] = ['IJEN']
     #self.opdict['stations'] = ['DAM','IBLW','IGEN','IJEN','IMLB','IPAL','IPLA','IPSW','KWUI','MLLR','POS','POSI','PSG','PUN','RAUN','TRWI']
-    self.opdict['types'] = ['Hembusan','Hibrid','LF','Longsoran','Tektonik','Tremor','VulkanikA','VulkanikB']
-    #self.opdict['types'] = ['Tremor','VulkanikB','?']
+    #self.opdict['types'] = ['Hembusan','Hibrid','LF','Longsoran','Tektonik','Tremor','VulkanikA','VulkanikB']
+    self.opdict['types'] = ['Tremor','VulkanikB','?']
     #self.opdict['types'] = ['Tremor','VulkanikB']
     self.opdict['datadir'] = os.path.join('../data',self.opdict['dir'],self.opdict['network'])
     self.opdict['feat_test'] = 'ijen_3006.csv'
     #self.opdict['label_test'] = 'Ijen_reclass_all.csv'
-    self.opdict['label_test'] = 'Ijen_class_all.csv'
+    self.opdict['label_test'] = 'Ijen_3class_all.csv'
     self.opdict['train_file'] = '%s/train_%d'%(self.opdict['libdir'],self.opdict['boot'])
     self.opdict['feat_all'] = ['AsDec','Bandwidth','CentralF','Centroid_time','Dur','Ene20-30','Ene5-10','Ene0-5','F_low','F_up','Growth','IFslope','Kurto','MeanPredF','NbPeaks','PredF','RappMaxMean','RappMaxMeanTF','Skewness','sPredF','TimeMaxSpec','Width','ibw0','ibw1','ibw2','ibw3','ibw4','ibw5','ibw6','ibw7','ibw8','ibw9','if0','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9']
 
@@ -170,10 +172,10 @@ class Options(object):
     self.opdict['stations'] = ['BOR']
     self.opdict['types'] = ['EB','VT']
     self.opdict['datadir'] = os.path.join('../data/%s/full_data'%self.opdict['dir'])
-    self.opdict['feat_train'] = 'clement_train.csv'
-    self.opdict['feat_test'] = 'clement_test.csv'
-    #self.opdict['feat_train'] = 'Piton_trainset.csv'
-    #self.opdict['feat_test'] = 'Piton_testset.csv'
+    #self.opdict['feat_train'] = 'clement_train.csv'
+    #self.opdict['feat_test'] = 'clement_test.csv'
+    self.opdict['feat_train'] = 'Piton_trainset.csv'
+    self.opdict['feat_test'] = 'Piton_testset.csv'
     self.opdict['hash_train'] = 'HT_Piton_trainset.csv'
     self.opdict['hash_test'] = 'HT_Piton_testset.csv'
     self.opdict['label_train'] = 'class_train_set.csv'
@@ -384,7 +386,7 @@ class Options(object):
 
     """
     Plots only one pdf, for a given feature.
-    Possibility to plot a given point on it : coord is a numpy array [manual class,feature values,automatic class]
+    Possibility to plot a given point on it : coord is a numpy array [manual class,feature values,automatic class(,probabilities)]
     """
     if not hasattr(self,'gaussians'):
       self.compute_pdfs()
@@ -403,8 +405,10 @@ class Options(object):
       plt.plot(self.gaussians[feat]['vec'],self.gaussians[feat][t],ls=lstyle)
     if list(coord):
       ind  = [np.argmin(np.abs(self.gaussians[feat]['vec']-c)) for c in coord[1,:]]
-      plt.plot(coord[1,:],self.gaussians[feat][coord[0,0]][ind],'ro')
-      #plt.plot(coord[1,:],self.gaussians[feat][coord[2,0]][ind],'ko')
+      if len(coord) == 3:
+        plt.plot(coord[1,:],self.gaussians[feat][coord[0,0]][ind],'ro')
+      elif len(coord) == 4:
+        plt.scatter(coord[1,:],self.gaussians[feat][coord[0,0]][ind],s=40,c=list(coord[3]),cmap=plt.cm.hot)
     plt.xlim([np.min(self.gaussians[feat]['vec']),np.max(self.gaussians[feat]['vec'])])
     plt.title(feat)
     plt.legend(labels,numpoints=1)
