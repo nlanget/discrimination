@@ -165,15 +165,21 @@ def classifier(opt):
       elif opt.opdict['method'] == 'svm':
         # SVM
         print "********** SVM **********"
-        kern = 'Lin'
-        if kern == 'NonLin':
-          CLASS_test, pourcentages = implement_svm(x_train,x_test,y_train,y_test,opt.types,opt.opdict,kern='NonLin')
-        elif kern == 'Lin':
-          CLASS_test, pourcentages, CLASS_train, theta_vec = implement_svm(x_train,x_test,y_train,y_test,opt.types,opt.opdict,kern='Lin')
+        kern = 'NonLin'
+        out_SVM = implement_svm(x_train,x_test,y_train,y_test,opt.types,opt.opdict,kern=kern,proba=opt.opdict['probas'])
+
+        CLASS_test = out_SVM['label_test_SVM']
+        pourcentages = out_SVM['success']
+        if len(out_SVM) == 3:
+          probas = out_SVM['probas']
+        if len(out_SVM) > 3:
+          CLASS_train = out_SVM['label_train_SVM']
+          theta_vec = out_SVM['thetas']
           theta,threshold = {},{}
           for it in range(len(theta_vec)):
             theta[it+1] = np.append(theta_vec[it][-1],theta_vec[it][:-1])
             threshold[it+1] = 0.5
+
 
       elif opt.opdict['method'] == 'lrsk':
         # LOGISTIC REGRESSION (scikit learn)
@@ -228,12 +234,11 @@ def classifier(opt):
         x_train, x_test = normalize(x_train,x_test)
         plot_precision_recall(x_train,y_train,x_test,y_test,theta)
 
-      if theta:
+      if opt.opdict['plot_sep']:
         opt.theta = theta
+        opt.threshold = threshold
       if pourcentages:
         opt.success = pourcentages
-      if threshold:
-        opt.threshold = threshold
 
       n_feat = x_train.shape[1] # number of features
       if n_feat < 4:
@@ -304,6 +309,8 @@ def classifier(opt):
         i = int(i)
         trad_CLASS_test.append(opt.types[i])
       subsubdic['classification'] = trad_CLASS_test
+      if opt.opdict['probas']:
+        subsubdic['proba'] = probas
       subdic[b] = subsubdic
 
     dic_results[opt.trad[isc]] = subdic
@@ -403,9 +410,24 @@ def confusion(y,y_auto,l,set,method,plot=False,output=False):
 
 # ================================================================
 
-def implement_svm(x_train,x_test,y_train,y_test,types,opdict,kern='NonLin'):
+def implement_svm(x_train,x_test,y_train,y_test,types,opdict,kern='NonLin',proba=False):
   """
   Implements SVM from scikit learn package.
+  Options : 
+  - kernel : could be 'Lin' (for linear) or 'NonLin' (for non-linear). In the latter 
+  case, the kernel is a gaussian kernel.
+  - proba : tells if the probability estimates must be computed
+
+  Returns : 
+  - y_test_SVM : classification predicted by SVM for the test set
+  - (p_tr,p_test) : success rates of the training and test sets respectively
+
+  If proba is True, also returns :
+  - the probability estimates for each element of the dataset
+
+  If kernel is linear, also returns : 
+  - y_train_SVM : classification predicted by SVM for the training set
+  - grid.best_estimator_.raw_coef_ : coefficients of the linear decision boundary
   """
   from LR_functions import normalize
   x_train, x_test = normalize(x_train,x_test)
@@ -415,25 +437,30 @@ def implement_svm(x_train,x_test,y_train,y_test,types,opdict,kern='NonLin'):
   from sklearn import svm
   print "doing grid search"
   C_range = 10.0 ** np.arange(-2, 5)
+
   if kern == 'NonLin':
     gamma_range = 10.0 ** np.arange(-3,3)
     param_grid = dict(gamma=gamma_range, C=C_range)
-    grid = GridSearchCV(svm.SVC(), param_grid=param_grid, n_jobs=-1)
+    grid = GridSearchCV(svm.SVC(probability=proba), param_grid=param_grid, n_jobs=-1)
+
   elif kern == 'Lin':
     param_grid = dict(C=C_range)
     grid = GridSearchCV(svm.LinearSVC(), param_grid=param_grid, n_jobs=-1)
+
   grid.fit(x_train.values, y_train.NumType.values.ravel())
   print "The best classifier is: ", grid.best_estimator_
+
   if kern == 'NonLin':
     print "Number of support vectors for each class: ", grid.best_estimator_.n_support_
   y_train_SVM = grid.best_estimator_.predict(x_train)
   y_test_SVM = grid.best_estimator_.predict(x_test)
 
+  NB_class = len(np.unique(y_train.NumType.values))
   print "\t *Training set"
   diff = y_train.NumType.values.ravel() - y_train_SVM
   p_tr = float(len(np.where(diff==0)[0]))/y_train.shape[0]*100
   print "Correct classification: %.2f%%"%p_tr
-  for i in range(len(np.unique(y_train.NumType.values))):
+  for i in range(NB_class):
     print i, types[i], len(np.where(y_train.NumType.values==i)[0]), len(np.where(y_train_SVM==i)[0])
   if opdict['boot'] == 1:
     confusion(y_train,y_train_SVM,types,'Training','SVM',plot=opdict['plot_confusion'])
@@ -444,7 +471,7 @@ def implement_svm(x_train,x_test,y_train,y_test,types,opdict,kern='NonLin'):
   diff = y_test.NumType.values.ravel() - y_test_SVM
   p_test = float(len(np.where(diff==0)[0]))/y_test.shape[0]*100
   print "Correct classification: %.2f%%"%p_test
-  for i in range(len(np.unique(y_train.NumType.values))):
+  for i in range(NB_class):
     print i, types[i], len(np.where(y_test.NumType.values==i)[0]), len(np.where(y_test_SVM==i)[0])
   if opdict['boot'] == 1:
     confusion(y_test,y_test_SVM,types,'Test','SVM',plot=opdict['plot_confusion'])
@@ -453,10 +480,15 @@ def implement_svm(x_train,x_test,y_train,y_test,types,opdict,kern='NonLin'):
         plt.savefig('%s/figures/test_%s.png'%(opdict['outdir'],opdict['result_file'][8:]))
       plt.show()
 
+  output = {}
+  output['label_test_SVM'] = y_test_SVM
+  output['success'] = (p_tr,p_test)
+  if proba:
+    output['probas'] = grid.best_estimator_.predict_proba(x_test)
   if kern == 'Lin':
-    return y_test_SVM,(p_tr,p_test),y_train_SVM,grid.best_estimator_.raw_coef_
-  else:
-    return y_test_SVM,(p_tr,p_test)
+    output['label_train_SVM'] = y_train_SVM
+    output['thetas'] = grid.best_estimator_.raw_coef_
+  return output
 
 # ================================================================
 
