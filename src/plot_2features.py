@@ -556,7 +556,7 @@ def plot_2f_all(theta,t,rate,method,x_train,y_train,x_test,y_test,x_bad,str_t,te
     print rate
     label = ['%s (%.2f%%)'%(method.upper(),rate['global'])]
     if th_comp and t_comp:
-      label.append('SVM (%.2f%%)'%p[1])
+      label.append('SVM (%.2f%%)'%p['global'])
     axScatter.legend(label,loc=2,prop={'size':10})
 
     if text:

@@ -271,11 +271,17 @@ def classifier(opt):
           out_svm = implement_svm(x_train,x_test,y_train,y_test,opt.types,opt.opdict,kern='Lin')
           cmat_svm_tr = confusion(y_train_np,out_svm['label_train'],opt.types,'Training',opt.opdict['method'].upper())
           cmat_svm_test = confusion(y_test_np,out_svm['label_test'],opt.types,'Training',opt.opdict['method'].upper())
-          pourcentages = (np.sum(np.diag(cmat_svm_tr))*1./y_train.shape[0]*100,np.sum(np.diag(cmat_svm_test))*1./y_test.shape[0]*100)
-          theta_svm = out_svm['thetas']
+          svm_p = {}
+          svm_p['global'] = np.sum(np.diag(cmat_svm_test))*1./y_test.shape[0]*100
+          for i in range(NB_class):
+            l_man = np.sum(cmat_svm_test[i,:])
+            l_auto = np.sum(cmat_svm_test[:,i])
+            p_cl = cmat_svm_test[i,i]*1./l_man*100
+            svm_p[('%s'%opt.types[i],i)] = '%.2f'%p_cl
+
           theta_svm,t_svm = {},{}
-          for it in range(len(theta_vec)):
-            theta_svm[it+1] = np.append(theta_vec[it][-1],theta_vec[it][:-1])
+          for it in range(len(out_svm['thetas'])):
+            theta_svm[it+1] = np.append(out_svm['thetas'][it][-1],out_svm['thetas'][it][:-1])
             t_svm[it+1] = 0.5
         else:
           dir = '%s_SEP'%opt.opdict['method']
