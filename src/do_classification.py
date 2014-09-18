@@ -270,7 +270,7 @@ def classifier(opt):
             t_svm[it+1] = 0.5
 
         else:
-          dir = '%s_SEP'%opt.opdict['method']
+          dir = '%s_SEP'%opt.opdict['method'].upper()
 
         from LR_functions import normalize
         x_train, x_test = normalize(x_train,x_test)
@@ -287,7 +287,7 @@ def classifier(opt):
           name = opt.opdict['feat_list'][0]
           from plot_functions import plot_hyp_func_1f
           if opt.opdict['method']=='lr' and opt.opdict['compare']:
-            plot_hyp_func_1f(x_train,y_train,theta,opt.opdict['method'],threshold=threshold,x_ok=x_test_good,x_bad=x_test_bad,th_comp=theta_svm,cmat_test=cmat_test,cmat_svm=cmat_svm_test)
+            plot_hyp_func_1f(x_train,y_train,theta,opt.opdict['method'],threshold=threshold,x_ok=x_test_good,x_bad=x_test_bad,th_comp=theta_svm,cmat_test=cmat_test,cmat_svm=cmat_svm_test,cmat_train=cmat_train)
           else:
             plot_hyp_func_1f(x_train,y_train,theta,opt.opdict['method'],threshold=threshold,x_ok=x_test_good,x_bad=x_test_bad,cmat_test=cmat_test,cmat_train=cmat_train)
 
@@ -295,9 +295,9 @@ def classifier(opt):
         elif n_feat == 2:
           from plot_2features import plot_2f_all
           if opt.opdict['method']=='lr' and opt.opdict['compare']:
-            plot_2f_all(theta,threshold,p_test,opt.opdict['method'],x_train,y_train,x_test,y_test,x_test_bad,opt.types,text=text,th_comp=theta_svm,t_comp=t_svm,p=svm_p)
+            plot_2f_all(theta,threshold,p_test,opt.opdict['method'],x_train,y_train,x_test,y_test,x_test_bad,opt.types,p_train=p_tr,th_comp=theta_svm,t_comp=t_svm,p=svm_pt)
           else:
-            plot_2f_all(theta,threshold,p_test,opt.opdict['method'],x_train,y_train,x_test,y_test,x_test_bad,opt.types,text=text)
+            plot_2f_all(theta,threshold,p_test,opt.opdict['method'],x_train,y_train,x_test,y_test,x_test_bad,opt.types,p_train=p_tr)
           name = '%s_%s'%(opt.opdict['feat_list'][0],opt.opdict['feat_list'][1])
 
         # PLOT FOR 3 ATTRIBUTES

@@ -473,7 +473,7 @@ def plot_2f_synth_var(theta,rate,t,method,x_train,x_test,y_test):
 
 # *******************************************************************************
 
-def plot_2f_all(theta,t,rate,method,x_train,y_train,x_test,y_test,x_bad,str_t,text=None,th_comp=None,t_comp=None,p=None):
+def plot_2f_all(theta,t,rate,method,x_train,y_train,x_test,y_test,x_bad,str_t,p_train=None,th_comp=None,t_comp=None,p=None):
     """
     Plots decision boundaries for a discrimination problem with 
     2 features.
@@ -553,17 +553,19 @@ def plot_2f_all(theta,t,rate,method,x_train,y_train,x_test,y_test,x_bad,str_t,te
 
     axScatter.contourf(x_vec, y_vec, map, cmap=plt.cm.gray, alpha=0.2)
 
-    print rate
     label = ['%s (%.2f%%)'%(method.upper(),rate['global'])]
     if th_comp and t_comp:
       label.append('SVM (%.2f%%)'%p['global'])
     axScatter.legend(label,loc=2,prop={'size':10})
 
-    if text:
-       axScatter.text(0.7,0.95,"%.2f %% %s"%(text[0],str_t[0]),color='b',transform=axScatter.transAxes)
-       axScatter.text(0.7,0.9,"%.2f %% %s"%(text[1],str_t[1]),color='g',transform=axScatter.transAxes)
-       axScatter.text(0.7,0.85,"%.2f %% test set"%text[2],transform=axScatter.transAxes)
-       axScatter.text(0.7,0.8,"%.2f %% test set"%text[3],color='r',transform=axScatter.transAxes)
+    if p_train:
+       x_pos = .7
+       y_pos = .95
+       pas = .05
+       axScatter.text(x_pos,y_pos,"%s %% %s"%(p_train[(str_t[0],0)],str_t[0]),color='b',transform=axScatter.transAxes)
+       axScatter.text(x_pos,y_pos-pas,"%s %% %s"%(p_train[(str_t[1],1)],str_t[1]),color='g',transform=axScatter.transAxes)
+       axScatter.text(x_pos,y_pos-2*pas,"%.2f %% test set"%rate['global'],transform=axScatter.transAxes)
+       axScatter.text(x_pos,y_pos-3*pas,"%.2f %% test set"%(100-rate['global']),color='r',transform=axScatter.transAxes)
 
     axScatter.set_xlim((lim_plot_inf_1, lim_plot_sup_1))
     axScatter.set_ylim((lim_plot_inf_2, lim_plot_sup_2))
