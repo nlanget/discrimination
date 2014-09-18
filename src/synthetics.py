@@ -45,7 +45,7 @@ class Synthetics(MultiOptions):
     self.opdict['outdir'] = os.path.join('../results',self.opdict['dir'])
     self.opdict['fig_path'] = '%s/figures'%self.opdict['outdir']
 
-    self.sep = 'bad'
+    self.sep = 'well'
     self.opdict['feat_train'] = '%s_%dc_train.csv'%(self.sep,len(self.opdict['types']))
     self.opdict['feat_test'] = '%s_%dc_test.csv'%(self.sep,len(self.opdict['types']))
     self.opdict['label_train'] = '%s_%dc_train.csv'%(self.sep,len(self.opdict['types']))
@@ -80,15 +80,16 @@ class Synthetics(MultiOptions):
 
     # Choose the proportions in the test set
     if self.NB_class == 2:
-      prop_test = (.25,.75)
+      prop_test = (.5,.5)
+      #prop_test = (.25,.75)
 
     elif self.NB_class == 3:
       prop_test = (1./3,1./3,1./3)
-      prop_test = (0.3,0.1,0.6)
+      #prop_test = (0.3,0.1,0.6)
 
     # Choose the proportions in the training set
     prop_train = prop_test
-    prop_train = (.5,.5)
+    #prop_train = (.1,.9)
 
     if len(prop_test) != self.NB_class:
       print "Warning ! Check number of classes and proportions"
@@ -177,7 +178,7 @@ class Synthetics(MultiOptions):
     x_test.index = [(i,'STA','Z') for i in range(len(x_test))]
 
     ### Fill the labels ###
-    types = ['A','B','C']
+    types = self.opdict['Types']
     y_train = pd.DataFrame(index=range(NB_train_all),columns=['Type','Date','TypeNum'],dtype=str)
     lim = 0
     for i in range(self.NB_class):
@@ -292,15 +293,15 @@ def plot_sep(opt):
 
     # PLOTS
     plot_2f_synthetics(theta_svm,rate_svm,t_svm,'SVM',x_train,x_test,y_test,y_train=y_train)
-    plt.savefig('%s/Test_%dc_%s_SVM_ineq.png'%(opt.opdict['fig_path'],len(opt.types),opt.sep))
+    plt.savefig('%s/Test_%dc_%s_SVM.png'%(opt.opdict['fig_path'],len(opt.types),opt.sep))
     plt.show()
 
     if len(theta_lr) == 1:
       plot_2f_synthetics(theta_lr[0],rate_lr[0],t_lr[0],'LR',x_train,x_test,y_test,y_train=y_train)
-      plt.savefig('%s/Test_%dc_%s_LR_ineq.png'%(opt.opdict['fig_path'],len(opt.types),opt.sep))
+      plt.savefig('%s/Test_%dc_%s_LR.png'%(opt.opdict['fig_path'],len(opt.types),opt.sep))
       plt.show()
       plot_2f_synthetics(theta_lr[0],rate_lr[0],t_lr[0],'LR',x_train,x_test,y_test,th_comp=theta_svm,p=rate_svm,t_comp=t_svm,y_train=y_train)
-      plt.savefig('%s/Test_%dc_%s_ineq.png'%(opt.opdict['fig_path'],len(opt.types),opt.sep))
+      plt.savefig('%s/Test_%dc_%s.png'%(opt.opdict['fig_path'],len(opt.types),opt.sep))
       plt.show()
 
     elif len(theta_lr) > 1:
@@ -310,7 +311,7 @@ def plot_sep(opt):
 
     if opt.opdict['plot_prec_rec']:
       plot_2f_synth_var(theta_lr,rate_lr,t_lr,'LR',x_train,x_test,y_test,opt.NB_test)
-      plt.savefig('%s/Test_%dc_bad_ineq_threshold.png'%(opt.opdict['fig_path'],len(opt.types)))
+      plt.savefig('%s/Test_%dc_bad_threshold.png'%(opt.opdict['fig_path'],len(opt.types)))
       plt.show()
 
 

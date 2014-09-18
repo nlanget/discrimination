@@ -178,10 +178,10 @@ def classifier(opt):
       elif opt.opdict['method'] == 'lrsk':
         # LOGISTIC REGRESSION (scikit learn)
         print "********* Logistic regression (sklearn) **********"
-        CLASS_test, pourcentages, CLASS_train, theta_vec = implement_lr_sklearn(x_train,x_test,y_train,y_test,opt.types,opt.opdict)
+        out = implement_lr_sklearn(x_train,x_test,y_train,y_test)
         theta,threshold = {},{}
-        for it in range(len(theta_vec)):
-          theta[it+1] = theta_vec[it]
+        for it in range(len(out['thetas'])):
+          theta[it+1] = out['thetas'][it]
           threshold[it+1] = 0.5
 
       elif opt.opdict['method'] == 'lr':
@@ -492,7 +492,7 @@ def implement_svm(x_train,x_test,y_train,y_test,types,opdict,kern='NonLin',proba
 
 # ================================================================
 
-def implement_lr_sklearn(x_train,x_test,y_train,y_test,types,opdict):
+def implement_lr_sklearn(x_train,x_test,y_train,y_test):
   """
   Implements logistic regression from scikit learn package.
   """
@@ -511,29 +511,11 @@ def implement_lr_sklearn(x_train,x_test,y_train,y_test,types,opdict):
   y_train_LR = grid.best_estimator_.predict(x_train)
   y_test_LR = grid.best_estimator_.predict(x_test)
 
-  print "\t *Training set"
-  diff = y_train.NumType.values.ravel() - y_train_LR
-  p_tr = float(len(np.where(diff==0)[0]))/y_train.shape[0]*100
-  print "Correct classification: %.2f%%"%p_tr
-  for i in range(len(np.unique(y_train.NumType.values))):
-    print i, types[i], len(np.where(y_train.NumType.values==i)[0]), len(np.where(y_train_LR==i)[0])
-
-  cmat = confusion(y_train,y_train_LR,types,'Training','LR',plot=opdict['plot_confusion'])
-  if opdict['plot_confusion'] and opdict['save_confusion']:
-    plt.savefig('%s/figures/training_%s.png'%(opdict['outdir'],opdict['result_file'][8:]))
-
-  print "\t *Test set"
-  diff = y_test.NumType.values.ravel() - y_test_LR
-  p_test = float(len(np.where(diff==0)[0]))/y_test.shape[0]*100
-  print "Correct classification: %.2f%%"%p_test
-  for i in range(len(np.unique(y_train.NumType.values))):
-    print i, types[i], len(np.where(y_test.NumType.values==i)[0]), len(np.where(y_test_LR==i)[0])
-  confusion(y_test,y_test_LR,types,'Test','LR',plot=opdict['plot_confusion'])
-  if opdict['plot_confusion']:
-    if opdict['save_confusion']:
-      plt.savefig('%s/figures/test_%s.png'%(opdict['outdir'],opdict['result_file'][8:]))
-    plt.show()
-  return y_test_LR,(p_tr,p_test),y_train_LR,grid.best_estimator_.raw_coef_
+  output = {}
+  output['label_test'] = y_test_LR
+  output['label_train'] = y_train_LR
+  output['thetas'] = grid.best_estimator_.raw_coef_
+  return output
 
 # ================================================================
 

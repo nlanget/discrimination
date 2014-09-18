@@ -135,7 +135,7 @@ def plot_2f(theta,rate,t,method,x_train,x_test,y_test,th_comp=None,t_comp=None,p
 
     axScatter.contourf(x_vec, y_vec, map, cmap=plt.cm.gray, alpha=0.2)
 
-    label = ['%s (%.2f%%)'%(method.upper(),rate[1])]
+    label = ['%s (%.2f%%)'%(method.upper(),rate['global'])]
     if th_comp and t_comp:
       label.append('SVM (%.2f%%)'%p[1])
     axScatter.legend(label,loc=4,prop={'size':14})
@@ -177,6 +177,22 @@ def plot_2f(theta,rate,t,method,x_train,x_test,y_test,th_comp=None,t_comp=None,p
 
     axScatter.set_xlabel(feat_1)
     axScatter.set_ylabel(feat_2)
+
+    pos_y_ini = .95
+    pas = .025
+    plt.figtext(.78,pos_y_ini,'Test set %s'%method.upper())
+    for key in sorted(rate):
+      if key != 'global':
+        cl, icl = key[0], key[1]
+        plt.figtext(.78,pos_y_ini-(icl+1)*pas,'%s (%d) : %s%%'%(cl,icl,rate[(cl,icl)]))
+    if th_comp and t_comp:
+      pos_y = pos_y_ini-.04
+      plt.figtext(.78,pos_y-NB_class*pas,'Test set SVM')
+      for key in sorted(p):
+        if key != 'global':
+          cl, icl = key[0], key[1]
+          plt.figtext(.78,pos_y-NB_class*pas-(icl+1)*pas,'%s (%d) : %s%%'%(cl,icl,p[(cl,icl)]))
+
 
 # *******************************************************************************
 
@@ -249,9 +265,9 @@ def plot_2f_synthetics(theta,rate,t,method,x_train,x_test,y_test,y_train=None,th
 
     axScatter.contourf(x_vec, y_vec, map, cmap=plt.cm.gray, alpha=0.3)
 
-    label = ['%s (%.2f%%)'%(method.upper(),rate[1])]
+    label = ['%s (%.2f%%)'%(method.upper(),rate['global'])]
     if th_comp and t_comp:
-      label.append('SVM (%.2f%%)'%p[1])
+      label.append('SVM (%.2f%%)'%p['global'])
     axScatter.legend(label,loc=4,prop={'size':14})
 
     axScatter.set_xlim((-lim_plot, lim_plot))
@@ -301,6 +317,21 @@ def plot_2f_synthetics(theta,rate,t,method,x_train,x_test,y_test,y_train=None,th
 
     axScatter.set_xlabel(feat_1)
     axScatter.set_ylabel(feat_2)
+
+    pos_y_ini = .95
+    pas = .025
+    plt.figtext(.78,pos_y_ini,'Test set %s'%method.upper())
+    for key in sorted(rate):
+      if key != 'global':
+        cl, icl = key[0], key[1]
+        plt.figtext(.78,pos_y_ini-(icl+1)*pas,'%s (%d) : %s%%'%(cl,icl,rate[(cl,icl)]))
+    if th_comp and t_comp:
+      pos_y = pos_y_ini-.04
+      plt.figtext(.78,pos_y-NB_class*pas,'Test set SVM')
+      for key in sorted(p):
+        if key != 'global':
+          cl, icl = key[0], key[1]
+          plt.figtext(.78,pos_y-NB_class*pas-(icl+1)*pas,'%s (%d) : %s%%'%(cl,icl,p[(cl,icl)]))
 
 # *******************************************************************************
 
@@ -366,7 +397,7 @@ def plot_2f_synth_var(theta,rate,t,method,x_train,x_test,y_test):
       for i in range(len(theta)):
         db = -1./theta[i][1][2]*(theta[i][1][0]+np.log((1-t[i][1])/t[i][1])+theta[i][1][1]*x_vec[0])
         axScatter.plot(x_vec[0],db,lw=1.,c=(0,0.1*i,1))
-        rates.append(rate[i][1])
+        rates.append(rate[i]['global'])
 
       imax = np.argmax(rates)
       db = -1./theta[imax][1][2]*(theta[imax][1][0]+np.log((1-t[imax][1])/t[imax][1])+theta[imax][1][1]*x_vec[0])
@@ -393,7 +424,7 @@ def plot_2f_synth_var(theta,rate,t,method,x_train,x_test,y_test):
         axScatter.plot(x_vec[0],db,lw=3.,c='midnightblue')
       axScatter.contourf(x_vec,y_vec,map,cmap=plt.cm.gray,alpha=.2)
 
-      axScatter.text(0.6*lim_plot,-0.9*lim_plot,'LR (%.1f%%)'%rate[0][1])
+      axScatter.text(0.6*lim_plot,-0.9*lim_plot,'LR (%.1f%%)'%rate[0]['global'])
       axScatter.text(0.6*lim_plot,-0.8*lim_plot,'t = %.1f'%t[0][1])
 
     axScatter.set_xlim((-lim_plot, lim_plot))
@@ -432,6 +463,13 @@ def plot_2f_synth_var(theta,rate,t,method,x_train,x_test,y_test):
     axScatter.set_xlabel(feat_1)
     axScatter.set_ylabel(feat_2)
 
+    pos_y_ini = .95
+    pas = .025
+    plt.figtext(.78,pos_y_ini,'Test set %s'%method.upper())
+    for key in sorted(rate):
+      if key != 'global':
+        cl, icl = key[0], key[1]
+        plt.figtext(.78,pos_y_ini-(icl+1)*pas,'%s (%d) : %s%%'%(cl,icl,rate[(cl,icl)]))
 
 # *******************************************************************************
 
@@ -515,7 +553,8 @@ def plot_2f_all(theta,t,rate,method,x_train,y_train,x_test,y_test,x_bad,str_t,te
 
     axScatter.contourf(x_vec, y_vec, map, cmap=plt.cm.gray, alpha=0.2)
 
-    label = ['%s (%.2f%%)'%(method.upper(),rate[1])]
+    print rate
+    label = ['%s (%.2f%%)'%(method.upper(),rate['global'])]
     if th_comp and t_comp:
       label.append('SVM (%.2f%%)'%p[1])
     axScatter.legend(label,loc=2,prop={'size':10})
@@ -563,4 +602,19 @@ def plot_2f_all(theta,t,rate,method,x_train,y_train,x_test,y_test,x_bad,str_t,te
 
     axScatter.set_xlabel(x_test.columns[0])
     axScatter.set_ylabel(x_test.columns[1])
+
+    pos_y_ini = .95
+    pas = .025
+    plt.figtext(.78,pos_y_ini,'Test set %s'%method.upper())
+    for key in sorted(rate):
+      if key != 'global':
+        cl, icl = key[0], key[1]
+        plt.figtext(.78,pos_y_ini-(icl+1)*pas,'%s (%d) : %s%%'%(cl,icl,rate[(cl,icl)]))
+    if th_comp and t_comp:
+      pos_y = pos_y_ini-.04
+      plt.figtext(.78,pos_y-NB_class*pas,'Test set SVM')
+      for key in sorted(p):
+        if key != 'global':
+          cl, icl = key[0], key[1]
+          plt.figtext(.78,pos_y-NB_class*pas-(icl+1)*pas,'%s (%d) : %s%%'%(cl,icl,p[(cl,icl)]))
 
