@@ -22,7 +22,7 @@ class AnalyseResults(MultiOptions):
 
     self.bootstrap_overall()
     self.bootstrap_per_class()
-    sys.exit()
+    #sys.exit()
     self.concatenate_results()
     self.display_results()
 
@@ -93,7 +93,7 @@ class AnalyseResults(MultiOptions):
           struct['%'][df.index[iev]] = 1./len(t_uniq)*100
 
     struct.to_csv(self.opdict['class_auto_path'])
-    self.plot_stats(struct)
+    #self.plot_stats(struct)
 
 
   def plot_stats(self,struct):
@@ -237,8 +237,8 @@ class AnalyseResults(MultiOptions):
     """
     Plots the confusion matrix (test set only).
     """
-    from do_classification import confusion
-
+    from do_classification import plot_confusion_mat
+    from sklearn.metrics import confusion_matrix
     self.do_tri()
     self.classname2number()
 
@@ -250,7 +250,8 @@ class AnalyseResults(MultiOptions):
     a = a[a.Type!='?']
     m = m.reindex(index=a.index)
 
-    confusion(m,a.values[:,0],self.types,'test',self.opdict['method'],plot=True)
+    cmat = confusion_matrix(m.values[:,0],a.values[:,0])
+    plot_confusion_mat(cmat,self.types,'Test',self.opdict['method'])
     if self.opdict['save_confusion']:
       plt.savefig('%s/figures/test_%s.png'%(self.opdict['outdir'],self.opdict['result_file'][8:]))
     plt.show()
