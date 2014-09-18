@@ -165,21 +165,15 @@ def classifier(opt):
       elif opt.opdict['method'] == 'svm':
         # SVM
         print "********** SVM **********"
-        kern = 'NonLin'
-        out_SVM = implement_svm(x_train,x_test,y_train,y_test,opt.types,opt.opdict,kern=kern,proba=opt.opdict['probas'])
+        kern = 'Lin'
+        out = implement_svm(x_train,x_test,y_train,y_test,opt.types,opt.opdict,kern=kern,proba=opt.opdict['probas'])
 
-        CLASS_test = out_SVM['label_test_SVM']
-        pourcentages = out_SVM['success']
-        if len(out_SVM) == 3:
-          probas = out_SVM['probas']
-        if len(out_SVM) > 3:
-          CLASS_train = out_SVM['label_train_SVM']
-          theta_vec = out_SVM['thetas']
+        if 'thetas' in sorted(out):
+          theta_vec = out['thetas']
           theta,threshold = {},{}
           for it in range(len(theta_vec)):
             theta[it+1] = np.append(theta_vec[it][-1],theta_vec[it][:-1])
             threshold[it+1] = 0.5
-
 
       elif opt.opdict['method'] == 'lrsk':
         # LOGISTIC REGRESSION (scikit learn)
@@ -204,41 +198,67 @@ def classifier(opt):
             if len(wtr[wtr>len(wtr)-1]) > 0:
               rep_wtr = np.array(wtr_ini[len(y_train):])
               wtr[wtr>len(wtr)-1] = rep_wtr[rep_wtr<len(wtr)]
-        CLASS_train,theta,CLASS_test,threshold,pourcentages,wtr = do_all_logistic_regression(x_train,y_train,x_test,y_test,output=True,perc=True,wtr=wtr,ret_thres=True)
+        out = do_all_logistic_regression(x_train,y_train,x_test,y_test,wtr=wtr)
+        theta = out['thetas']
+        threshold = out['threshold']
         if 'learn_file' in sorted(opt.opdict):
           if not os.path.exists(learn_filename):
-            wtr = write_binary_file(learn_filename,wtr)
-        print "\t Training set"
-        for i in range(K):
-          print i, opt.types[i], len(np.where(y_train.NumType.values==i)[0]), len(np.where(CLASS_train==i)[0])
-        print "\n"
-        if opt.opdict['boot'] == 1:
-          confusion(y_train,CLASS_train,opt.types,'Training','Logistic regression',plot=opt.opdict['plot_confusion'])
-          if opt.opdict['plot_confusion'] and opt.opdict['save_confusion']:
-            plt.savefig('%s/figures/training_%s_%s_%s.png'%(opt.opdict['outdir'],opt.opdict['result_file'][8:],opt.trad[isc][0],opt.trad[isc][1]))
+            wtr = write_binary_file(learn_filename,out['training_set'])
 
-        print "\t Test set"
-        for i in range(K):
-          print i, opt.types[i], len(np.where(y_test.NumType.values==i)[0]), len(np.where(CLASS_test==i)[0])
-        print "\n"
-        if opt.opdict['boot'] == 1:
-          confusion(y_test,CLASS_test,opt.types,'Test','Logistic regression',plot=opt.opdict['plot_confusion'])
-          if opt.opdict['plot_confusion']:
-            if opt.opdict['save_confusion']:
-              plt.savefig('%s/figures/test_%s_%s_%s.png'%(opt.opdict['outdir'],opt.opdict['result_file'][8:],opt.trad[isc][0],opt.trad[isc][1]))
-            plt.show()
+      CLASS_test = out['label_test']
+      CLASS_train = out['label_train']
 
+      # TRAINING SET
+      print "\t *Training set"
+      y_train_np = y_train.NumType.values.ravel()
+      cmat = confusion(y_train_np,CLASS_train,opt.types,'Training',opt.opdict['method'].upper(),plot=opt.opdict['plot_confusion'])
+      if opt.opdict['plot_confusion'] and opt.opdict['save_confusion']:
+        plt.savefig('%s/figures/training_%s.png'%(opt.opdict['outdir'],opt.opdict['result_file'][8:]))
+
+      NB_class = cmat.shape[0]
+      p_tr = {}
+      p_tr['global'] = np.sum(np.diag(cmat))*1./y_train.shape[0]*100
+      print "Correct classification: %.2f%%"%p_tr['global']
+      for i in range(NB_class):
+        l_man = np.sum(cmat[i,:])
+        l_auto = np.sum(cmat[:,i])
+        p_cl = cmat[i,i]*1./l_man*100
+        p_tr[('%s'%opt.types[i],i)] = '%.2f'%p_cl
+        print "Extraction of %s (%d) : %.2f%%"%(opt.types[i],i,p_cl)
+
+      # TEST SET
+      print "\t *Test set"
+      y_test_np = y_test.NumType.values.ravel()
+      p_test = {}
+      cmat = confusion(y_test_np,CLASS_test,opt.types,'Test',opt.opdict['method'].upper(),plot=opt.opdict['plot_confusion'])
+      p_test['global'] = np.sum(np.diag(cmat))*1./y_test.shape[0]*100
+      print "Correct classification: %.2f%%"%p_test['global']
+      for i in range(NB_class):
+        l_man = np.sum(cmat[i,:])
+        l_auto = np.sum(cmat[:,i])
+        p_cl = cmat[i,i]*1./l_man*100
+        p_test[('%s'%opt.types[i],i)] = '%.2f'%p_cl
+        print "Extraction of %s (%d) : %.2f%%"%(opt.types[i],i,p_cl)
+
+      if opt.opdict['plot_confusion']:
+        if opt.opdict['save_confusion']:
+          plt.savefig('%s/figures/test_%s.png'%(opt.opdict['outdir'],opt.opdict['result_file'][8:]))
+        plt.show()
 
       if opt.opdict['plot_prec_rec']:
         from LR_functions import normalize,plot_precision_recall
         x_train, x_test = normalize(x_train,x_test)
         plot_precision_recall(x_train,y_train,x_test,y_test,theta)
 
-      if opt.opdict['plot_sep']:
+      try:
         opt.theta = theta
         opt.threshold = threshold
-      if pourcentages:
-        opt.success = pourcentages
+      except:
+        opt.theta = None
+        opt.threshold = None
+
+      pourcentages = (p_tr['global'],p_test['global'])
+      opt.success = p_test
 
       n_feat = x_train.shape[1] # number of features
       if n_feat < 4:
@@ -248,7 +268,11 @@ def classifier(opt):
 
         if opt.opdict['method']=='lr' and opt.opdict['compare']:
           dir = 'LR_SVM_SEP'
-          SVM_test, svm_p, SVM_train, theta_vec = implement_svm(x_train,x_test,y_train,y_test,opt.types,opt.opdict,kern='Lin')
+          out_svm = implement_svm(x_train,x_test,y_train,y_test,opt.types,opt.opdict,kern='Lin')
+          cmat_svm_tr = confusion(y_train_np,out_svm['label_train'],opt.types,'Training',opt.opdict['method'].upper())
+          cmat_svm_test = confusion(y_test_np,out_svm['label_test'],opt.types,'Training',opt.opdict['method'].upper())
+          pourcentages = (np.sum(np.diag(cmat_svm_tr))*1./y_train.shape[0]*100,np.sum(np.diag(cmat_svm_test))*1./y_test.shape[0]*100)
+          theta_svm = out_svm['thetas']
           theta_svm,t_svm = {},{}
           for it in range(len(theta_vec)):
             theta_svm[it+1] = np.append(theta_vec[it][-1],theta_vec[it][:-1])
@@ -285,9 +309,9 @@ def classifier(opt):
           #plot_sep_2f(x_train,y_train.NumType,opt.types,x_test,y_test.NumType,x_test_bad,theta=theta[1],text=text)
           from plot_2features import plot_2f_all
           if opt.opdict['method']=='lr' and opt.opdict['compare']:
-            plot_2f_all(theta,threshold,pourcentages,opt.opdict['method'],x_train,y_train,x_test,y_test,x_test_bad,opt.types,text=text,th_comp=theta_svm,t_comp=t_svm,p=svm_p)
+            plot_2f_all(theta,threshold,p_test,opt.opdict['method'],x_train,y_train,x_test,y_test,x_test_bad,opt.types,text=text,th_comp=theta_svm,t_comp=t_svm,p=svm_p)
           else:
-            plot_2f_all(theta,threshold,pourcentages,opt.opdict['method'],x_train,y_train,x_test,y_test,x_test_bad,opt.types,text=text)
+            plot_2f_all(theta,threshold,p_test,opt.opdict['method'],x_train,y_train,x_test,y_test,x_test_bad,opt.types,text=text)
           name = '%s_%s'%(opt.opdict['feat_list'][0],opt.opdict['feat_list'][1])
 
         elif n_feat == 3:
@@ -377,15 +401,15 @@ def create_training_set_fix(y_ref,numt):
 
 # ================================================================
 
-def confusion(y,y_auto,l,set,method,plot=False,output=False):
+def confusion(y,y_auto,l,set,method,plot=False):
   """
   Computes the confusion matrix
   """
   from sklearn.metrics import confusion_matrix
-  cmat = confusion_matrix(y.values[:,0],y_auto)
-  cmat = np.array(cmat,dtype=float)
+  cmat_nb = confusion_matrix(y,y_auto)
+  cmat = np.array(cmat_nb,dtype=float)
   for i in range(cmat.shape[0]):
-    cmat[i,:] = cmat[i,:]*100./len(np.where(y.values[:,0]==i)[0])
+    cmat[i,:] = cmat[i,:]*100./len(np.where(y==i)[0])
 
   if plot:
     plt.matshow(cmat,cmap=plt.cm.gray_r)
@@ -405,8 +429,7 @@ def confusion(y,y_auto,l,set,method,plot=False,output=False):
     if len(l) <= 4:
       plt.xticks(range(len(l)),l)
       plt.yticks(range(len(l)),l)
-  if output:
-    return cmat
+  return cmat_nb
 
 # ================================================================
 
@@ -455,41 +478,15 @@ def implement_svm(x_train,x_test,y_train,y_test,types,opdict,kern='NonLin',proba
   y_train_SVM = grid.best_estimator_.predict(x_train)
   y_test_SVM = grid.best_estimator_.predict(x_test)
 
-  NB_class = len(np.unique(y_train.NumType.values))
-  print "\t *Training set"
-  diff = y_train.NumType.values.ravel() - y_train_SVM
-  p_tr = float(len(np.where(diff==0)[0]))/y_train.shape[0]*100
-  print "Correct classification: %.2f%%"%p_tr
-  for i in range(NB_class):
-    print i, types[i], len(np.where(y_train.NumType.values==i)[0]), len(np.where(y_train_SVM==i)[0])
-  if opdict['boot'] == 1:
-    confusion(y_train,y_train_SVM,types,'Training','SVM',plot=opdict['plot_confusion'])
-    if opdict['plot_confusion'] and opdict['save_confusion']:
-      plt.savefig('%s/figures/training_%s.png'%(opdict['outdir'],opdict['result_file'][8:]))
-
-  print "\t *Test set"
-  diff = y_test.NumType.values.ravel() - y_test_SVM
-  p_test = float(len(np.where(diff==0)[0]))/y_test.shape[0]*100
-  print "Correct classification: %.2f%%"%p_test
-  for i in range(NB_class):
-    print i, types[i], len(np.where(y_test.NumType.values==i)[0]), len(np.where(y_test_SVM==i)[0])
-  if opdict['boot'] == 1:
-    confusion(y_test,y_test_SVM,types,'Test','SVM',plot=opdict['plot_confusion'])
-    if opdict['plot_confusion']:
-      if opdict['save_confusion']:
-        plt.savefig('%s/figures/test_%s.png'%(opdict['outdir'],opdict['result_file'][8:]))
-      plt.show()
-
   output = {}
-  output['label_test_SVM'] = y_test_SVM
-  output['success'] = (p_tr,p_test)
+  output['label_test'] = y_test_SVM
+  output['label_train'] = y_train_SVM
   if proba:
     probabilities = grid.best_estimator_.predict_proba(x_test)
     output['probas'] = {}
     for k in range(NB_class):
       output['probas'][types[k]] = probabilities[:,k]
   if kern == 'Lin':
-    output['label_train_SVM'] = y_train_SVM
     output['thetas'] = grid.best_estimator_.raw_coef_
   return output
 
@@ -520,10 +517,10 @@ def implement_lr_sklearn(x_train,x_test,y_train,y_test,types,opdict):
   print "Correct classification: %.2f%%"%p_tr
   for i in range(len(np.unique(y_train.NumType.values))):
     print i, types[i], len(np.where(y_train.NumType.values==i)[0]), len(np.where(y_train_LR==i)[0])
-  if opdict['boot'] == 1:
-    confusion(y_train,y_train_LR,types,'Training','LR',plot=opdict['plot_confusion'])
-    if opdict['plot_confusion'] and opdict['save_confusion']:
-      plt.savefig('%s/figures/training_%s.png'%(opdict['outdir'],opdict['result_file'][8:]))
+
+  cmat = confusion(y_train,y_train_LR,types,'Training','LR',plot=opdict['plot_confusion'])
+  if opdict['plot_confusion'] and opdict['save_confusion']:
+    plt.savefig('%s/figures/training_%s.png'%(opdict['outdir'],opdict['result_file'][8:]))
 
   print "\t *Test set"
   diff = y_test.NumType.values.ravel() - y_test_LR
@@ -531,12 +528,11 @@ def implement_lr_sklearn(x_train,x_test,y_train,y_test,types,opdict):
   print "Correct classification: %.2f%%"%p_test
   for i in range(len(np.unique(y_train.NumType.values))):
     print i, types[i], len(np.where(y_test.NumType.values==i)[0]), len(np.where(y_test_LR==i)[0])
-  if opdict['boot'] == 1:
-    confusion(y_test,y_test_LR,types,'Test','LR',plot=opdict['plot_confusion'])
-    if opdict['plot_confusion']:
-      if opdict['save_confusion']:
-        plt.savefig('%s/figures/test_%s.png'%(opdict['outdir'],opdict['result_file'][8:]))
-      plt.show()
+  confusion(y_test,y_test_LR,types,'Test','LR',plot=opdict['plot_confusion'])
+  if opdict['plot_confusion']:
+    if opdict['save_confusion']:
+      plt.savefig('%s/figures/test_%s.png'%(opdict['outdir'],opdict['result_file'][8:]))
+    plt.show()
   return y_test_LR,(p_tr,p_test),y_train_LR,grid.best_estimator_.raw_coef_
 
 # ================================================================
@@ -640,13 +636,13 @@ def one_by_one(opt,x_test_ref0,y_test_ref0,otimes_ref,boot=1,method='lr'):
       for i in range(2):
         print i, t[i], len(np.where(y_train.NumType.values[:,0]==i)[0]), len(np.where(LR_train==i)[0])
       print "\n"
-      cmat_train = confusion(y_train,LR_train,types,'training','LogReg',plot=False,output=True)
+      cmat_train = confusion(y_train,LR_train,types,'training','LogReg',plot=False)
 
       print "\t Test set"
       for i in range(2):
         print i, t[i], len(np.where(y_test.NumType.values[:,0]==i)[0]), len(np.where(LR_test==i)[0])
       print "\n"
-      cmat_test = confusion(y_test,LR_test,types,'test','LogReg',plot=False,output=True)
+      cmat_test = confusion(y_test,LR_test,types,'test','LogReg',plot=False)
 
       # Fill the dictionary
       i_com = np.where((y_test.NumType.values.ravel()-LR_test)==0)[0]
@@ -754,14 +750,14 @@ def one_vs_all(opt,x_test,y_test_ref,otimes_ref,boot=1,method='lr'):
       for i in range(2):
         print i, print_type[i], len(np.where(y_train.NumType.values[:,0]==i)[0]), len(np.where(LR_train==i)[0])
       print "\n"
-      cmat_train = confusion(y_train,LR_train,types,'training','LogReg',plot=True,output=True)
+      cmat_train = confusion(y_train,LR_train,types,'training','LogReg',plot=True)
       plt.close()
 
       print "\t Test set"
       for i in range(2):
         print i, print_type[i], len(np.where(y_test.NumType.values[:,0]==i)[0]), len(np.where(LR_test==i)[0])
       print "\n"
-      cmat_test = confusion(y_test,LR_test,types,'test','LogReg',plot=True,output=True)
+      cmat_test = confusion(y_test,LR_test,types,'test','LogReg',plot=True)
       plt.close()
 
       # Fill the dictionary

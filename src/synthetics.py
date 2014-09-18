@@ -55,6 +55,7 @@ class Synthetics(MultiOptions):
     self.opdict['feat_list'] = ['x1','x2']
 
     self.opdict['method'] = 'lr'
+    self.opdict['probas'] = False
     self.opdict['boot'] = 1
     self.opdict['plot_pdf'] = False # display the pdfs of the features
     self.opdict['save_pdf'] = False
@@ -79,7 +80,7 @@ class Synthetics(MultiOptions):
 
     # Choose the proportions in the test set
     if self.NB_class == 2:
-      prop_test = (.5,.5)
+      prop_test = (.25,.75)
 
     elif self.NB_class == 3:
       prop_test = (1./3,1./3,1./3)
@@ -87,7 +88,7 @@ class Synthetics(MultiOptions):
 
     # Choose the proportions in the training set
     prop_train = prop_test
-    prop_train = (.25,.75)
+    prop_train = (.5,.5)
 
     if len(prop_test) != self.NB_class:
       print "Warning ! Check number of classes and proportions"

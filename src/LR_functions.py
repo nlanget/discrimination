@@ -699,7 +699,7 @@ def bad_class(x_test,list_i):
   x_bad = x_bad.reindex(index=list_i)
   return x_bad
 # ---------------------------------------------------
-def do_all_logistic_regression(x,y_all,x_testset,y_testset=None,norm=True,verbose=False,output=False,perc=False,wtr=np.array([]),ret_thres=False):
+def do_all_logistic_regression(x,y_all,x_testset,y_testset=None,norm=True,verbose=False,wtr=np.array([])):
   """
   Implements the whole logistic regression process
   1) datasets normalization
@@ -708,10 +708,7 @@ def do_all_logistic_regression(x,y_all,x_testset,y_testset=None,norm=True,verbos
   y_testset: if available, the function will compare it to the results obtained by logistic regression 
   If norm = True: data from the training and test sets are normalized. Default is True. 
             Must be deactivated if data are already normalized (e.g. after PCA...)
-  If output = True: returns prediction for both training and test sets and theta vector
-  If perc = True: returns the percentage rates of recovery of the training and test sets
   If wtr: indexes of the events in the following order : "true" training set (60%), CV set (20%) and test set (20%)
-  If ret_thres = True: returns the best threshold found after the precision and recall analysis
   """
   x.index = range(len(x.index))
   y_all.index = range(len(y_all.index))
@@ -789,18 +786,12 @@ def do_all_logistic_regression(x,y_all,x_testset,y_testset=None,norm=True,verbos
         plt.title('Test set')
     plt.show()
 
-  if output:
-    if ret_thres:
-      retlist = y_pred_train,theta,y_pred,thres
-    else:
-      retlist = y_pred_train,theta,y_pred
-  else:
-    retlist = ()
-  if perc:
-    if not y_testset:
-      retlist = retlist + ((p_tr,),)
-    else:
-      retlist = retlist + ((p_tr,p_test),)
+
+  output = {}
+  output['label_test'] = y_pred
+  output['label_train'] = y_pred_train
+  output['thetas'] = theta
+  output['threshold'] = thres
   if list(wtr):
-    retlist = retlist + (wtr,)
-  return retlist
+    output['training_set'] = wtr
+  return output
