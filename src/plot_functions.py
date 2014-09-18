@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 # ---------------------------------------------------
 # Plotting function for 1 feature
-def plot_hyp_func_1f(x,y,theta,threshold=None,x_ok=None,x_bad=None,text=None):
+def plot_hyp_func_1f(x,y,theta,threshold=None,x_ok=None,x_bad=None,th_comp=None,p_tr=None,p_test=None):
   """
   Plots the hypothesis function for one feature.
   Superimposed with histograms (training and test sets)
@@ -28,26 +28,46 @@ def plot_hyp_func_1f(x,y,theta,threshold=None,x_ok=None,x_bad=None,text=None):
 
   from LR_functions import g
   syn = np.arange(-1,1,0.01)
-  hyp = g(theta[0]+theta[1]*syn)
+  hyp = g(theta[1][0]+theta[1][1]*syn)
   norm = np.mean([np.max(nn[0]),np.max(nn[1])])
   plt.plot(syn,norm*hyp,'y-',lw=2,label='hypothesis')
 
   if threshold:
-    thres = np.ones(len(hyp))*threshold
+    thres = np.ones(len(hyp))*threshold[1]
     imin = np.argmin(np.abs(thres-hyp))
     t = syn[imin]
-    plt.plot([t,t],[0,np.max(nn)],'orange',lw=2.,label='decision')
+    plt.plot([t,t],[0,np.max(nn)],'orange',lw=3.,label='decision')
+
+  if th_comp:
+    hyp_svm = g(th_comp[1][0]+th_comp[1][1]*syn)
+    plt.plot(syn,norm*hyp_svm,'magenta',lw=2.)
+
+    thres = np.ones(len(hyp_svm))*.5
+    imin = np.argmin(np.abs(thres-hyp_svm))
+    t = syn[imin]
+    plt.plot([t,t],[0,np.max(nn)],'purple',lw=3.)
+ 
 
   if x_ok and x_bad:
     nn, b, p = plt.hist([x_ok,x_bad],25,normed=True,color=('k','r'),histtype='step',fill=False,ls='dashed',lw=2,label=['Test Set'])
 
   plt.xlim([-1,1])
   plt.legend()
-  if text:
-    plt.figtext(0.15,0.85,"%.2f %% %s"%(text[0],str_t[0]),color='b')
-    plt.figtext(0.15,0.8,"%.2f %% %s"%(text[1],str_t[1]),color='g')
-    plt.figtext(0.15,0.75,"%.2f %% test set"%text[2])
-    plt.figtext(0.15,0.7,"%.2f %% test set"%text[3],color='r')
+
+  if p_tr and p_test:
+    s = 12
+    x_pos = .15
+    y_pos = .87
+    pas = .04
+    plt.figtext(x_pos,y_pos,"Training : %.2f%%"%p_tr['global'],size=s)
+    plt.figtext(x_pos,y_pos-pas,"    %s %s%%"%(str_t[0],p_tr[(str_t[0],0)]),size=s,color='b')
+    plt.figtext(x_pos,y_pos-2*pas,"    %s %s%%"%(str_t[1],p_tr[(str_t[1],1)]),size=s,color='g')
+
+    y_pos = .74
+    plt.figtext(x_pos,y_pos,"Test : %.2f%%"%p_test['global'],size=s)
+    plt.figtext(x_pos+.15,y_pos,"(%.2f%%)"%(100-p_test['global']),size=s,color='red')
+    plt.figtext(x_pos,y_pos-pas,"    %s %s%%"%(str_t[0],p_test[(str_t[0],0)]),size=s)
+    plt.figtext(x_pos,y_pos-2*pas,"    %s %s%%"%(str_t[1],p_test[(str_t[1],1)]),size=s)
 
   plt.xlabel(x.columns[0])
   plt.title(x.columns[0])

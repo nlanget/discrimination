@@ -304,11 +304,13 @@ def classifier(opt):
           p_good_test = len(x_test_good)*1./len(x_test)*100
           text = [p_good_cl0,p_good_cl1,p_good_test,100-p_good_test]
 
-        if n_feat == 1:
-          from plot_functions import plot_hyp_func_1f
-          #from SVM_LR_plots import plot_hyp_func_1f
-          plot_hyp_func_1f(x_train,y_train,theta[1],threshold=threshold[1],x_ok=x_test_good,x_bad=x_test_bad,text=text)
+        if n_feat == 1 and len(opt.opdict['types']) == 2:
           name = opt.opdict['feat_list'][0]
+          from plot_functions import plot_hyp_func_1f
+          if opt.opdict['method']=='lr' and opt.opdict['compare']:
+            plot_hyp_func_1f(x_train,y_train,theta,threshold=threshold,x_ok=x_test_good,x_bad=x_test_bad,th_comp=theta_svm,p_test=p_test,p_tr=p_tr)
+          else:
+            plot_hyp_func_1f(x_train,y_train,theta,threshold=threshold,x_ok=x_test_good,x_bad=x_test_bad,p_test=p_test,p_tr=p_tr)
 
         elif n_feat == 2:
           from plot_2features import plot_2f_all
