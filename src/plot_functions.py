@@ -83,6 +83,10 @@ def plot_hyp_func_1f(x,y,theta,method,threshold=None,x_ok=None,x_bad=None,th_com
     ax1.text(x_pos,y_pos-3*pas,"SVM",size=s,transform=ax1.transAxes,color='purple')
     ax1.text(x_pos,y_pos-4*pas,"Test : %.2f%%"%p_svm['global'],size=s,transform=ax1.transAxes)
 
+  plt.figtext(.1,.93,'(a)')
+  plt.figtext(.63,.93,'(b)')
+  plt.figtext(.63,.48,'(c)')
+
 # ---------------------------------------------------
 def plot_sep_2f(x_train,y_train,str_t,x_all,y_all,x_bad,theta=[],text=None):
   """

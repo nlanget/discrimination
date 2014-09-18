@@ -412,12 +412,12 @@ def plot_confusion_mat(cmat,l,set,method,ax=None):
         ax.text(i,j,"%.2f"%cmat[j,i],color=col)
       else:
         ax.text(i,j,"%d"%np.around(cmat[j,i]),color=col)
-  ax.set_title('%s set - %s'%(set,method.upper()))
+  ax.set_title('%s set - %s'%(set,method.upper()),size=10)
   ax.set_xlabel('Prediction')
   ax.set_ylabel('Observation')
   if len(l) <= 4:
-    ax.set_xticklabels(l)
-    ax.set_yticklabels(l)
+    ax.set_xticklabels(['']+l)
+    ax.set_yticklabels(['']+l)
 
 # ================================================================
 def dic_percent(cmat,types,verbose=False):
