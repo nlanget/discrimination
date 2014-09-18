@@ -5,125 +5,84 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 # ---------------------------------------------------
-# Plotting function for 1 feature
-def plot_hyp_func_1f(x,y,theta,method,threshold=None,x_ok=None,x_bad=None,th_comp=None,p_tr=None,p_test=None,pcomp_test=None,pcomp_tr=None):
-  """
-  Plots the hypothesis function for one feature.
-  Superimposed with histograms (training and test sets)
-  x is a pandas DataFrame
-  y is a pandas DataFrame
-  """
+def plot_hyp_func_1f(x,y,theta,method,threshold=None,x_ok=None,x_bad=None,th_comp=None,cmat_test=[],cmat_svm=[],cmat_train=[]):
+
   num_t = np.unique(y.NumType.values.ravel())
   num_t = map(int,list(num_t))
   str_t = np.unique(y.Type.values.ravel())
   str_t = map(str,list(str_t))
 
-  fig = plt.figure()
+  fig = plt.figure(figsize=(12,7))
   fig.set_facecolor('white')
+
+  left, bottom = .1, .1
+  width, height = .5, .8
+  width_h, height_h = .25, .35
+  left_h, bottom_h = left+width+.05, bottom+height_h+.1
+  rect_1 = [left, bottom, width, height]
+  rect_2 = [left_h, bottom_h, width_h, height_h]
+  rect_3 = [left_h, bottom, width_h, height_h]
+
+  ax1 = plt.axes(rect_1)
+  ax2 = plt.axes(rect_2)
+  ax3 = plt.axes(rect_3)
 
   x1 = x[y.NumType.values.ravel()==num_t[0]].values[:,0]
   x2 = x[y.NumType.values.ravel()==num_t[1]].values[:,0]
 
-  nn,b,p = plt.hist([x1,x2],25,normed=True,histtype='stepfilled',alpha=.2,color=('b','g'),label=str_t)
+  nn,b,p = ax1.hist([x1,x2],25,normed=True,histtype='stepfilled',alpha=.2,color=('b','g'),label=str_t)
 
   from LR_functions import g
   syn = np.arange(-1,1,0.01)
   hyp = g(theta[1][0]+theta[1][1]*syn)
   norm = np.mean([np.max(nn[0]),np.max(nn[1])])
-  plt.plot(syn,norm*hyp,'y-',lw=2,label='hypothesis')
+  ax1.plot(syn,norm*hyp,'y-',lw=2,label='hypothesis')
 
   if threshold:
     thres = np.ones(len(hyp))*threshold[1]
     imin = np.argmin(np.abs(thres-hyp))
     t = syn[imin]
-    plt.plot([t,t],[0,np.max(nn)],'orange',lw=3.,label='decision')
+    ax1.plot([t,t],[0,np.max(nn)],'orange',lw=3.,label='decision')
 
   if th_comp:
     hyp_svm = g(th_comp[1][0]+th_comp[1][1]*syn)
-    plt.plot(syn,norm*hyp_svm,'magenta',lw=2.)
+    ax1.plot(syn,norm*hyp_svm,'magenta',lw=2.)
 
     thres = np.ones(len(hyp_svm))*.5
     imin = np.argmin(np.abs(thres-hyp_svm))
     t = syn[imin]
-    plt.plot([t,t],[0,np.max(nn)],'purple',lw=3.)
- 
+    ax1.plot([t,t],[0,np.max(nn)],'purple',lw=3.)
 
   if x_ok and x_bad:
-    nn, b, p = plt.hist([x_ok,x_bad],25,normed=True,color=('k','r'),histtype='step',fill=False,ls='dashed',lw=2,label=['Test Set'])
+    nn, b, p = ax1.hist([x_ok,x_bad],25,normed=True,color=('k','r'),histtype='step',fill=False,ls='dashed',lw=2,label=['Test Set'])
 
-  plt.xlim([-1,1])
-  plt.legend()
+  ax1.set_xlim([-1,1])
+  ax1.legend(prop={'size':12})
+  ax1.set_xlabel(x.columns[0])
+  ax1.set_title(x.columns[0])
 
-  if p_tr and p_test:
-    s = 12
-    x_pos = .15
-    y_pos = .87
-    pas = .04
-    plt.figtext(x_pos-.02,y_pos,"%s"%method.upper(),size=s)
-    plt.figtext(x_pos,y_pos-pas,"Training : %.2f%%"%p_tr['global'],size=s)
-    plt.figtext(x_pos,y_pos-2*pas,"    %s %s%%"%(str_t[0],p_tr[(str_t[0],0)]),size=s,color='b')
-    plt.figtext(x_pos,y_pos-3*pas,"    %s %s%%"%(str_t[1],p_tr[(str_t[1],1)]),size=s,color='g')
+  from do_classification import plot_confusion_mat, dic_percent
+  s = 12
+  x_pos = .05
+  y_pos = .95
+  pas = .04
+  if list(cmat_test):
+    plot_confusion_mat(cmat_test,str_t,'Test',method,ax=ax2)
+    p_test = dic_percent(cmat_test,str_t)
+    ax1.text(x_pos,y_pos,method.upper(),size=s,transform=ax1.transAxes,color='orange')
+    ax1.text(x_pos,y_pos-pas,"Test : %.2f%%"%p_test['global'],size=s,transform=ax1.transAxes)
+    
+  if list(cmat_train):
+    plot_confusion_mat(cmat_train,str_t,'Training',method,ax=ax3)
+    p_train = dic_percent(cmat_train,str_t)
+    ax1.text(x_pos,y_pos-2*pas,"Training : %.2f%%"%p_train['global'],size=s,transform=ax1.transAxes)
+    
+  if list(cmat_svm):
+    plot_confusion_mat(cmat_svm,str_t,'Test','SVM',ax=ax3)
+    p_svm = dic_percent(cmat_svm,str_t)
+    ax1.text(x_pos,y_pos-3*pas,"SVM",size=s,transform=ax1.transAxes,color='purple')
+    ax1.text(x_pos,y_pos-4*pas,"Test : %.2f%%"%p_svm['global'],size=s,transform=ax1.transAxes)
 
-    y_pos = .70
-    plt.figtext(x_pos,y_pos,"Test : %.2f%%"%p_test['global'],size=s)
-    plt.figtext(x_pos+.15,y_pos,"(%.2f%%)"%(100-p_test['global']),size=s,color='red')
-    plt.figtext(x_pos,y_pos-pas,"    %s %s%%"%(str_t[0],p_test[(str_t[0],0)]),size=s)
-    plt.figtext(x_pos,y_pos-2*pas,"    %s %s%%"%(str_t[1],p_test[(str_t[1],1)]),size=s)
-
-  if pcomp_tr and pcomp_test:
-    s = 12
-    x_pos = .65
-    y_pos = .57
-    pas = .04
-    plt.figtext(x_pos-.02,y_pos,"SVM",size=s)
-    plt.figtext(x_pos,y_pos-pas,"Training : %.2f%%"%pcomp_tr['global'],size=s)
-    plt.figtext(x_pos,y_pos-2*pas,"    %s %s%%"%(str_t[0],pcomp_tr[(str_t[0],0)]),size=s,color='b')
-    plt.figtext(x_pos,y_pos-3*pas,"    %s %s%%"%(str_t[1],pcomp_tr[(str_t[1],1)]),size=s,color='g')
-
-    y_pos = .40
-    plt.figtext(x_pos,y_pos,"Test : %.2f%%"%pcomp_test['global'],size=s)
-    plt.figtext(x_pos+.15,y_pos,"(%.2f%%)"%(100-pcomp_test['global']),size=s,color='red')
-    plt.figtext(x_pos,y_pos-pas,"    %s %s%%"%(str_t[0],pcomp_test[(str_t[0],0)]),size=s)
-    plt.figtext(x_pos,y_pos-2*pas,"    %s %s%%"%(str_t[1],pcomp_test[(str_t[1],1)]),size=s)
-
-  plt.xlabel(x.columns[0])
-  plt.title(x.columns[0])
-# ---------------------------------------------------
-def plot_sep_1f(x,y,theta=[],str_t=None,x_ok=None,x_bad=None,text=None):
-  """
-  Plots the boundary decision for one feature.
-  Superimposed with histograms (training and test sets)
-  x is a pandas DataFrame
-  y is a pandas DataFrame
-  """
-  num_t = np.unique(y.values.ravel())
-  if not str_t:
-    str_t = map(str,list(num_t))
-
-  fig = plt.figure()
-  fig.set_facecolor('white')
-
-  x1 = x[y.values.ravel()==num_t[0]].values[:,0]
-  x2 = x[y.values.ravel()==num_t[1]].values[:,0]
-
-  nn,b,p = plt.hist([x1,x2],25,normed=True,histtype='stepfilled',alpha=.2,color=('b','g'),label=str_t)
-  if list(theta):
-    xplot = -theta[0]*1./theta[1]
-    plt.plot([xplot,xplot],[0,np.max(nn)],'orange',lw=2.)
-
-  if x_ok and x_bad:
-    nn, b, p = plt.hist([x_ok,x_bad],25,normed=True,color=('k','r'),histtype='step',fill=False,ls='dashed',lw=2,label=['Test Set'])
-
-  plt.xlim([-1,1])
-  plt.legend()
-  if text:
-    plt.figtext(0.15,0.85,"%.2f %% %s"%(text[0],str_t[0]),color='b')
-    plt.figtext(0.15,0.8,"%.2f %% %s"%(text[1],str_t[1]),color='g')
-    plt.figtext(0.15,0.75,"%.2f %% test set"%text[2])
-    plt.figtext(0.15,0.7,"%.2f %% test set"%text[3],color='r')
-
-  plt.xlabel(x.columns[0])
-  plt.title(x.columns[0])
 # ---------------------------------------------------
 def plot_sep_2f(x_train,y_train,str_t,x_all,y_all,x_bad,theta=[],text=None):
   """

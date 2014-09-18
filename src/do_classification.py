@@ -212,20 +212,20 @@ def classifier(opt):
       print "\t *TRAINING SET"
       y_train_np = y_train.NumType.values.ravel()  
       from sklearn.metrics import confusion_matrix
-      cmat = confusion_matrix(y_train_np,CLASS_train)
-      p_tr = dic_percent(cmat,y_train.shape[0],opt.types,verbose=True)
+      cmat_train = confusion_matrix(y_train_np,CLASS_train)
+      p_tr = dic_percent(cmat_train,opt.types,verbose=True)
       if opt.opdict['plot_confusion'] or opt.opdict['save_confusion']:
-        plot_confusion_mat(cmat,opt.types,'Training',opt.opdict['method'].upper())
+        plot_confusion_mat(cmat_train,opt.types,'Training',opt.opdict['method'].upper())
         if opt.opdict['save_confusion']:
           plt.savefig('%s/figures/training_%s.png'%(opt.opdict['outdir'],opt.opdict['result_file'][8:]))
 
       # TEST SET
       print "\t *TEST SET"
       y_test_np = y_test.NumType.values.ravel()
-      cmat = confusion_matrix(y_test_np,CLASS_test)
-      p_test = dic_percent(cmat,y_test.shape[0],opt.types,verbose=True)
+      cmat_test = confusion_matrix(y_test_np,CLASS_test)
+      p_test = dic_percent(cmat_test,opt.types,verbose=True)
       if opt.opdict['plot_confusion'] or opt.opdict['save_confusion']:
-        plot_confusion_mat(cmat,opt.types,'Training',opt.opdict['method'].upper())
+        plot_confusion_mat(cmat_test,opt.types,'Training',opt.opdict['method'].upper())
         if opt.opdict['save_confusion']:
           plt.savefig('%s/figures/test_%s.png'%(opt.opdict['outdir'],opt.opdict['result_file'][8:]))
         if opt.opdict['plot_confusion']:
@@ -262,8 +262,8 @@ def classifier(opt):
           out_svm = implement_svm(x_train,x_test,y_train,y_test,opt.types,opt.opdict,kern='Lin')
           cmat_svm_tr = confusion_matrix(y_train_np,out_svm['label_train'])
           cmat_svm_test = confusion_matrix(y_test_np,out_svm['label_test'])
-          svm_ptr = dic_percent(cmat_svm_tr,y_train.shape[0],opt.types)
-          svm_pt = dic_percent(cmat_svm_test,y_test.shape[0],opt.types)
+          svm_ptr = dic_percent(cmat_svm_tr,opt.types)
+          svm_pt = dic_percent(cmat_svm_test,opt.types)
           theta_svm,t_svm = {},{}
           for it in range(len(out_svm['thetas'])):
             theta_svm[it+1] = np.append(out_svm['thetas'][it][-1],out_svm['thetas'][it][:-1])
@@ -287,9 +287,9 @@ def classifier(opt):
           name = opt.opdict['feat_list'][0]
           from plot_functions import plot_hyp_func_1f
           if opt.opdict['method']=='lr' and opt.opdict['compare']:
-            plot_hyp_func_1f(x_train,y_train,theta,opt.opdict['method'],threshold=threshold,x_ok=x_test_good,x_bad=x_test_bad,p_test=p_test,p_tr=p_tr,th_comp=theta_svm,pcomp_test=svm_pt,pcomp_tr=svm_ptr)
+            plot_hyp_func_1f(x_train,y_train,theta,opt.opdict['method'],threshold=threshold,x_ok=x_test_good,x_bad=x_test_bad,th_comp=theta_svm,cmat_test=cmat_test,cmat_svm=cmat_svm_test)
           else:
-            plot_hyp_func_1f(x_train,y_train,theta,opt.opdict['method'],threshold=threshold,x_ok=x_test_good,x_bad=x_test_bad,p_test=p_test,p_tr=p_tr)
+            plot_hyp_func_1f(x_train,y_train,theta,opt.opdict['method'],threshold=threshold,x_ok=x_test_good,x_bad=x_test_bad,cmat_test=cmat_test,cmat_train=cmat_train)
 
         # PLOT FOR 2 ATTRIBUTES AND 2 to 3 CLASSES
         elif n_feat == 2:
@@ -388,7 +388,7 @@ def create_training_set_fix(y_ref,numt):
 
 # ================================================================
 
-def plot_confusion_mat(cmat,l,set,method):
+def plot_confusion_mat(cmat,l,set,method,ax=None):
   """
   Plots the confusion matrix
   """
@@ -396,7 +396,12 @@ def plot_confusion_mat(cmat,l,set,method):
   for i in range(cmat.shape[0]):
     cmat[i,:] = cmat[i,:]*100./np.sum(cmat[i,:])
 
-  plt.matshow(cmat,cmap=plt.cm.gray_r)
+  if not ax:
+    fig = plt.figure()
+    fig.set_facecolor('white')
+    ax = fig.add_subplot(111)
+
+  ax.matshow(cmat,cmap=plt.cm.gray_r)
   for i in range(cmat.shape[0]):
     for j in range(cmat.shape[0]):
       if cmat[j,i] >= np.max(cmat)/2. or cmat[j,i] > 50:
@@ -404,21 +409,24 @@ def plot_confusion_mat(cmat,l,set,method):
       else:
         col = 'k'
       if cmat.shape[0] <= 4:
-        plt.text(i,j,"%.2f"%cmat[j,i],color=col)
+        ax.text(i,j,"%.2f"%cmat[j,i],color=col)
       else:
-        plt.text(i,j,"%d"%np.around(cmat[j,i]),color=col)
-  plt.title('%s set - %s'%(set,method.upper()))
-  plt.xlabel('Prediction')
-  plt.ylabel('Observation')
+        ax.text(i,j,"%d"%np.around(cmat[j,i]),color=col)
+  ax.set_title('%s set - %s'%(set,method.upper()))
+  ax.set_xlabel('Prediction')
+  ax.set_ylabel('Observation')
   if len(l) <= 4:
-    plt.xticks(range(len(l)),l)
-    plt.yticks(range(len(l)),l)
+    ax.set_xticklabels(l)
+    ax.set_yticklabels(l)
 
 # ================================================================
-def dic_percent(cmat,nb_ev,types,verbose=False):
-  p = {}
-  p['global'] = np.sum(np.diag(cmat))*1./nb_ev*100
+def dic_percent(cmat,types,verbose=False):
+
   NB_class = cmat.shape[0]
+  NB_ev = np.sum(cmat)
+
+  p = {}
+  p['global'] = np.sum(np.diag(cmat))*1./NB_ev*100
   for i in range(NB_class):
     l_man = np.sum(cmat[i,:])
     l_auto = np.sum(cmat[:,i])
