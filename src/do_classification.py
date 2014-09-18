@@ -212,34 +212,15 @@ def classifier(opt):
       print "\t *TRAINING SET"
       y_train_np = y_train.NumType.values.ravel()
       cmat = confusion(y_train_np,CLASS_train,opt.types,'Training',opt.opdict['method'].upper(),plot=opt.opdict['plot_confusion'])
+      p_tr = dic_percent(cmat,y_train.shape[0],opt.types,verbose=True)
       if opt.opdict['plot_confusion'] and opt.opdict['save_confusion']:
         plt.savefig('%s/figures/training_%s.png'%(opt.opdict['outdir'],opt.opdict['result_file'][8:]))
-
-      NB_class = cmat.shape[0]
-      p_tr = {}
-      p_tr['global'] = np.sum(np.diag(cmat))*1./y_train.shape[0]*100
-      print "Correct classification: %.2f%%"%p_tr['global']
-      for i in range(NB_class):
-        l_man = np.sum(cmat[i,:])
-        l_auto = np.sum(cmat[:,i])
-        p_cl = cmat[i,i]*1./l_man*100
-        p_tr[('%s'%opt.types[i],i)] = '%.2f'%p_cl
-        print "Extraction of %s (%d) : %.2f%%"%(opt.types[i],i,p_cl)
 
       # TEST SET
       print "\t *TEST SET"
       y_test_np = y_test.NumType.values.ravel()
-      p_test = {}
       cmat = confusion(y_test_np,CLASS_test,opt.types,'Test',opt.opdict['method'].upper(),plot=opt.opdict['plot_confusion'])
-      p_test['global'] = np.sum(np.diag(cmat))*1./y_test.shape[0]*100
-      print "Correct classification: %.2f%%"%p_test['global']
-      for i in range(NB_class):
-        l_man = np.sum(cmat[i,:])
-        l_auto = np.sum(cmat[:,i])
-        p_cl = cmat[i,i]*1./l_man*100
-        p_test[('%s'%opt.types[i],i)] = '%.2f'%p_cl
-        print "Extraction of %s (%d) : %.2f%%"%(opt.types[i],i,p_cl)
-
+      p_test = dic_percent(cmat,y_test.shape[0],opt.types,verbose=True)
       if opt.opdict['plot_confusion']:
         if opt.opdict['save_confusion']:
           plt.savefig('%s/figures/test_%s.png'%(opt.opdict['outdir'],opt.opdict['result_file'][8:]))
@@ -267,23 +248,19 @@ def classifier(opt):
           print "Theta values:",theta
           print "Threshold:", threshold
 
+        # COMPARE AND PLOT LR AND SVM RESULTS
         if opt.opdict['method']=='lr' and opt.opdict['compare']:
           dir = 'LR_SVM_SEP'
           out_svm = implement_svm(x_train,x_test,y_train,y_test,opt.types,opt.opdict,kern='Lin')
           cmat_svm_tr = confusion(y_train_np,out_svm['label_train'],opt.types,'Training',opt.opdict['method'].upper())
           cmat_svm_test = confusion(y_test_np,out_svm['label_test'],opt.types,'Training',opt.opdict['method'].upper())
-          svm_p = {}
-          svm_p['global'] = np.sum(np.diag(cmat_svm_test))*1./y_test.shape[0]*100
-          for i in range(NB_class):
-            l_man = np.sum(cmat_svm_test[i,:])
-            l_auto = np.sum(cmat_svm_test[:,i])
-            p_cl = cmat_svm_test[i,i]*1./l_man*100
-            svm_p[('%s'%opt.types[i],i)] = '%.2f'%p_cl
-
+          svm_ptr = dic_percent(cmat_svm_tr,y_train.shape[0],opt.types)
+          svm_pt = dic_percent(cmat_svm_test,y_test.shape[0],opt.types)
           theta_svm,t_svm = {},{}
           for it in range(len(out_svm['thetas'])):
             theta_svm[it+1] = np.append(out_svm['thetas'][it][-1],out_svm['thetas'][it][:-1])
             t_svm[it+1] = 0.5
+
         else:
           dir = '%s_SEP'%opt.opdict['method']
 
@@ -297,21 +274,16 @@ def classifier(opt):
         x_test_good = x_test.reindex(index=y_test[y_test.NumType.values==CLASS_test].index)
         x_test_bad = x_test.reindex(index=y_test[y_test.NumType.values!=CLASS_test].index)
 
-        text = None
-        if len(opt.opdict['types']) == 2:
-          p_good_cl0 = len(good_train[good_train.NumType==0])*1./len(y_train[y_train.NumType==0])*100
-          p_good_cl1 = len(good_train[good_train.NumType==1])*1./len(y_train[y_train.NumType==1])*100
-          p_good_test = len(x_test_good)*1./len(x_test)*100
-          text = [p_good_cl0,p_good_cl1,p_good_test,100-p_good_test]
-
+        # PLOT FOR 1 ATTRIBUTE AND 2 CLASSES
         if n_feat == 1 and len(opt.opdict['types']) == 2:
           name = opt.opdict['feat_list'][0]
           from plot_functions import plot_hyp_func_1f
           if opt.opdict['method']=='lr' and opt.opdict['compare']:
-            plot_hyp_func_1f(x_train,y_train,theta,threshold=threshold,x_ok=x_test_good,x_bad=x_test_bad,th_comp=theta_svm,p_test=p_test,p_tr=p_tr)
+            plot_hyp_func_1f(x_train,y_train,theta,opt.opdict['method'],threshold=threshold,x_ok=x_test_good,x_bad=x_test_bad,p_test=p_test,p_tr=p_tr,th_comp=theta_svm,pcomp_test=svm_pt,pcomp_tr=svm_ptr)
           else:
-            plot_hyp_func_1f(x_train,y_train,theta,threshold=threshold,x_ok=x_test_good,x_bad=x_test_bad,p_test=p_test,p_tr=p_tr)
+            plot_hyp_func_1f(x_train,y_train,theta,opt.opdict['method'],threshold=threshold,x_ok=x_test_good,x_bad=x_test_bad,p_test=p_test,p_tr=p_tr)
 
+        # PLOT FOR 2 ATTRIBUTES AND 2 to 3 CLASSES
         elif n_feat == 2:
           from plot_2features import plot_2f_all
           if opt.opdict['method']=='lr' and opt.opdict['compare']:
@@ -320,6 +292,7 @@ def classifier(opt):
             plot_2f_all(theta,threshold,p_test,opt.opdict['method'],x_train,y_train,x_test,y_test,x_test_bad,opt.types,text=text)
           name = '%s_%s'%(opt.opdict['feat_list'][0],opt.opdict['feat_list'][1])
 
+        # PLOT FOR 3 ATTRIBUTES
         elif n_feat == 3:
           from plot_functions import plot_db_3d
           plot_db_3d(x_train,y_train.NumType,theta[1],title='Training set')
@@ -437,6 +410,19 @@ def confusion(y,y_auto,l,set,method,plot=False):
       plt.yticks(range(len(l)),l)
   return cmat_nb
 
+# ================================================================
+def dic_percent(cmat,nb_ev,types,verbose=False):
+  p = {}
+  p['global'] = np.sum(np.diag(cmat))*1./nb_ev*100
+  NB_class = cmat.shape[0]
+  for i in range(NB_class):
+    l_man = np.sum(cmat[i,:])
+    l_auto = np.sum(cmat[:,i])
+    p_cl = cmat[i,i]*1./l_man*100
+    p[('%s'%types[i],i)] = '%.2f'%p_cl
+    if verbose:
+        print "Extraction of %s (%d) : %.2f%%"%(types[i],i,p_cl)
+  return p
 # ================================================================
 
 def implement_svm(x_train,x_test,y_train,y_test,types,opdict,kern='NonLin',proba=False):

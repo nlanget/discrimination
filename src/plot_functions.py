@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 # ---------------------------------------------------
 # Plotting function for 1 feature
-def plot_hyp_func_1f(x,y,theta,threshold=None,x_ok=None,x_bad=None,th_comp=None,p_tr=None,p_test=None):
+def plot_hyp_func_1f(x,y,theta,method,threshold=None,x_ok=None,x_bad=None,th_comp=None,p_tr=None,p_test=None,pcomp_test=None,pcomp_tr=None):
   """
   Plots the hypothesis function for one feature.
   Superimposed with histograms (training and test sets)
@@ -59,15 +59,32 @@ def plot_hyp_func_1f(x,y,theta,threshold=None,x_ok=None,x_bad=None,th_comp=None,
     x_pos = .15
     y_pos = .87
     pas = .04
-    plt.figtext(x_pos,y_pos,"Training : %.2f%%"%p_tr['global'],size=s)
-    plt.figtext(x_pos,y_pos-pas,"    %s %s%%"%(str_t[0],p_tr[(str_t[0],0)]),size=s,color='b')
-    plt.figtext(x_pos,y_pos-2*pas,"    %s %s%%"%(str_t[1],p_tr[(str_t[1],1)]),size=s,color='g')
+    plt.figtext(x_pos-.02,y_pos,"%s"%method.upper(),size=s)
+    plt.figtext(x_pos,y_pos-pas,"Training : %.2f%%"%p_tr['global'],size=s)
+    plt.figtext(x_pos,y_pos-2*pas,"    %s %s%%"%(str_t[0],p_tr[(str_t[0],0)]),size=s,color='b')
+    plt.figtext(x_pos,y_pos-3*pas,"    %s %s%%"%(str_t[1],p_tr[(str_t[1],1)]),size=s,color='g')
 
-    y_pos = .74
+    y_pos = .70
     plt.figtext(x_pos,y_pos,"Test : %.2f%%"%p_test['global'],size=s)
     plt.figtext(x_pos+.15,y_pos,"(%.2f%%)"%(100-p_test['global']),size=s,color='red')
     plt.figtext(x_pos,y_pos-pas,"    %s %s%%"%(str_t[0],p_test[(str_t[0],0)]),size=s)
     plt.figtext(x_pos,y_pos-2*pas,"    %s %s%%"%(str_t[1],p_test[(str_t[1],1)]),size=s)
+
+  if pcomp_tr and pcomp_test:
+    s = 12
+    x_pos = .65
+    y_pos = .57
+    pas = .04
+    plt.figtext(x_pos-.02,y_pos,"SVM",size=s)
+    plt.figtext(x_pos,y_pos-pas,"Training : %.2f%%"%pcomp_tr['global'],size=s)
+    plt.figtext(x_pos,y_pos-2*pas,"    %s %s%%"%(str_t[0],pcomp_tr[(str_t[0],0)]),size=s,color='b')
+    plt.figtext(x_pos,y_pos-3*pas,"    %s %s%%"%(str_t[1],pcomp_tr[(str_t[1],1)]),size=s,color='g')
+
+    y_pos = .40
+    plt.figtext(x_pos,y_pos,"Test : %.2f%%"%pcomp_test['global'],size=s)
+    plt.figtext(x_pos+.15,y_pos,"(%.2f%%)"%(100-pcomp_test['global']),size=s,color='red')
+    plt.figtext(x_pos,y_pos-pas,"    %s %s%%"%(str_t[0],pcomp_test[(str_t[0],0)]),size=s)
+    plt.figtext(x_pos,y_pos-2*pas,"    %s %s%%"%(str_t[1],pcomp_test[(str_t[1],1)]),size=s)
 
   plt.xlabel(x.columns[0])
   plt.title(x.columns[0])
