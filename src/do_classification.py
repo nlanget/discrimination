@@ -209,7 +209,7 @@ def classifier(opt):
       CLASS_train = out['label_train']
 
       # TRAINING SET
-      print "\t *Training set"
+      print "\t *TRAINING SET"
       y_train_np = y_train.NumType.values.ravel()
       cmat = confusion(y_train_np,CLASS_train,opt.types,'Training',opt.opdict['method'].upper(),plot=opt.opdict['plot_confusion'])
       if opt.opdict['plot_confusion'] and opt.opdict['save_confusion']:
@@ -227,7 +227,7 @@ def classifier(opt):
         print "Extraction of %s (%d) : %.2f%%"%(opt.types[i],i,p_cl)
 
       # TEST SET
-      print "\t *Test set"
+      print "\t *TEST SET"
       y_test_np = y_test.NumType.values.ravel()
       p_test = {}
       cmat = confusion(y_test_np,CLASS_test,opt.types,'Test',opt.opdict['method'].upper(),plot=opt.opdict['plot_confusion'])
@@ -263,6 +263,7 @@ def classifier(opt):
       n_feat = x_train.shape[1] # number of features
       if n_feat < 4:
         if opt.opdict['plot_sep'] or opt.opdict['save_sep']:
+          print "\nPLOTTING"
           print "Theta values:",theta
           print "Threshold:", threshold
 
@@ -304,15 +305,12 @@ def classifier(opt):
           text = [p_good_cl0,p_good_cl1,p_good_test,100-p_good_test]
 
         if n_feat == 1:
-          from plot_functions import plot_hyp_func_1f, plot_sep_1f
-          #plot_sep_1f(x_train,y_train,theta=theta[1],str_t=opt.types,x_ok=x_test_good,x_bad=x_test_bad,text=text)
+          from plot_functions import plot_hyp_func_1f
           #from SVM_LR_plots import plot_hyp_func_1f
-          plot_hyp_func_1f(x_train,y_train,theta[1],threshold=threshold[1],str_t=opt.types,x_ok=x_test_good,x_bad=x_test_bad,text=text)
+          plot_hyp_func_1f(x_train,y_train,theta[1],threshold=threshold[1],x_ok=x_test_good,x_bad=x_test_bad,text=text)
           name = opt.opdict['feat_list'][0]
 
         elif n_feat == 2:
-          #from plot_functions import plot_sep_2f
-          #plot_sep_2f(x_train,y_train.NumType,opt.types,x_test,y_test.NumType,x_test_bad,theta=theta[1],text=text)
           from plot_2features import plot_2f_all
           if opt.opdict['method']=='lr' and opt.opdict['compare']:
             plot_2f_all(theta,threshold,p_test,opt.opdict['method'],x_train,y_train,x_test,y_test,x_test_bad,opt.types,text=text,th_comp=theta_svm,t_comp=t_svm,p=svm_p)

@@ -6,22 +6,23 @@ import matplotlib.pyplot as plt
 import pandas as pd
 # ---------------------------------------------------
 # Plotting function for 1 feature
-def plot_hyp_func_1f(x,y,theta,str_t=None,threshold=None,x_ok=None,x_bad=None,text=None):
+def plot_hyp_func_1f(x,y,theta,threshold=None,x_ok=None,x_bad=None,text=None):
   """
   Plots the hypothesis function for one feature.
   Superimposed with histograms (training and test sets)
   x is a pandas DataFrame
   y is a pandas DataFrame
   """
-  num_t = np.unique(y.values.ravel())
-  if not str_t:
-    str_t = map(str,list(num_t))
+  num_t = np.unique(y.NumType.values.ravel())
+  num_t = map(int,list(num_t))
+  str_t = np.unique(y.Type.values.ravel())
+  str_t = map(str,list(str_t))
 
   fig = plt.figure()
   fig.set_facecolor('white')
 
-  x1 = x[y.values.ravel()==num_t[0]].values[:,0]
-  x2 = x[y.values.ravel()==num_t[1]].values[:,0]
+  x1 = x[y.NumType.values.ravel()==num_t[0]].values[:,0]
+  x2 = x[y.NumType.values.ravel()==num_t[1]].values[:,0]
 
   nn,b,p = plt.hist([x1,x2],25,normed=True,histtype='stepfilled',alpha=.2,color=('b','g'),label=str_t)
 
@@ -35,7 +36,7 @@ def plot_hyp_func_1f(x,y,theta,str_t=None,threshold=None,x_ok=None,x_bad=None,te
     thres = np.ones(len(hyp))*threshold
     imin = np.argmin(np.abs(thres-hyp))
     t = syn[imin]
-    plt.plot([t,t],[0,np.max(nn)],'orange',lw=2.)
+    plt.plot([t,t],[0,np.max(nn)],'orange',lw=2.,label='decision')
 
   if x_ok and x_bad:
     nn, b, p = plt.hist([x_ok,x_bad],25,normed=True,color=('k','r'),histtype='step',fill=False,ls='dashed',lw=2,label=['Test Set'])
@@ -108,7 +109,6 @@ def plot_sep_2f(x_train,y_train,str_t,x_all,y_all,x_bad,theta=[],text=None):
       x2 = np.arange(-1,1,pas)
       x1, x2 = np.meshgrid(x1,x2)
       proba = g(theta[0] + theta[1]*x1 + theta[2]*x2)
-      print x2.shape, x1.shape, proba.shape
       CS = plt.contour(x1,x2,proba)
       plt.clabel(CS, inline=.1, fontsize=10)
 
