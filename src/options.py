@@ -133,7 +133,11 @@ class Options(object):
     #self.opdict = ijen()
     self.opdict = piton()
 
+    ### Import classification options ###
+    self.set_classi_options()
+    ### Complete directory/file names ###
     self.fill_opdict()
+
 
   def fill_opdict(self):
     ### Check the existence of directories and create if necessary ###
@@ -148,6 +152,9 @@ class Options(object):
     ### Figures directory
     self.opdict['fig_path'] = '%s/figures'%self.opdict['outdir']
     self.verify_and_create(self.opdict['fig_path'])
+    ### Result directory
+    self.opdict['res_dir'] = '%s/%s'%(self.opdict['outdir'],self.opdict['method'].upper())
+    self.verify_and_create(self.opdict['res_dir'])
 
     ### if there is an independent training set
     if 'feat_train' in sorted(self.opdict):
@@ -162,11 +169,6 @@ class Options(object):
     self.opdict['label_filename'] = '%s/%s'%(self.opdict['libdir'],self.opdict['label_test'])
     self.verify_file(self.opdict['label_filename'])
 
-    ### Import classification options ###
-    self.set_classi_options()
-    self.opdict['res_dir'] = '%s/%s'%(self.opdict['outdir'],self.opdict['method'].upper())
-    self.verify_and_create(self.opdict['res_dir'])
-
 
     ### DIFFERENT TRAINING SETS (CREATED FROM THE TEST SET)
     if 'train_file' in sorted(self.opdict):
@@ -179,8 +181,8 @@ class Options(object):
     date = time.localtime()
     if self.opdict['option'] == 'norm':
       # Features "normales"
-      #self.opdict['feat_list'] = self.opdict['feat_all']
-      self.opdict['feat_list'] = ['AsDec']
+      self.opdict['feat_list'] = self.opdict['feat_all']
+      #self.opdict['feat_list'] = ['RappMaxMean']
       #self.opdict['feat_log'] = ['RappMaxMean']
       #self.opdict['feat_log'] = ['AsDec','Dur','Ene0-5','Growth','ibw0','MeanPredF','RappMaxMean','RappMaxMeanTF','TimeMaxSpec','v0','v8','v9'] # list of features to be normalized with np.log (makes data look more gaussians)
       #self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Growth','Kurto','RappMaxMean','RappMaxMeanTF','Skewness','TimeMaxSpec','Width']
@@ -250,7 +252,7 @@ class Options(object):
     self.opdict['probas'] = False
 
     ### Display and save the PDFs of the features ###
-    self.opdict['plot_pdf'] = False
+    self.opdict['plot_pdf'] = True
     self.opdict['save_pdf'] = False
 
     ### Display and save the confusion matrices ###
@@ -284,6 +286,19 @@ class Options(object):
     self.opdict['label_test'] = '%s_%dc_test.csv'%(self.sep,len(self.opdict['types']))
     self.opdict['learn_file'] = 'learning_set'
     self.opdict['feat_all'] = ['x1','x2']
+
+    self.opdict['option'] = 'norm'
+    self.opdict['method'] = 'lr'
+    self.opdict['probas'] = False
+    self.opdict['boot'] = 1
+    self.opdict['plot_pdf'] = False # display the pdfs of the features
+    self.opdict['save_pdf'] = False
+    self.opdict['plot_confusion'] = False # display the confusion matrices
+    self.opdict['save_confusion'] = False
+    self.opdict['plot_sep'] = False # plot decision boundary
+    self.opdict['save_sep'] = False
+    self.opdict['plot_prec_rec'] = False # plot precision and recall
+    self.opdict['compare'] = False
 
 
   def data_for_LR(self):
