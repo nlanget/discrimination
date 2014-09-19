@@ -4,7 +4,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-
+### ====================================================
+### FUNCTIONS ###
 def read_binary_file(filename):
   """
   Reads a binary file.
@@ -77,7 +78,8 @@ def conversion(df1,df2,col):
 
   return df2
 
-# ====================================================
+### ====================================================
+### HEADER FOR IJEN DATA ###
 def ijen():
   opdict = {}
   optdict['dir'] = 'Ijen'
@@ -97,7 +99,7 @@ def ijen():
   opdict['feat_all'] = ['AsDec','Bandwidth','CentralF','Centroid_time','Dur','Ene20-30','Ene5-10','Ene0-5','F_low','F_up','Growth','IFslope','Kurto','MeanPredF','NbPeaks','PredF','RappMaxMean','RappMaxMeanTF','Skewness','sPredF','TimeMaxSpec','Width','ibw0','ibw1','ibw2','ibw3','ibw4','ibw5','ibw6','ibw7','ibw8','ibw9','if0','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9']
   return opdict
 
-
+### HEADER FOR PITON DE LA FOURNAISE DATA ###
 def piton():
   opdict = {}
   opdict['dir'] = 'Piton'
@@ -108,8 +110,8 @@ def piton():
   ### FEATURES FILES
   #opdict['feat_train'] = 'clement_train.csv'
   #opdict['feat_test'] = 'clement_test.csv'
-  opdict['feat_train'] = '1809_Piton_trainset.csv'
-  opdict['feat_test'] = '1809_Piton_testset.csv'
+  opdict['feat_train'] = 'Piton_trainset.csv'
+  opdict['feat_test'] = 'Piton_testset.csv'
   ### HASH TABLE FEATURES FILES
   opdict['hash_train'] = 'HT_Piton_trainset.csv'
   opdict['hash_test'] = 'HT_Piton_testset.csv'
@@ -122,9 +124,8 @@ def piton():
   opdict['feat_all'] = ['AsDec','Bandwidth','CentralF','Centroid_time','Dur','Ene','Ene5-10','Ene0-5','F_low','F_up','Growth','IFslope','Kurto','MeanPredF','NbPeaks','PredF','RappMaxMean','RappMaxMeanTF','Skewness','sPredF','TimeMaxSpec','Width','ibw0','ibw1','ibw2','ibw3','ibw4','ibw5','ibw6','ibw7','ibw8','ibw9','if0','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9','Rectilinearity','Planarity','Azimuth','Incidence'] 
   return opdict
 
-
-# ====================================================
-
+### ====================================================
+### CLASS Options() ###
 class Options(object):
 
   def __init__(self):
@@ -139,7 +140,50 @@ class Options(object):
     self.fill_opdict()
 
 
+  def set_classi_options(self):
+    """
+    Define options for classification functions
+    """
+    ### Type of features ### 
+    # could be 'norm' for classical seismic attributes or 'hash' for hash tables
+    self.opdict['option'] = 'norm'
+
+    ### Number of iterations ###
+    # a new training set is generated at each 'iteration'
+    self.opdict['boot'] = 1
+
+    ### Choice of the classification algorithm ###
+    # could be 'lr' (logistic regression)
+    # or 'svm' (Support Vector Machine from scikit.learn package)
+    # or 'ova' (1-vs-all extractor), 
+    # or '1b1' (1-by-1 extractor)
+    # or 'lrsk' (Logistic regression from scikit.learn package)
+    self.opdict['method'] = 'svm'
+
+    ### Also compute the probabilities for each class ###
+    self.opdict['probas'] = False
+
+    ### Display and save the PDFs of the features ###
+    self.opdict['plot_pdf'] = False
+    self.opdict['save_pdf'] = False
+
+    ### Display and save the confusion matrices ###
+    self.opdict['plot_confusion'] = False
+    self.opdict['save_confusion'] = False
+
+    ### Plot and save the decision boundaries ###
+    self.opdict['plot_sep'] = False
+    self.opdict['save_sep'] = False
+    self.opdict['compare'] = True # plot SVM and LR decision boundaries on the same plot
+
+    ### Plot precision and recall ###
+    self.opdict['plot_prec_rec'] = False # plot precision and recall
+
+
   def fill_opdict(self):
+    """
+    Check and create directories/files paths.
+    """
     ### Check the existence of directories and create if necessary ###
     ### Data directory
     self.verify_dir(self.opdict['datadir'])
@@ -181,9 +225,9 @@ class Options(object):
     date = time.localtime()
     if self.opdict['option'] == 'norm':
       # Features "normales"
-      self.opdict['feat_list'] = self.opdict['feat_all']
-      #self.opdict['feat_list'] = ['RappMaxMean']
-      #self.opdict['feat_log'] = ['RappMaxMean']
+      #self.opdict['feat_list'] = self.opdict['feat_all']
+      self.opdict['feat_list'] = ['RappMaxMean']
+      self.opdict['feat_log'] = ['RappMaxMean']
       #self.opdict['feat_log'] = ['AsDec','Dur','Ene0-5','Growth','ibw0','MeanPredF','RappMaxMean','RappMaxMeanTF','TimeMaxSpec','v0','v8','v9'] # list of features to be normalized with np.log (makes data look more gaussians)
       #self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Growth','Kurto','RappMaxMean','RappMaxMeanTF','Skewness','TimeMaxSpec','Width']
       #self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Kurto','RappMaxMean','Skewness','TimeMaxSpec']
@@ -202,70 +246,20 @@ class Options(object):
       #self.opdict['feat_list'] = ['0','3','5','8','26','29','30','41']
       #self.opdict['feat_log'] = map(str,range(50))
 
+    ### RESULT FILE ###
+    NB_feat = len(self.opdict['feat_list'])
     if self.opdict['method'] in ['lr','svm','lrsk']:
-      self.opdict['result_file'] = '1709_results_%s_%dc_%df'%(self.opdict['method'],len(self.opdict['types']),len(self.opdict['feat_list']))
-      #self.opdict['result_file'] = 'results_%s_%s'%(self.opdict['method'],self.opdict['feat_list'][0])
+      if NB_feat == 1:
+        self.opdict['result_file'] = 'results_%s_%s'%(self.opdict['method'],self.opdict['feat_list'][0])
+      else:
+        self.opdict['result_file'] = 'results_%s_%dc_%df'%(self.opdict['method'],len(self.opdict['types']),len(self.opdict['feat_list']))
+ 
     else:
       self.opdict['result_file'] = '%s_%s_svm'%(self.opdict['method'].upper(),self.opdict['stations'][0])
     self.opdict['result_path'] = '%s/%s'%(self.opdict['res_dir'],self.opdict['result_file'])
 
     if self.opdict['option'] == 'hash':
       self.opdict['result_path'] = '%s_HASH'%self.opdict['result_path']
-
-
-  def verify_dir(self,dirname):
-    if not os.path.isdir(dirname):
-      print "WARNING !! Directory %s does not exist !!"%dirname
-      sys.exit()
-
-  def verify_and_create(self,dirname):
-    if not os.path.isdir(dirname):
-      print "Create directory %s..."%dirname
-      os.makedirs(dirname)
-
-  def verify_file(self,filename):
-    if not os.path.isfile(filename):
-      print "WARNING !! File %s does not exist !!"%filename
-      sys.exit()
-
-  def set_classi_options(self):
-    """
-    Define options for classification functions
-    """
-    ### Type of features ### 
-    # could be 'norm' for classical seismic attributes or 'hash' for hash tables
-    self.opdict['option'] = 'norm'
-
-    ### Number of iterations ###
-    # a new training set is generated at each 'iteration'
-    self.opdict['boot'] = 10
-
-    ### Choice of the classification algorithm ###
-    # could be 'lr' (logistic regression)
-    # or 'svm' (Support Vector Machine from scikit.learn package)
-    # or 'ova' (1-vs-all extractor), 
-    # or '1b1' (1-by-1 extractor)
-    # or 'lrsk' (Logistic regression from scikit.learn package)
-    self.opdict['method'] = 'lr'
-
-    ### Also compute the probabilities for each class ###
-    self.opdict['probas'] = False
-
-    ### Display and save the PDFs of the features ###
-    self.opdict['plot_pdf'] = True
-    self.opdict['save_pdf'] = False
-
-    ### Display and save the confusion matrices ###
-    self.opdict['plot_confusion'] = False
-    self.opdict['save_confusion'] = False
-
-    ### Plot and save the decision boundaries ###
-    self.opdict['plot_sep'] = True
-    self.opdict['save_sep'] = True
-    self.opdict['compare'] = True # plot SVM and LR decision boundaries on the same plot
-
-    ### Plot precision and recall ###
-    self.opdict['plot_prec_rec'] = False # plot precision and recall
 
 
   def synthetics(self):
@@ -301,7 +295,80 @@ class Options(object):
     self.opdict['compare'] = False
 
 
+  def read_csvfile(self,filename):
+    """
+    Read a *.csv file and store it into a pandas DataFrame structure.
+    """
+    df = pd.read_csv(filename)
+    return df
+
+
+  def read_featfile(self):
+    """
+    Read the file containing event features
+    """
+    return pd.read_csv(self.opdict['feat_filename'],index_col=False)
+
+
+  def read_classification(self):
+    """
+    Read the file with manual classification
+    """
+    return pd.read_csv(self.opdict['label_filename'])
+
+
+  def verify_dir(self,dirname):
+    """
+    Check the existence of a directory.
+    """
+    if not os.path.isdir(dirname):
+      print "WARNING !! Directory %s does not exist !!"%dirname
+      sys.exit()
+
+
+  def verify_and_create(self,dirname):
+    """
+    Check the existence of a directory and creates 
+    it if it does not exist.
+    """
+    if not os.path.isdir(dirname):
+      print "Create directory %s..."%dirname
+      os.makedirs(dirname)
+
+
+  def verify_file(self,filename):
+    """
+    Check the existence of a file. 
+    """
+    if not os.path.isfile(filename):
+      print "WARNING !! File %s does not exist !!"%filename
+      sys.exit()
+
+
+  def verify_features(self):
+    """
+    Check if the features list and the features file are coherent.
+    """
+    for feat in self.opdict['feat_list']:
+      if not feat in self.raw_df.columns:
+        print "The feature %s is not contained in the file..."%feat
+        sys.exit()
+
+
+  def verify_index(self):
+    """
+    Check the indices of the features and the labels.
+    """
+    if list(self.x.index) != list(self.y.index):
+      print "WARNING !! x and y do not contain the same list of events"
+      print "x contains %d events ; y contains %d events"%(len(self.x),len(self.y))
+      sys.exit()
+
+
   def data_for_LR(self):
+    """
+    Prepare data for the classification process.
+    """
 
     self.raw_df = self.read_featfile()
 
@@ -324,39 +391,6 @@ class Options(object):
 
     x = property(_get_x,_set_x)
     y = property(_get_y,_set_y)
-
-
-  def verify_features(self):
-    for feat in self.opdict['feat_list']:
-      if not feat in df.columns:
-        print "The feature %s is not contained in the file..."%feat
-        sys.exit()
-
-
-  def verify_index(self):
-    if list(self.x.index) != list(self.y.index):
-      print "WARNING !! x and y do not contain the same list of events"
-      print "x contains %d events ; y contains %d events"%(len(self.x),len(self.y))
-      sys.exit()
-
-
-  def read_csvfile(self,filename):
-    df = pd.read_csv(filename)
-    return df
-
-
-  def read_featfile(self):
-    """
-    Reads the file containing event features
-    """
-    return pd.read_csv(self.opdict['feat_filename'],index_col=False)
-
-
-  def read_classification(self):
-    """
-    Reads the file with manual classification
-    """
-    return pd.read_csv(self.opdict['label_filename'])
 
 
   def write_x_and_y(self):
@@ -382,7 +416,7 @@ class Options(object):
 
   def classname2number(self):
     """
-    Associates numbers to event types.
+    Associate numbers to event types.
     """
     self.st = self.opdict['types']
     self.types = np.unique(self.y.Type.values)
@@ -392,7 +426,7 @@ class Options(object):
 
   def composition_dataset(self):
     """
-    Plots the diagram with the different classes of the dataset.
+    Plot the diagram with the different classes of the dataset.
     """
 
     self.types = np.unique(self.y.Type.values)
@@ -413,7 +447,7 @@ class Options(object):
   def compute_pdfs(self):
 
     """
-    Computes the probability density functions (pdfs) for all features and all event types.
+    Compute the Probability Density Functions (PDFs) for all features and all event types.
     """
 
     from scipy.stats.kde import gaussian_kde
@@ -445,7 +479,7 @@ class Options(object):
 
   def plot_all_pdfs(self,save=False):
     """
-    Plots the pdfs.
+    Plot the PDFs.
     """
 
     if not hasattr(self,'gaussians'):
@@ -461,7 +495,7 @@ class Options(object):
         else:
           lstyle = '-'
         if feat != 'NbPeaks':
-          plt.plot(self.gaussians[feat]['vec'],self.gaussians[feat][t],ls=lstyle)
+          plt.plot(self.gaussians[feat]['vec'],self.gaussians[feat][t],ls=lstyle,lw=2.)
         else:
           list.append(self.gaussians[feat][t])
       if feat == 'NbPeaks':
@@ -469,13 +503,15 @@ class Options(object):
       plt.title(feat)
       plt.legend(self.types)
       if save:
-        plt.savefig('../results/%s/figures/fig_%s.png'%(self.opdict['dir'],feat))
+        savename = '%s/fig_%s.png'%(self.opdict['fig_path'],feat)
+        print "Save PDF for feature %s in %s"%(feat,savename)
+        plt.savefig(savename)
       plt.show()
 
 
   def plot_superposed_pdfs(self,g,save=False):
     """
-    Plots two kinds of pdfs (for example, the test set ones with the training set)
+    Plot two kinds of PDFs (for example, the test set and the training set PDFs)
     """
     if not hasattr(self,'gaussians'):
       self.compute_pdfs()
@@ -491,19 +527,21 @@ class Options(object):
       fig = plt.figure()
       fig.set_facecolor('white') 
       for it,t in enumerate(self.types):
-        plt.plot(self.gaussians[feat]['vec'],self.gaussians[feat][t],c=colors[it],label=t)
-        plt.plot(g[feat]['vec'],g[feat][t],ls='--',c=colors[it])
+        plt.plot(self.gaussians[feat]['vec'],self.gaussians[feat][t],c=colors[it],label=t,lw=2.)
+        plt.plot(g[feat]['vec'],g[feat][t],ls='--',c=colors[it],lw=2.)
       plt.title(feat)
       plt.legend()
       if save:
-        plt.savefig('../results/%s/figures/fig_%s.png'%(self.opdict['dir'],feat))
+        savename = '%s/CLEMENT/compCL_%s.png'%(self.opdict['fig_path'],feat)
+        print "Save PDF for feature %s in %s"%(feat,savename)
+        plt.savefig(savename)
       plt.show()
 
 
   def plot_one_pdf(self,feat,coord=None):
 
     """
-    Plots only one pdf, for a given feature.
+    Plot only one pdf, for a given feature.
     Possibility to plot a given point on it : coord is a numpy array [manual class,feature values,automatic class(,probabilities)]
     """
     if not hasattr(self,'gaussians'):
@@ -564,6 +602,7 @@ class MultiOptions(Options):
   def tri(self):
 
     self.data_for_LR()
+    self.verify_features()
     self.x = self.raw_df.copy()
     self.y = self.manuals.copy()
 
@@ -620,7 +659,7 @@ class MultiOptions(Options):
 
   def count_number_of_events(self):
     """
-    Counts and displays the number of events available at each station.
+    Count and display the number of events available at each station.
     """
     df = self.read_featfile()
 

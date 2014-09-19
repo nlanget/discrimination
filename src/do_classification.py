@@ -308,7 +308,7 @@ def classifier(opt):
           name = '%s_%s_%s'%(opt.opdict['feat_list'][0],opt.opdict['feat_list'][1],opt.opdict['feat_list'][2])
 
         if opt.opdict['save_sep']:
-          plt.savefig('%s/%s/CL_sep_%s.png'%(opt.opdict['fig_path'],dir,name))
+          plt.savefig('%s/%s/1809_sep_%s.png'%(opt.opdict['fig_path'],dir,name))
         if opt.opdict['plot_sep']:
           plt.show()
         else:
@@ -332,6 +332,7 @@ def classifier(opt):
   dic_results['header']['catalog'] = opt.opdict['label_test']
 
   if opt.opdict['method'] == 'lr' or opt.opdict['method'] == 'lrsk' or opt.opdict['method'] == 'svm':
+    print "Save results in file %s"%opt.opdict['result_path']
     write_binary_file(opt.opdict['result_path'],dic_results)
 
   if 'train_file' in sorted(opt.opdict):
