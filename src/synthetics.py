@@ -34,43 +34,8 @@ class Synthetics(MultiOptions):
 
   def __init__(self):
 
-    self.opdict = {}
-    self.opdict['option'] = 'norm'
-    self.opdict['dir'] = 'Test'
-    self.opdict['stations'] = ['STA']
-    self.opdict['channels'] = ['Z']
-    self.opdict['types'] = ['A','B']
-
-    self.opdict['libdir'] = os.path.join('../lib',self.opdict['dir'])
-    self.opdict['outdir'] = os.path.join('../results',self.opdict['dir'])
-    self.opdict['fig_path'] = '%s/figures'%self.opdict['outdir']
-
-    self.sep = 'well'
-    self.opdict['feat_train'] = '%s_%dc_train.csv'%(self.sep,len(self.opdict['types']))
-    self.opdict['feat_test'] = '%s_%dc_test.csv'%(self.sep,len(self.opdict['types']))
-    self.opdict['label_train'] = '%s_%dc_train.csv'%(self.sep,len(self.opdict['types']))
-    self.opdict['label_test'] = '%s_%dc_test.csv'%(self.sep,len(self.opdict['types']))
-    self.opdict['learn_file'] = os.path.join(self.opdict['libdir'],'learning_set')
-
-    self.opdict['feat_list'] = ['x1','x2']
-
-    self.opdict['method'] = 'lr'
-    self.opdict['probas'] = False
-    self.opdict['boot'] = 1
-    self.opdict['plot_pdf'] = False # display the pdfs of the features
-    self.opdict['save_pdf'] = False
-    self.opdict['plot_confusion'] = False # display the confusion matrices
-    self.opdict['save_confusion'] = False
-    self.opdict['plot_sep'] = False # plot decision boundary
-    self.opdict['save_sep'] = False
-    self.opdict['plot_prec_rec'] = False # plot precision and recall
-    self.opdict['compare'] = False
-
-    self.opdict['feat_filepath'] = '%s/features/%s'%(self.opdict['outdir'],self.opdict['feat_test'])
-    self.opdict['label_filename'] = '%s/%s'%(self.opdict['libdir'],self.opdict['label_test'])
-    self.opdict['result_file'] = 'well_sep'
-    self.opdict['result_path'] = '%s/%s/%s'%(self.opdict['outdir'],self.opdict['method'].upper(),self.opdict['result_file'])
-
+    self.synthetics()
+    self.fill_opdict()
 
   def set_params(self):
     # Random data
@@ -178,7 +143,7 @@ class Synthetics(MultiOptions):
     x_test.index = [(i,'STA','Z') for i in range(len(x_test))]
 
     ### Fill the labels ###
-    types = self.opdict['Types']
+    types = self.opdict['types']
     y_train = pd.DataFrame(index=range(NB_train_all),columns=['Type','Date','TypeNum'],dtype=str)
     lim = 0
     for i in range(self.NB_class):
@@ -196,7 +161,7 @@ class Synthetics(MultiOptions):
     y_test['Date'] = y_test.index
 
     x_train.to_csv('%s/features/%s'%(self.opdict['outdir'],self.opdict['feat_train']))
-    x_test.to_csv(self.opdict['feat_filepath'])
+    x_test.to_csv(self.opdict['feat_filename'])
     y_train.to_csv('%s/%s'%(self.opdict['libdir'],self.opdict['label_train']),index=False)
     y_test.to_csv(self.opdict['label_filename'],index=False)
 
