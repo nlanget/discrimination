@@ -359,43 +359,65 @@ def compare_unsup_indet():
   a = opt.auto
   unsup = read_binary_file('../results/Ijen/KMEAN/results_kmean_3c_11f')
 
-  # On limité l'étude aux indéterminés manuels
-  m = m[m.Type=='?']
-  a = a.reindex(index=m.index)
+  nb_auto = [len(opt.auto[opt.auto.Type==t]) for t in opt.opdict['types']]
+  NB_class = len(opt.opdict['types'])
 
-  colors = ['yellowgreen', 'gold', 'lightskyblue', 'lightcoral']
+  for cl in opt.opdict['types']:
+  #for cl in ['?']:
+    m = opt.man[opt.man.Type==cl]
+    a = opt.auto.reindex(index=m.index)
 
-  opt.data_for_LR()
-  opt.opdict['channels'] = 'Z'
-  opt.opdict['stations'] = ['IJEN']
-  for sta in opt.opdict['stations']:
-    for comp in opt.opdict['channels']:
-      u = pd.DataFrame(index=unsup[(sta, comp)][0]['list_ev'],columns=['Type','NumType'])
-      u['Type'] = unsup[(sta, comp)][0]['StrClass']
-      u['NumType'] = unsup[(sta, comp)][0]['NumClass']
-      u = u.reindex(index=m.index)
-      trad = unsup[(sta, comp)][0]['Equivalence']
+    colors = ['yellowgreen', 'gold', 'lightskyblue', 'lightcoral']
 
-      nbs = [len(a[a.Type==t]) for t in opt.opdict['types']]
+    opt.data_for_LR()
+    opt.opdict['channels'] = 'Z'
+    opt.opdict['stations'] = ['IJEN']
+    for sta in opt.opdict['stations']:
+      for comp in opt.opdict['channels']:
+        u = pd.DataFrame(index=unsup[(sta, comp)][0]['list_ev'],columns=['Type','NumType'])
+        u['Type'] = unsup[(sta, comp)][0]['StrClass']
+        u['NumType'] = unsup[(sta, comp)][0]['NumClass']
+        u = u.reindex(index=m.index)
+        trad = unsup[(sta, comp)][0]['Equivalence']
 
-      fig = plt.figure()
-      fig.set_facecolor('white')
-      nb_l, nb_c = 3, 4
-      grid = GridSpec(nb_l,nb_c)
 
-      ax = fig.add_subplot(grid[:nb_c-1,:nb_c-1],title='Manual ? composition after SVM')
-      ax.pie(nbs,labels=opt.opdict['types'],autopct='%1.1f%%',colors=colors)
-      ax.text(.4,0,r'# events = %d'%np.sum(nbs),transform=ax.transAxes)
+        fig = plt.figure(figsize=(12,8))
+        fig.set_facecolor('white')
+        nb_l, nb_c = 2, NB_class*2
+        grid = GridSpec(nb_l,nb_c)
 
-      for it,t in enumerate(opt.opdict['types']):
-        ared = a[a.Type==t]
-        ured = u.reindex(index=ared.index)
-        nbs = [len(ured[ured.Type==ty]) for ty in trad]
-        plt.subplot(grid[it,nb_c-1])
-        plt.pie(nbs,labels=trad,autopct='%1.1f%%',colors=colors)
-        plt.title(t)
+        ax = fig.add_subplot(grid[0,:nb_c/2])
+        ax.pie(nb_auto,labels=opt.opdict['types'],autopct='%1.1f%%',colors=colors)
+        ax.text(.4,-.1,r'# events = %d'%np.sum(nb_auto),transform=ax.transAxes)
+        ax.axis("equal")
 
-      plt.show()
+        nbs = [len(a[a.Type==t]) for t in opt.opdict['types']]
+        ax = fig.add_subplot(grid[0,nb_c/2:])
+        ax.pie(nbs,labels=opt.opdict['types'],autopct='%1.1f%%',colors=colors)
+        ax.text(.4,-.1,r'# events = %d'%np.sum(nbs),transform=ax.transAxes)
+        ax.axis("equal")
+
+        lab_c = np.array(trad).copy()
+        for it,t in enumerate(opt.opdict['types']):
+          i = np.where(np.array(trad)==t)[0][0]
+          lab_c[it] = i
+
+        for it,t in enumerate(opt.opdict['types']):
+          ared = a[a.Type==t]
+          ured = u.reindex(index=ared.index)
+          nbs = [len(ured[ured.Type==ty]) for ty in opt.opdict['types']]
+          ax = fig.add_subplot(grid[1,2*it:2*it+2])
+          ax.pie(nbs,labels=lab_c,autopct='%1.1f%%',colors=colors)
+          ax.text(.3,-.1,r'# %s = %d'%(t,np.sum(nbs)),transform=ax.transAxes)
+          #ax.set_title(t)
+
+        plt.figtext(.1,.92,'(a) %s'%opt.opdict['method'].upper(),fontsize=16)
+        plt.figtext(.55,.92,'(b) Repartition of %s'%cl,fontsize=16)
+        plt.figtext(.1,.45,r'(c) $K$-means',fontsize=16)
+        for it, t in enumerate(trad):
+          plt.figtext(.3+it*.15,.45,r'%s $\approx$ %s'%(it,trad[it]))
+
+  plt.show()
 
 if __name__ == '__main__':
   compare_unsup_indet()
