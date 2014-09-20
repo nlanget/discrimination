@@ -82,7 +82,7 @@ def conversion(df1,df2,col):
 ### HEADER FOR IJEN DATA ###
 def ijen():
   opdict = {}
-  optdict['dir'] = 'Ijen'
+  opdict['dir'] = 'Ijen'
   opdict['channels'] = ['Z']#,'E','N']
   opdict['network'] = 'ID'
   opdict['stations'] = ['IJEN']
@@ -94,7 +94,7 @@ def ijen():
   ### FEATURES FILE
   opdict['feat_test'] = 'ijen_3006.csv'
   ### LABEL FILE
-  opdict['label_test'] = 'Ijen_3class_all.csv'
+  opdict['label_test'] = 'Ijen_reclass_all.csv'
   ### FEATURES LIST
   opdict['feat_all'] = ['AsDec','Bandwidth','CentralF','Centroid_time','Dur','Ene20-30','Ene5-10','Ene0-5','F_low','F_up','Growth','IFslope','Kurto','MeanPredF','NbPeaks','PredF','RappMaxMean','RappMaxMeanTF','Skewness','sPredF','TimeMaxSpec','Width','ibw0','ibw1','ibw2','ibw3','ibw4','ibw5','ibw6','ibw7','ibw8','ibw9','if0','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9']
   return opdict
@@ -131,8 +131,8 @@ class Options(object):
   def __init__(self):
 
     self.opdict = {}
-    #self.opdict = ijen()
-    self.opdict = piton()
+    self.opdict = ijen()
+    #self.opdict = piton()
 
     ### Import classification options ###
     self.set_classi_options()
@@ -150,7 +150,7 @@ class Options(object):
 
     ### Number of iterations ###
     # a new training set is generated at each 'iteration'
-    self.opdict['boot'] = 10
+    self.opdict['boot'] = 1
 
     ### Choice of the classification algorithm ###
     # could be 'lr' (LR = logistic regression)
@@ -160,7 +160,7 @@ class Options(object):
     # or '1b1' (1-by-1 extractor)
     # or 'lrsk' (Logistic regression from scikit.learn package)
     # or 'kmean' (K-means from scikit.learn package)
-    self.opdict['method'] = 'lr'
+    self.opdict['method'] = 'svm'
 
     ### Also compute the probabilities for each class ###
     self.opdict['probas'] = False
@@ -170,11 +170,11 @@ class Options(object):
     self.opdict['save_pdf'] = False
 
     ### Display and save the confusion matrices ###
-    self.opdict['plot_confusion'] = False
+    self.opdict['plot_confusion'] = True 
     self.opdict['save_confusion'] = False
 
     ### Plot and save the decision boundaries ###
-    self.opdict['plot_sep'] = True
+    self.opdict['plot_sep'] = False
     self.opdict['save_sep'] = False
     self.opdict['compare'] = False # plot SVM and LR decision boundaries on the same plot
 
@@ -228,10 +228,8 @@ class Options(object):
     if self.opdict['option'] == 'norm':
       # Features "normales"
       #self.opdict['feat_list'] = self.opdict['feat_all']
-      self.opdict['feat_list'] = ['Ene']
       #self.opdict['feat_log'] = self.opdict['feat_list']
-      #self.opdict['feat_log'] = ['Ene']
-      #self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Growth','Kurto','RappMaxMean','RappMaxMeanTF','Skewness','TimeMaxSpec','Width']
+      self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Growth','Kurto','RappMaxMean','RappMaxMeanTF','Skewness','TimeMaxSpec','Width']
       #self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Kurto','RappMaxMean','Skewness','TimeMaxSpec']
       #self.opdict['feat_list'] = ['Dur','F_up','Growth','Kurto','RappMaxMean','RappMaxMeanTF','TimeMaxSpec','Width']
       #self.opdict['feat_list'] = ['CentralF','Centroid_time','Dur','Ene0-5','F_up','Growth','IFslope','Kurto','MeanPredF','RappMaxMean','RappMaxMeanTF','Skewness','TimeMaxSpec','Width','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9']
@@ -250,7 +248,7 @@ class Options(object):
 
     ### RESULT FILE ###
     NB_feat = len(self.opdict['feat_list'])
-    if self.opdict['method'] in ['lr','svm','svm_nl','lrsk']:
+    if self.opdict['method'] in ['lr','svm','svm_nl','lrsk','kmean']:
       if NB_feat == 1:
         self.opdict['result_file'] = 'results_%s_%s'%(self.opdict['method'],self.opdict['feat_list'][0])
       else:
@@ -258,6 +256,9 @@ class Options(object):
  
     else:
       self.opdict['result_file'] = '%s_%s_svm'%(self.opdict['method'].upper(),self.opdict['stations'][0])
+
+    self.opdict['result_file'] = 'results_svm_reclass_3c_8f'
+
     self.opdict['result_path'] = '%s/%s'%(self.opdict['res_dir'],self.opdict['result_file'])
 
     if self.opdict['option'] == 'hash':
