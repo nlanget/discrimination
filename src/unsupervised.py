@@ -4,7 +4,8 @@
 import os, sys, glob
 import pandas as pd
 import numpy as np
-
+from options import write_binary_file, read_binary_file
+import matplotlib.pyplot as plt
 
 def classifier(opt):
 
@@ -39,7 +40,7 @@ def classifier(opt):
     x_test = opt.xs[isc]
     y_test = opt.ys[isc]
 
-    opt.types = np.unique(y_test.Type)
+    opt.classname2number()
     K = len(opt.types)
 
     for b in range(opt.opdict['boot']):
@@ -63,36 +64,69 @@ def classifier(opt):
         print "********** KMean **********"
         CLASS_test = implement_kmean(x_test,K)
 
-      if K > 4:
-        plot_diagrams(CLASS_test,y_test)
-        #results_histo(CLASS_test,y_test)
-        results_diagrams(CLASS_test,y_test)
-      else:
-        all_diagrams(CLASS_test,y_test)
+
+      trad,dicocl = {},{}
+      for t in opt.types:
+        dicocl[t] = []
+      for i in range(K):
+        auto = CLASS_test[CLASS_test.values.ravel()==i]
+        man = y_test.reindex(index=auto.index,columns=['Type'])
+        print "Size of class %d : %d"%(i,len(auto))
+
+        nbs = [len(man[man.values.ravel()==j]) for j in opt.types]
+        trad[i] = np.array(opt.types)[np.argsort(nbs)]
+        for j in range(K):
+          print "\tNumber of %s : %d"%(trad[i][j],np.sort(nbs)[j])
+          dicocl[trad[i][j]].append(np.sort(nbs)[j])
+
+      types_trad = np.array(opt.types).copy()
+      for key in sorted(dicocl):
+        types_trad[np.argmax(dicocl[key])] = key
+
+      ### PLOT DIAGRAMS ###
+      if opt.opdict['plot_confusion'] or opt.opdict['save_confusion']:
+        if K > 4:
+          plot_diagrams(CLASS_test,y_test,save=opt.opdict['save_confusion'])
+          #results_histo(CLASS_test,y_test,save=opt.opdict['save_confusion'])
+          results_diagrams(CLASS_test,y_test,save=opt.opdict['save_confusion'])
+        else:
+          all_diagrams(CLASS_test,y_test,types_trad,save=opt.opdict['save_confusion'])
+        if opt.opdict['plot_confusion']:
+          plt.show()
+        else:
+          plt.close()
 
       opt.x = x_test
       opt.y = y_test
-      opt.compute_pdfs()
-      g_test = opt.gaussians
+
+      if opt.opdict['plot_pdf']:
+        opt.compute_pdfs()
+        g_test = opt.gaussians
       
-      opt.y = CLASS_test
-      opt.compute_pdfs()
-      g_unsup = opt.gaussians
+        opt.y = CLASS_test
+        opt.compute_pdfs()
+        g_unsup = opt.gaussians
 
-      plot_and_compare_pdfs(g_test,g_unsup)
-      sys.exit()
-
-      subsubdic['%'] = pourcentages
+        plot_and_compare_pdfs(g_test,g_unsup)
+      
+      subsubdic['NumClass'] = CLASS_test.values.ravel()
       trad_CLASS_test = []
-      for i in CLASS_test:
+      for i in CLASS_test.values:
         i = int(i)
-        trad_CLASS_test.append(opt.types[i])
-      subsubdic['classification'] = trad_CLASS_test
+        trad_CLASS_test.append(types_trad[i])
+      subsubdic['StrClass'] = trad_CLASS_test
+      subsubdic['Equivalence'] = types_trad
       subdic[b] = subsubdic
 
     dic_results[opt.trad[isc]] = subdic
 
-  dic_results['features'] = opt.opdict['feat_list']
+  dic_results['header'] = {}
+  dic_results['header']['features'] = opt.opdict['feat_list']
+  dic_results['header']['types'] = opt.opdict['types']
+  dic_results['header']['catalog'] = opt.opdict['label_test']
+
+  print "Save results in file %s"%opt.opdict['result_path']
+  write_binary_file(opt.opdict['result_path'],dic_results)
 
 # ================================================================
 
@@ -113,12 +147,11 @@ def implement_kmean(x,nb_class):
 
 # ================================================================
 
-def plot_diagrams(y_auto,y_man):
+def plot_diagrams(y_auto,y_man,save=False):
   """
   Plots the repartition diagrams of each class for the manual classification 
   and for the automatic classification.
   """
-  import matplotlib.pyplot as plt
   nb_class = len(np.unique(y_auto.Type.values))
   types = np.unique(y_man.Type.values)
   colors = ['yellowgreen', 'gold', 'lightskyblue', 'lightcoral','lightgreen','khaki','plum','powderblue']
@@ -134,17 +167,17 @@ def plot_diagrams(y_auto,y_man):
   plt.pie(nb_auto,labels=range(nb_class),autopct='%1.1f%%',colors=colors)
   plt.figtext(.1,.9,'(a)',fontsize=16)
   plt.figtext(.52,.9,'(b)',fontsize=16)
-  #plt.savefig('../results/Ijen/figures/Unsupervised/unsup_all.png')
+  if save:
+    plt.savefig('../results/Ijen/figures/Unsupervised/unsup_all.png')
 
 # ================================================================
 
-def results_histo(y_auto,y_man):
+def results_histo(y_auto,y_man,save=False):
   """
   Analysis of the results obtained by unsupervised learning.
   Plots of histograms showing the repartition of the manual classes inside 
   automatic classes. 
   """
-  import matplotlib.pyplot as plt
   nb_class = len(np.unique(y_auto.Type.values))
   types = np.unique(y_man.Type.values)
   len_class = len(types)
@@ -153,10 +186,8 @@ def results_histo(y_auto,y_man):
   for i in range(nb_class):
     a = y_auto[y_auto.values.ravel()==i]
     b = y_man.reindex(index=a.index,columns=['Type'])
-    print i, len(a)
 
     nbs = [len(b[b.values.ravel()==j]) for j in types]
-    print nbs
 
     # plot histograms
     fig,ax = plt.subplots()
@@ -181,13 +212,12 @@ def results_histo(y_auto,y_man):
 
 # ================================================================
 
-def results_diagrams(y_auto,y_man):
+def results_diagrams(y_auto,y_man,save=False):
   """
   Analysis of the results obtained by unsupervised learning.
   Plots of diagrams showing the repartition of the manual classes inside 
   automatic classes. 
   """
-  import matplotlib.pyplot as plt
   from matplotlib.gridspec import GridSpec
   nb_class = len(np.unique(y_auto.Type.values))
   types = np.unique(y_man.Type.values)
@@ -217,10 +247,8 @@ def results_diagrams(y_auto,y_man):
   for i in range(nb_class):
     a = y_auto[y_auto.values.ravel()==i]
     b = y_man.reindex(index=a.index,columns=['Type'])
-    print i, len(a)
 
     nbs = [len(b[b.values.ravel()==j]) for j in types]
-    print nbs
 
     if i < 4:
       nl, nc = 0, i
@@ -230,14 +258,13 @@ def results_diagrams(y_auto,y_man):
     plt.pie(nbs,labels=labels,autopct='%1.1f%%',colors=colors)
 
   plt.figtext(.1,.9,'(c)',fontsize=16)
-  #plt.savefig('../results/Ijen/figures/Unsupervised/unsup_details.png')
-  plt.show()
+  if save:
+    plt.savefig('../results/Ijen/figures/Unsupervised/unsup_details.png')
 
 # ================================================================
 
 def plot_and_compare_pdfs(g1,g2):
 
-  import matplotlib.pyplot as plt
   c = ['r','b','g','m','c','y','k']
   for feat in sorted(g1):
     fig = plt.figure()
@@ -255,7 +282,7 @@ def plot_and_compare_pdfs(g1,g2):
 
 # ================================================================
 
-def all_diagrams(y_auto,y_man):
+def all_diagrams(y_auto,y_man,trad,save=False):
   """
   Combines plot_diagrams and results_diagrams on the same figure 
   when the number of classes is < 5.
@@ -299,17 +326,76 @@ def all_diagrams(y_auto,y_man):
   for i in range(nb_class):
     a = y_auto[y_auto.values.ravel()==i]
     b = y_man.reindex(index=a.index,columns=['Type'])
-    print i, len(a)
 
     nbs = [len(b[b.values.ravel()==j]) for j in types]
-    print nbs
 
-    plt.subplot(grid[1,2*i:2*i+2],title='Class %d'%i)
+    plt.subplot(grid[1,2*i:2*i+2])
     plt.pie(nbs,labels=labels,autopct='%1.1f%%',colors=colors)
+    plt.title(r'Class %d $\approx$ %s'%(i,trad[i]))
     #plt.axis("equal")
 
   plt.figtext(.1,.92,'(a)',fontsize=16)
   plt.figtext(.55,.92,'(b)',fontsize=16)
   plt.figtext(.1,.5,'(c)',fontsize=16)
-  #plt.savefig('../results/Ijen/figures/Unsupervised/unsup_diagrams_50f.png')
-  plt.show()
+  if save:
+    plt.savefig('../results/Ijen/figures/Unsupervised/unsup_diagrams_50f.png')
+
+
+# ================================================================
+
+def compare_unsup_indet():
+
+  """
+  Essaie de faire un lien entre les événements indéterminés mal classés par 
+  LR ou SVM avec classes non-supervisées.
+  """
+  from matplotlib.gridspec import GridSpec
+
+  print "### COMPARE UNSUP AND SUP ###"
+  from results import AnalyseResults
+  opt = AnalyseResults()
+
+  m = opt.man
+  a = opt.auto
+  unsup = read_binary_file('../results/Ijen/KMEAN/results_kmean_3c_11f')
+
+  # On limité l'étude aux indéterminés manuels
+  m = m[m.Type=='?']
+  a = a.reindex(index=m.index)
+
+  colors = ['yellowgreen', 'gold', 'lightskyblue', 'lightcoral']
+
+  opt.data_for_LR()
+  opt.opdict['channels'] = 'Z'
+  opt.opdict['stations'] = ['IJEN']
+  for sta in opt.opdict['stations']:
+    for comp in opt.opdict['channels']:
+      u = pd.DataFrame(index=unsup[(sta, comp)][0]['list_ev'],columns=['Type','NumType'])
+      u['Type'] = unsup[(sta, comp)][0]['StrClass']
+      u['NumType'] = unsup[(sta, comp)][0]['NumClass']
+      u = u.reindex(index=m.index)
+      trad = unsup[(sta, comp)][0]['Equivalence']
+
+      nbs = [len(a[a.Type==t]) for t in opt.opdict['types']]
+
+      fig = plt.figure()
+      fig.set_facecolor('white')
+      nb_l, nb_c = 3, 4
+      grid = GridSpec(nb_l,nb_c)
+
+      ax = fig.add_subplot(grid[:nb_c-1,:nb_c-1],title='Manual ? composition after SVM')
+      ax.pie(nbs,labels=opt.opdict['types'],autopct='%1.1f%%',colors=colors)
+      ax.text(.4,0,r'# events = %d'%np.sum(nbs),transform=ax.transAxes)
+
+      for it,t in enumerate(opt.opdict['types']):
+        ared = a[a.Type==t]
+        ured = u.reindex(index=ared.index)
+        nbs = [len(ured[ured.Type==ty]) for ty in trad]
+        plt.subplot(grid[it,nb_c-1])
+        plt.pie(nbs,labels=trad,autopct='%1.1f%%',colors=colors)
+        plt.title(t)
+
+      plt.show()
+
+if __name__ == '__main__':
+  compare_unsup_indet()
