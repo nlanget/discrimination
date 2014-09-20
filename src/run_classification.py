@@ -17,33 +17,31 @@ def run_all():
   from options import MultiOptions
   opt = MultiOptions()
   #opt.count_number_of_events()
- 
-  from do_classification import classifier
-  classifier(opt)
 
-  if opt.opdict['method'] == 'lr' or opt.opdict['method'] == 'svm' or opt.opdict['method'] == 'lrsk':
+  ### UNSUPERVISED METHOD ### 
+  if opt.opdict['method'] == 'kmean':
+    from unsupervised import classifier
+    classifier(opt)
+
+  ### SUPERVISED METHODS ###
+  elif opt.opdict['method'] in ['lr','svm','svm_nl','lrsk']:
+    from do_classification import classifier
+    classifier(opt)
+
     from results import AnalyseResults
     res = AnalyseResults()
     if res.opdict['plot_confusion']:
       res.plot_confusion()
 
-  else:
+  elif opt.opdict['method'] in ['ova','1b1']:
+    from do_classification import classifier
+    classifier(opt)
+
     from results import AnalyseResultsExtraction
     res = AnalyseResultsExtraction()
-
-
-def run_unsupervised():
-
-  from options import MultiOptions
-  opt = MultiOptions()
-  opt.opdict['method'] = 'kmean'
-
-  from unsupervised import classifier
-  classifier(opt)
 
 
 if __name__ == '__main__':
   #run_test()
   run_all()
-  #run_unsupervised()
 

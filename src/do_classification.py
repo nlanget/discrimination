@@ -214,6 +214,7 @@ def classifier(opt):
       from sklearn.metrics import confusion_matrix
       cmat_train = confusion_matrix(y_train_np,CLASS_train)
       p_tr = dic_percent(cmat_train,opt.types,verbose=True)
+      print "   Global : %.2f%%"%p_tr['global']
       if opt.opdict['plot_confusion'] or opt.opdict['save_confusion']:
         plot_confusion_mat(cmat_train,opt.types,'Training',opt.opdict['method'].upper())
         if opt.opdict['save_confusion']:
@@ -224,6 +225,7 @@ def classifier(opt):
       y_test_np = y_test.NumType.values.ravel()
       cmat_test = confusion_matrix(y_test_np,CLASS_test)
       p_test = dic_percent(cmat_test,opt.types,verbose=True)
+      print "   Global : %.2f%%"%p_test['global']
       if opt.opdict['plot_confusion'] or opt.opdict['save_confusion']:
         plot_confusion_mat(cmat_test,opt.types,'Training',opt.opdict['method'].upper())
         if opt.opdict['save_confusion']:
@@ -256,63 +258,64 @@ def classifier(opt):
           print "Theta values:",theta
           print "Threshold:", threshold
 
-        # COMPARE AND PLOT LR AND SVM RESULTS
-        if opt.opdict['method']=='lr' and opt.opdict['compare']:
-          dir = 'LR_SVM_SEP'
-          out_svm = implement_svm(x_train,x_test,y_train,y_test,opt.types,opt.opdict,kern='Lin')
-          cmat_svm_tr = confusion_matrix(y_train_np,out_svm['label_train'])
-          cmat_svm_test = confusion_matrix(y_test_np,out_svm['label_test'])
-          svm_ptr = dic_percent(cmat_svm_tr,opt.types)
-          svm_pt = dic_percent(cmat_svm_test,opt.types)
-          theta_svm,t_svm = {},{}
-          for it in range(len(out_svm['thetas'])):
-            theta_svm[it+1] = np.append(out_svm['thetas'][it][-1],out_svm['thetas'][it][:-1])
-            t_svm[it+1] = 0.5
-
-        else:
-          dir = '%s_SEP'%opt.opdict['method'].upper()
-
-        from LR_functions import normalize
-        x_train, x_test = normalize(x_train,x_test)
-
-        x_train_good = x_train.reindex(index=y_train[y_train.NumType.values==CLASS_train].index)
-        x_train_bad = x_train.reindex(index=y_train[y_train.NumType.values!=CLASS_train].index)
-        good_train = y_train.reindex(index=x_train_good.index)
-
-        x_test_good = x_test.reindex(index=y_test[y_test.NumType.values==CLASS_test].index)
-        x_test_bad = x_test.reindex(index=y_test[y_test.NumType.values!=CLASS_test].index)
-
-        # PLOT FOR 1 ATTRIBUTE AND 2 CLASSES
-        if n_feat == 1 and len(opt.opdict['types']) == 2:
-          name = opt.opdict['feat_list'][0]
-          from plot_functions import plot_hyp_func_1f
+          # COMPARE AND PLOT LR AND SVM RESULTS
           if opt.opdict['method']=='lr' and opt.opdict['compare']:
-            plot_hyp_func_1f(x_train,y_train,theta,opt.opdict['method'],threshold=threshold,x_ok=x_test_good,x_bad=x_test_bad,th_comp=theta_svm,cmat_test=cmat_test,cmat_svm=cmat_svm_test,cmat_train=cmat_train)
+            dir = 'LR_SVM_SEP'
+            out_svm = implement_svm(x_train,x_test,y_train,y_test,opt.types,opt.opdict,kern='Lin')
+            cmat_svm_tr = confusion_matrix(y_train_np,out_svm['label_train'])
+            cmat_svm_test = confusion_matrix(y_test_np,out_svm['label_test'])
+            svm_ptr = dic_percent(cmat_svm_tr,opt.types)
+            svm_pt = dic_percent(cmat_svm_test,opt.types)
+            theta_svm,t_svm = {},{}
+            for it in range(len(out_svm['thetas'])):
+              theta_svm[it+1] = np.append(out_svm['thetas'][it][-1],out_svm['thetas'][it][:-1])
+              t_svm[it+1] = 0.5
+
           else:
-            plot_hyp_func_1f(x_train,y_train,theta,opt.opdict['method'],threshold=threshold,x_ok=x_test_good,x_bad=x_test_bad,cmat_test=cmat_test,cmat_train=cmat_train)
+            dir = '%s_SEP'%opt.opdict['method'].upper()
 
-        # PLOT FOR 2 ATTRIBUTES AND 2 to 3 CLASSES
-        elif n_feat == 2:
-          from plot_2features import plot_2f_all
-          if opt.opdict['method']=='lr' and opt.opdict['compare']:
-            plot_2f_all(theta,threshold,p_test,opt.opdict['method'],x_train,y_train,x_test,y_test,x_test_bad,opt.types,p_train=p_tr,th_comp=theta_svm,t_comp=t_svm,p=svm_pt)
+          from LR_functions import normalize
+          x_train, x_test = normalize(x_train,x_test)
+
+          x_train_good = x_train.reindex(index=y_train[y_train.NumType.values==CLASS_train].index)
+          x_train_bad = x_train.reindex(index=y_train[y_train.NumType.values!=CLASS_train].index)
+          good_train = y_train.reindex(index=x_train_good.index)
+
+          x_test_good = x_test.reindex(index=y_test[y_test.NumType.values==CLASS_test].index)
+          x_test_bad = x_test.reindex(index=y_test[y_test.NumType.values!=CLASS_test].index)
+
+          # PLOT FOR 1 ATTRIBUTE AND 2 CLASSES
+          if n_feat == 1 and len(opt.opdict['types']) == 2:
+            name = opt.opdict['feat_list'][0]
+            from plot_functions import plot_hyp_func_1f, histo_pdfs
+            if opt.opdict['method']=='lr' and opt.opdict['compare']:
+              plot_hyp_func_1f(x_train,y_train,theta,opt.opdict['method'],threshold=threshold,x_ok=x_test_good,x_bad=x_test_bad,th_comp=theta_svm,cmat_test=cmat_test,cmat_svm=cmat_svm_test,cmat_train=cmat_train)
+            else:
+              #histo_pdfs(x_test,y_test,x_train=x_train,y_train=y_train)
+              plot_hyp_func_1f(x_train,y_train,theta,opt.opdict['method'],threshold=threshold,x_ok=x_test_good,x_bad=x_test_bad,cmat_test=cmat_test,cmat_train=cmat_train)
+
+          # PLOT FOR 2 ATTRIBUTES AND 2 to 3 CLASSES
+          elif n_feat == 2:
+            from plot_2features import plot_2f_all
+            if opt.opdict['method']=='lr' and opt.opdict['compare']:
+              plot_2f_all(theta,threshold,p_test,opt.opdict['method'],x_train,y_train,x_test,y_test,x_test_bad,opt.types,p_train=p_tr,th_comp=theta_svm,t_comp=t_svm,p=svm_pt)
+            else:
+              plot_2f_all(theta,threshold,p_test,opt.opdict['method'],x_train,y_train,x_test,y_test,x_test_bad,opt.types,p_train=p_tr)
+            name = '%s_%s'%(opt.opdict['feat_list'][0],opt.opdict['feat_list'][1])
+
+          # PLOT FOR 3 ATTRIBUTES
+          elif n_feat == 3:
+            from plot_functions import plot_db_3d
+            plot_db_3d(x_train,y_train.NumType,theta[1],title='Training set')
+            plot_db_3d(x_test,y_test.NumType,theta[1],title='Test set')
+            name = '%s_%s_%s'%(opt.opdict['feat_list'][0],opt.opdict['feat_list'][1],opt.opdict['feat_list'][2])
+
+          if opt.opdict['save_sep']:
+            plt.savefig('%s/%s/1809_sep_%s.png'%(opt.opdict['fig_path'],dir,name))
+          if opt.opdict['plot_sep']:
+            plt.show()
           else:
-            plot_2f_all(theta,threshold,p_test,opt.opdict['method'],x_train,y_train,x_test,y_test,x_test_bad,opt.types,p_train=p_tr)
-          name = '%s_%s'%(opt.opdict['feat_list'][0],opt.opdict['feat_list'][1])
-
-        # PLOT FOR 3 ATTRIBUTES
-        elif n_feat == 3:
-          from plot_functions import plot_db_3d
-          plot_db_3d(x_train,y_train.NumType,theta[1],title='Training set')
-          plot_db_3d(x_test,y_test.NumType,theta[1],title='Test set')
-          name = '%s_%s_%s'%(opt.opdict['feat_list'][0],opt.opdict['feat_list'][1],opt.opdict['feat_list'][2])
-
-        if opt.opdict['save_sep']:
-          plt.savefig('%s/%s/1809_sep_%s.png'%(opt.opdict['fig_path'],dir,name))
-        if opt.opdict['plot_sep']:
-          plt.show()
-        else:
-          plt.close()
+            plt.close()
 
       subsubdic['%'] = pourcentages
       trad_CLASS_test = []

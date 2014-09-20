@@ -71,13 +71,25 @@ def plot_hyp_func_1f(x,y,theta,method,threshold=None,x_ok=None,x_bad=None,th_com
     p_test = dic_percent(cmat_test,str_t)
     ax1.text(x_pos,y_pos,method.upper(),size=s,transform=ax1.transAxes,color='orange')
     ax1.text(x_pos,y_pos-pas,"Test : %.2f%%"%p_test['global'],size=s,transform=ax1.transAxes)
+    ax1.text(x_pos+.2,y_pos-pas,"(%.2f%%)"%(100-p_test['global']),size=s,color='red',transform=ax1.transAxes)
     
-  if list(cmat_train):
+  if list(cmat_train) and not list(cmat_svm):
     plot_confusion_mat(cmat_train,str_t,'Training',method,ax=ax3)
     p_train = dic_percent(cmat_train,str_t)
     ax1.text(x_pos,y_pos-2*pas,"Training : %.2f%%"%p_train['global'],size=s,transform=ax1.transAxes)
-    
-  if list(cmat_svm):
+
+  elif list(cmat_train) and list(cmat_svm):
+    p_train = dic_percent(cmat_train,str_t)
+    ax1.text(x_pos,y_pos-2*pas,"Training : ",size=s,transform=ax1.transAxes)
+    ax1.text(x_pos+.15,y_pos-2*pas,"%s %s%%"%(str_t[0],p_train[(str_t[0],0)]),color='b',size=s,transform=ax1.transAxes)
+    ax1.text(x_pos+.15,y_pos-3*pas,"%s %s%%"%(str_t[1],p_train[(str_t[1],1)]),color='g',size=s,transform=ax1.transAxes)
+
+    plot_confusion_mat(cmat_svm,str_t,'Test','SVM',ax=ax3)
+    p_svm = dic_percent(cmat_svm,str_t)
+    ax1.text(x_pos,y_pos-4*pas,"SVM",size=s,transform=ax1.transAxes,color='purple')
+    ax1.text(x_pos,y_pos-5*pas,"Test : %.2f%%"%p_svm['global'],size=s,transform=ax1.transAxes)
+
+  elif not list(cmat_train) and list(cmat_svm):
     plot_confusion_mat(cmat_svm,str_t,'Test','SVM',ax=ax3)
     p_svm = dic_percent(cmat_svm,str_t)
     ax1.text(x_pos,y_pos-3*pas,"SVM",size=s,transform=ax1.transAxes,color='purple')
@@ -88,49 +100,66 @@ def plot_hyp_func_1f(x,y,theta,method,threshold=None,x_ok=None,x_bad=None,th_com
   plt.figtext(.63,.48,'(c)')
 
 # ---------------------------------------------------
-def plot_sep_2f(x_train,y_train,str_t,x_all,y_all,x_bad,theta=[],text=None):
+def histo_pdfs(x_test,y_test,x_train=None,y_train=None):
   """
-  Plots the decision boundary for two feature.
-  Superimposed with scatter plots (training and test sets)
-  x_train, y_train, x_all, y_all are pandas DataFrame
+  Plot the histograms of the training and test set superimposed with PDFs.
   """
-  n = x_train.shape[1]
-  for ikey,key in enumerate(x_train.columns):
-    for k in x_train.columns[ikey+1:]:
-      fig = plt.figure()
-      fig.set_facecolor('white')
-      plt.scatter(x_all[key],x_all[k],c=list(y_all.values),cmap=plt.cm.gray,alpha=0.2)
-      plt.scatter(x_train[key],x_train[k],c=list(y_train.values),cmap=plt.cm.winter,alpha=0.5)
+  from scipy.stats.kde import gaussian_kde
 
-      from LR_functions import g
-      nbpts = 100
-      pas = 1./nbpts
-      x1 = np.arange(-1,1,pas)
-      x2 = np.arange(-1,1,pas)
-      x1, x2 = np.meshgrid(x1,x2)
-      proba = g(theta[0] + theta[1]*x1 + theta[2]*x2)
-      CS = plt.contour(x1,x2,proba)
-      plt.clabel(CS, inline=.1, fontsize=10)
+  num_t = np.unique(y_test.NumType.values.ravel())
+  num_t = map(int,list(num_t))
+  str_t = np.unique(y_test.Type.values.ravel())
+  str_t = map(str,list(str_t))
 
-      if key in x_bad.columns:
-        plt.scatter(x_bad[key],x_bad[k],c='r',alpha=0.2)
-      if list(theta):
-        lim = .1
-        x1 = x_all.values[:,0]
-        x2 = x_all.values[:,1]
-        xplot = np.arange(np.min(x1)-lim,np.max(x1)+lim,0.1)
-        plt.plot(xplot,1./theta[2]*(-theta[0]-theta[1]*xplot),'y',lw=3.)
-        plt.xlim((np.min(x1)-lim,np.max(x1)+lim))
-        plt.ylim((np.min(x2)-lim,np.max(x2)+lim))
-      if text:
-        plt.figtext(0.7,0.85,"%.2f %% %s"%(text[0],str_t[0]),color='b')
-        plt.figtext(0.7,0.8,"%.2f %% %s"%(text[1],str_t[1]),color='g')
-        plt.figtext(0.7,0.75,"%.2f %% test set"%text[2])
-        plt.figtext(0.7,0.7,"%.2f %% test set"%text[3],color='r')
-      plt.xlabel(key)
-      plt.ylabel(k)
-      plt.ylim([-1,1])
-      plt.title('%s and %s'%(x_all.columns[0],x_all.columns[1]))
+  fig = plt.figure()
+  fig.set_facecolor('white')
+
+  colors = ('k','w')
+  for feat in x_test.columns:
+    hist = []
+    g = {}
+
+    if y_train:
+      c_train = ('b','g')
+      hist_train, g_train = [],{}
+      lab_tr = []
+      mini = np.min([x_test.min()[feat],x_train.min()[feat]])
+      maxi = np.max(x_test.max()[feat],x_train.max()[feat])
+    else:
+      mini = x_test.min()[feat]
+      maxi = x_test.max()[feat]
+
+    print mini, maxi
+    bins_hist = np.linspace(mini,maxi,25)
+    bins = np.linspace(mini,maxi,200)
+
+    for i in num_t:
+      index = y_test[y_test.NumType.values==i].index
+      x_plot = x_test.reindex(columns=[feat],index=index).values
+      hist.append(x_plot)
+      kde = gaussian_kde(x_plot.ravel())
+      g[i] = kde(bins)
+      if y_train:
+        lab_tr.append('%s (train)'%str_t[i])
+        index = y_train[y_train.NumType.values==i].index
+        x_plot = x_train.reindex(columns=[feat],index=index).values
+        hist_train.append(x_plot)
+        kde = gaussian_kde(x_plot.ravel())
+        g_train[i] = kde(bins)
+    
+    plt.hist(hist,bins=bins_hist,color=colors,normed=1,histtype='stepfilled',alpha=.2,label=str_t)
+    if y_train:
+      plt.hist(hist_train,bins=bins_hist,color=c_train,normed=1,histtype='stepfilled',alpha=.2,label=lab_tr)
+
+    colors = ('k','y')
+    for key in sorted(g):
+      plt.plot(bins,g[key],color=colors[key],lw=2.)
+      if y_train:
+        plt.plot(bins,g_train[key],color=c_train[key],lw=1.,ls='--')
+ 
+    plt.legend(loc=2)
+    plt.xlabel(feat)
+ 
 # ---------------------------------------------------
 # Plotting function for 2 features and degree = 2
 def plot_db(x,y,theta,lim=.1,title=None):

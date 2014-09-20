@@ -108,20 +108,20 @@ def piton():
   opdict['types'] = ['EB','VT']
   opdict['datadir'] = os.path.join('../data/%s/full_data'%opdict['dir'])
   ### FEATURES FILES
-  #opdict['feat_train'] = 'clement_train.csv'
-  #opdict['feat_test'] = 'clement_test.csv'
-  opdict['feat_train'] = 'Piton_trainset.csv'
-  opdict['feat_test'] = 'Piton_testset.csv'
+  opdict['feat_train'] = 'clement_train.csv'
+  opdict['feat_test'] = 'clement_test.csv'
+  #opdict['feat_train'] = 'Piton_trainset.csv'
+  #opdict['feat_test'] = 'Piton_testset.csv'
   ### HASH TABLE FEATURES FILES
-  opdict['hash_train'] = 'HT_Piton_trainset.csv'
-  opdict['hash_test'] = 'HT_Piton_testset.csv'
+  opdict['hash_train'] = 'ClHT_Piton_trainset.csv'
+  opdict['hash_test'] = 'ClHT_Piton_testset.csv'
   ### LABEL FILES
   opdict['label_train'] = 'class_train_set.csv'
   opdict['label_test'] = 'class_test_set.csv'
   ### DECOMPOSITION OF THE TRAINING SET
   opdict['learn_file'] = 'learning_set'
   ### FEATURES LIST
-  opdict['feat_all'] = ['AsDec','Bandwidth','CentralF','Centroid_time','Dur','Ene','Ene5-10','Ene0-5','F_low','F_up','Growth','IFslope','Kurto','MeanPredF','NbPeaks','PredF','RappMaxMean','RappMaxMeanTF','Skewness','sPredF','TimeMaxSpec','Width','ibw0','ibw1','ibw2','ibw3','ibw4','ibw5','ibw6','ibw7','ibw8','ibw9','if0','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9','Rectilinearity','Planarity','Azimuth','Incidence'] 
+  opdict['feat_all'] = ['AsDec','Bandwidth','CentralF','Centroid_time','Dur','Ene','Ene5-10','Ene0-5','F_low','F_up','Growth','IFslope','Kurto','MeanPredF','NbPeaks','PredF','RappMaxMean','RappMaxMeanTF','Skewness','sPredF','TimeMaxSpec','Width','ibw0','ibw1','ibw2','ibw3','ibw4','ibw5','ibw6','ibw7','ibw8','ibw9','if0','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9','Rectilinearity','Planarity','Azimuth','Incidence','KRapp'] 
   return opdict
 
 ### ====================================================
@@ -150,15 +150,17 @@ class Options(object):
 
     ### Number of iterations ###
     # a new training set is generated at each 'iteration'
-    self.opdict['boot'] = 1
+    self.opdict['boot'] = 10
 
     ### Choice of the classification algorithm ###
-    # could be 'lr' (logistic regression)
-    # or 'svm' (Support Vector Machine from scikit.learn package)
+    # could be 'lr' (LR = logistic regression)
+    # or 'svm' (SVM = Support Vector Machine from scikit.learn package ; default is linear)
+    # or 'svm_nl' (non-linear SVM with a gaussian kernel)
     # or 'ova' (1-vs-all extractor), 
     # or '1b1' (1-by-1 extractor)
     # or 'lrsk' (Logistic regression from scikit.learn package)
-    self.opdict['method'] = 'svm'
+    # or 'kmean' (K-means from scikit.learn package)
+    self.opdict['method'] = 'lr'
 
     ### Also compute the probabilities for each class ###
     self.opdict['probas'] = False
@@ -172,9 +174,9 @@ class Options(object):
     self.opdict['save_confusion'] = False
 
     ### Plot and save the decision boundaries ###
-    self.opdict['plot_sep'] = False
+    self.opdict['plot_sep'] = True
     self.opdict['save_sep'] = False
-    self.opdict['compare'] = True # plot SVM and LR decision boundaries on the same plot
+    self.opdict['compare'] = False # plot SVM and LR decision boundaries on the same plot
 
     ### Plot precision and recall ###
     self.opdict['plot_prec_rec'] = False # plot precision and recall
@@ -226,9 +228,9 @@ class Options(object):
     if self.opdict['option'] == 'norm':
       # Features "normales"
       #self.opdict['feat_list'] = self.opdict['feat_all']
-      self.opdict['feat_list'] = ['RappMaxMean']
-      self.opdict['feat_log'] = ['RappMaxMean']
-      #self.opdict['feat_log'] = ['AsDec','Dur','Ene0-5','Growth','ibw0','MeanPredF','RappMaxMean','RappMaxMeanTF','TimeMaxSpec','v0','v8','v9'] # list of features to be normalized with np.log (makes data look more gaussians)
+      self.opdict['feat_list'] = ['Ene']
+      #self.opdict['feat_log'] = self.opdict['feat_list']
+      #self.opdict['feat_log'] = ['Ene']
       #self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Growth','Kurto','RappMaxMean','RappMaxMeanTF','Skewness','TimeMaxSpec','Width']
       #self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Kurto','RappMaxMean','Skewness','TimeMaxSpec']
       #self.opdict['feat_list'] = ['Dur','F_up','Growth','Kurto','RappMaxMean','RappMaxMeanTF','TimeMaxSpec','Width']
@@ -242,13 +244,13 @@ class Options(object):
       if 'hash_train' in sorted(self.opdict):
         self.opdict['feat_train'] = self.opdict['hash_train']
       self.opdict['permut_file'] = '%s/permut_HT'%self.opdict['libdir']
-      self.opdict['feat_list'] = map(str,range(50))
-      #self.opdict['feat_list'] = ['0','3','5','8','26','29','30','41']
-      #self.opdict['feat_log'] = map(str,range(50))
+      self.opdict['feat_list'] = map(str,range(50)) + ['AsDec','Dur','Ene','KRapp']
+      #self.opdict['feat_list'] = map(str,range(50)) + self.opdict['feat_all']
+      #self.opdict['feat_list'] = ['0','4','8','10','45']
 
     ### RESULT FILE ###
     NB_feat = len(self.opdict['feat_list'])
-    if self.opdict['method'] in ['lr','svm','lrsk']:
+    if self.opdict['method'] in ['lr','svm','svm_nl','lrsk']:
       if NB_feat == 1:
         self.opdict['result_file'] = 'results_%s_%s'%(self.opdict['method'],self.opdict['feat_list'][0])
       else:
@@ -460,8 +462,8 @@ class Options(object):
 
     self.gaussians = {}
     for feat in self.opdict['feat_list']:
-      vec = np.linspace(self.x.min()[feat],self.x.max()[feat],200)
-      #vec = np.linspace(self.x.min()[feat]+self.x.std()[feat],self.x.max()[feat]-self.x.std()[feat],200)
+      #vec = np.linspace(self.x.min()[feat],self.x.max()[feat],200)
+      vec = np.linspace(self.x.min()[feat]+self.x.std()[feat],self.x.max()[feat]-self.x.std()[feat],200)
       #vec = np.linspace(self.x.mean()[feat]-self.x.std()[feat],self.x.mean()[feat]+self.x.std()[feat],200)
 
       self.gaussians[feat] = {}
@@ -532,7 +534,7 @@ class Options(object):
       plt.title(feat)
       plt.legend()
       if save:
-        savename = '%s/CLEMENT/compCL_%s.png'%(self.opdict['fig_path'],feat)
+        savename = '%s/fig_%s.png'%(self.opdict['fig_path'],feat)
         print "Save PDF for feature %s in %s"%(feat,savename)
         plt.savefig(savename)
       plt.show()
@@ -701,6 +703,10 @@ class MultiOptions(Options):
     feats.index = types.index
     feats = feats.dropna(how='any')
     types = types.reindex(index=feats.index)
+    if 'feat_log' in sorted(self.opdict):
+      for f in self.opdict['feat_log']:
+        if f in self.opdict['feat_list']:
+          feats[f] = np.log(feats[f])
     return feats,types
 
 
