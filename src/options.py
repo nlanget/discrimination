@@ -94,7 +94,7 @@ def ijen():
   ### FEATURES FILE
   opdict['feat_test'] = 'ijen_3006.csv'
   ### LABEL FILE
-  opdict['label_test'] = 'Ijen_reclass_all.csv'
+  opdict['label_test'] = 'Ijen_3class_all.csv'
   ### FEATURES LIST
   opdict['feat_all'] = ['AsDec','Bandwidth','CentralF','Centroid_time','Dur','Ene20-30','Ene5-10','Ene0-5','F_low','F_up','Growth','IFslope','Kurto','MeanPredF','NbPeaks','PredF','RappMaxMean','RappMaxMeanTF','Skewness','sPredF','TimeMaxSpec','Width','ibw0','ibw1','ibw2','ibw3','ibw4','ibw5','ibw6','ibw7','ibw8','ibw9','if0','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9']
   return opdict
@@ -160,18 +160,19 @@ class Options(object):
     # or '1b1' (1-by-1 extractor)
     # or 'lrsk' (Logistic regression from scikit.learn package)
     # or 'kmeans' (K-means from scikit.learn package)
-    self.opdict['method'] = 'kmeans'
+    self.opdict['method'] = 'svm_nl'
 
     ### Also compute the probabilities for each class ###
-    self.opdict['probas'] = False
+    ### Computation time increases
+    self.opdict['probas'] = True
 
     ### Display and save the PDFs of the features ###
     self.opdict['plot_pdf'] = False
     self.opdict['save_pdf'] = False
 
     ### Display and save the confusion matrices ###
-    self.opdict['plot_confusion'] = True 
-    self.opdict['save_confusion'] = True
+    self.opdict['plot_confusion'] = False
+    self.opdict['save_confusion'] = False
 
     ### Plot and save the decision boundaries ###
     self.opdict['plot_sep'] = False
@@ -227,10 +228,10 @@ class Options(object):
     date = time.localtime()
     if self.opdict['option'] == 'norm':
       # Features "normales"
-      self.opdict['feat_list'] = self.opdict['feat_all']
+      #self.opdict['feat_list'] = self.opdict['feat_all']
       #self.opdict['feat_log'] = self.opdict['feat_list']
       #self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Growth','Kurto','RappMaxMean','RappMaxMeanTF','Skewness','TimeMaxSpec','Width']
-      #self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Kurto','RappMaxMean','Skewness','TimeMaxSpec']
+      self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Kurto','RappMaxMean','Skewness','TimeMaxSpec']
       #self.opdict['feat_list'] = ['Dur','F_up','Growth','Kurto','RappMaxMean','RappMaxMeanTF','TimeMaxSpec','Width']
       #self.opdict['feat_list'] = ['CentralF','Centroid_time','Dur','Ene0-5','F_up','Growth','IFslope','Kurto','MeanPredF','RappMaxMean','RappMaxMeanTF','Skewness','TimeMaxSpec','Width','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9']
       #self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_low','F_up','IFslope','Kurto','MeanPredF','RappMaxMean','Skewness','ibw0','if6','if7','if8','v8']
@@ -252,12 +253,10 @@ class Options(object):
       if NB_feat == 1:
         self.opdict['result_file'] = 'results_%s_%s'%(self.opdict['method'],self.opdict['feat_list'][0])
       else:
-        self.opdict['result_file'] = 'results_%s_%dc_%df'%(self.opdict['method'],len(self.opdict['types']),len(self.opdict['feat_list']))
+        self.opdict['result_file'] = '2109_results_%s_%dc_%df'%(self.opdict['method'],len(self.opdict['types']),len(self.opdict['feat_list']))
  
     else:
       self.opdict['result_file'] = '%s_%s_svm'%(self.opdict['method'].upper(),self.opdict['stations'][0])
-
-    #self.opdict['result_file'] = 'results_svm_reclass_3c_8f'
 
     self.opdict['result_path'] = '%s/%s'%(self.opdict['res_dir'],self.opdict['result_file'])
 
@@ -335,7 +334,7 @@ class Options(object):
     it if it does not exist.
     """
     if not os.path.isdir(dirname):
-      print "Create directory %s..."%dirname
+      print "Created directory %s..."%dirname
       os.makedirs(dirname)
 
 
@@ -554,28 +553,43 @@ class Options(object):
     if not hasattr(self,'gaussians'):
       self.compute_pdfs()
 
-    labels = list(self.types[:])
-    if list(coord):
-      labels.append('manual %s'%coord[2,0])
-      #labels.append('auto')
     fig = plt.figure()
     fig.set_facecolor('white')
+    maxy = 0
     for it,t in enumerate(self.types):
       if it >= 7:
-        lstyle = '--'
+        lstyle, lw = '--', 1.
       else:
-        lstyle = '-'
-      plt.plot(self.gaussians[feat]['vec'],self.gaussians[feat][t],ls=lstyle)
+        lstyle, lw = '-', 2.
+      if t == '?':
+        lw = 1.
+      plt.plot(self.gaussians[feat]['vec'],self.gaussians[feat][t],ls=lstyle,lw=lw,label=t)
+      maxy = np.max([maxy,np.max(self.gaussians[feat][t])])
     if list(coord):
+      lab = coord[2,0]
+      if lab == 'VulkanikB':
+        lab = 'VB'
       ind  = [np.argmin(np.abs(self.gaussians[feat]['vec']-c)) for c in coord[1,:]]
       if len(coord) == 3:
-        plt.plot(coord[1,:],self.gaussians[feat][coord[0,0]][ind],'ro')
+        plt.plot(coord[1,:],self.gaussians[feat][coord[0,0]][ind],'ro',label='manual %s'%lab)
       elif len(coord) == 4:
-        plt.scatter(coord[1,:],self.gaussians[feat][coord[0,0]][ind],s=40,c=list(coord[3]),cmap=plt.cm.hot)
+        proba = coord[3]
+        mini = np.min(coord[3])
+        maxi = np.max(coord[3])
+        plt.scatter(coord[1,:],self.gaussians[feat][coord[0,0]][ind],s=40,c=list(proba),cmap=plt.cm.gray_r,vmin=mini,vmax=maxi,label='manual %s'%lab)
     plt.xlim([np.min(self.gaussians[feat]['vec']),np.max(self.gaussians[feat]['vec'])])
+    plt.ylim([-0.001,maxy+0.001])
     plt.title(feat)
-    plt.legend(labels,numpoints=1)
-    #plt.savefig('%s/figures/Indet_%s_%s_brut.png'%(self.opdict['outdir'],coord[2,0],feat))
+    plt.legend(numpoints=1)
+    plt.savefig('%s/Indet_%s_%s_brut.png'%(self.opdict['fig_path'],coord[2,0],feat))
+
+    #if len(coord) == 4:
+    #  fig = plt.figure()
+    #  fig.set_facecolor('white')
+    #  s = np.argsort(coord[1,:])
+    #  plt.plot(coord[1,:][s],proba[s],'r-')
+    #  plt.ylim([0,1])
+
     plt.show()
 
 

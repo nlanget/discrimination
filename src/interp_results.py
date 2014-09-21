@@ -54,7 +54,7 @@ def plot_on_pdf(opt):
           dico = opt.results[(sta, comp)][0]
           i_dates = np.where(np.in1d(dico['list_ev'],list_dates))[0]
           probas = dico['proba'][t][i_dates]
-          probas = np.array(['%.1f'%item for item in probas])
+          #probas = np.around(probas,decimals=1)
 
         print "Found %d events automatically classified as '%s' instead of '?'"%(len(list_dates),t)
 
@@ -136,7 +136,7 @@ def compare_pdfs_reclass():
           plt.plot(g2[feat]['vec'],g2[feat][t],ls='--',color=c[it])
         plt.title(feat)
         plt.legend()
-        plt.savefig('../results/Ijen/comp_BrutReclass_%s.png'%feat)
+        #plt.savefig('../results/Ijen/comp_BrutReclass_%s.png'%feat)
         plt.show()
       
 # ================================================================
@@ -194,8 +194,8 @@ def plot_test_vs_train():
   """
   import cPickle
   path = '../results/Piton'
-  filenames = ['LR/results_lr_2c_50f_HASH','LR/results_lr_2c_50f_HASH32']
-  labels = ['64x64','32x32']
+  filenames = ['LR/results_lr_2c_50f_HASH','LR/results_lr_2c_50f_HASH32','LR/results_lr_2c_52f_HASH','SVM/results_svm_2c_50f_HASH','SVM/results_svm_2c_50f_HASH32','SVM/results_svm_2c_52f_HASH','SVM/results_svm_2c_32f_HASH','SVM/results_svm_2c_12f_HASH']
+  labels = ['LR 64x64','LR 32x32','LR KRapp-Dur','SVM 64x64','SVM 32x32','SVM KRapp-Dur','SVM 32f','SVM 12f']
 
   fig = plt.figure()
   fig.set_facecolor('white')
@@ -219,7 +219,8 @@ def plot_test_vs_train():
     for i in sorted(DIC):
       p_tr.append(DIC[i]['%'][0])
       p_test.append(DIC[i]['%'][1])
-    print labels[k], 'TRAIN', np.mean(p_tr), np.std(p_tr)
+    print labels[k]
+    print '\tTRAIN', np.mean(p_tr), np.std(p_tr)
     print '\tTEST', np.mean(p_test), np.std(p_test)
     plt.plot(p_tr,p_test,marker=markers[k],color=colors[k],lw=0,label=labels[k])
     k = k+1
@@ -242,7 +243,7 @@ if __name__ == '__main__':
   res = AnalyseResults()
 
   #new_catalogue(res)
-  #plot_on_pdf(res)
-  plot_waveforms(res)
+  plot_on_pdf(res)
+  #plot_waveforms(res)
   #compare_pdfs_reclass()
   #compare_pdfs_train()
