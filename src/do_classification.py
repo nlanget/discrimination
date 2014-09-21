@@ -162,10 +162,14 @@ def classifier(opt):
         one_vs_all(opt,x_test,y_test,set['Otime'],boot=10,method='svm')
         continue
 
-      elif opt.opdict['method'] == 'svm':
+      elif opt.opdict['method'] in ['svm','svm_nl']:
         # SVM
         print "********** SVM **********"
-        kern = 'Lin'
+        if opt.opdict['method'] == 'svm':
+          kern = 'Lin'
+        else:
+          kern = 'NonLin'
+
         out = implement_svm(x_train,x_test,y_train,y_test,opt.types,opt.opdict,kern=kern,proba=opt.opdict['probas'])
 
         if 'thetas' in sorted(out):

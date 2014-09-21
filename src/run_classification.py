@@ -19,7 +19,7 @@ def run_all():
   #opt.count_number_of_events()
 
   ### UNSUPERVISED METHOD ### 
-  if opt.opdict['method'] == 'kmean':
+  if opt.opdict['method'] == 'kmeans':
     from unsupervised import classifier
     classifier(opt)
 

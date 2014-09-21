@@ -159,8 +159,8 @@ class Options(object):
     # or 'ova' (1-vs-all extractor), 
     # or '1b1' (1-by-1 extractor)
     # or 'lrsk' (Logistic regression from scikit.learn package)
-    # or 'kmean' (K-means from scikit.learn package)
-    self.opdict['method'] = 'svm'
+    # or 'kmeans' (K-means from scikit.learn package)
+    self.opdict['method'] = 'kmeans'
 
     ### Also compute the probabilities for each class ###
     self.opdict['probas'] = False
@@ -171,7 +171,7 @@ class Options(object):
 
     ### Display and save the confusion matrices ###
     self.opdict['plot_confusion'] = True 
-    self.opdict['save_confusion'] = False
+    self.opdict['save_confusion'] = True
 
     ### Plot and save the decision boundaries ###
     self.opdict['plot_sep'] = False
@@ -195,12 +195,12 @@ class Options(object):
     ### Output directory
     self.opdict['outdir'] = os.path.join('../results',self.opdict['dir'])
     self.verify_and_create(self.opdict['outdir'])
-    ### Figures directory
-    self.opdict['fig_path'] = '%s/figures'%self.opdict['outdir']
-    self.verify_and_create(self.opdict['fig_path'])
     ### Result directory
     self.opdict['res_dir'] = '%s/%s'%(self.opdict['outdir'],self.opdict['method'].upper())
     self.verify_and_create(self.opdict['res_dir'])
+    ### Figures directory
+    self.opdict['fig_path'] = '%s/figures'%self.opdict['res_dir']
+    self.verify_and_create(self.opdict['fig_path'])
 
     ### if there is an independent training set
     if 'feat_train' in sorted(self.opdict):
@@ -227,9 +227,9 @@ class Options(object):
     date = time.localtime()
     if self.opdict['option'] == 'norm':
       # Features "normales"
-      #self.opdict['feat_list'] = self.opdict['feat_all']
+      self.opdict['feat_list'] = self.opdict['feat_all']
       #self.opdict['feat_log'] = self.opdict['feat_list']
-      self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Growth','Kurto','RappMaxMean','RappMaxMeanTF','Skewness','TimeMaxSpec','Width']
+      #self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Growth','Kurto','RappMaxMean','RappMaxMeanTF','Skewness','TimeMaxSpec','Width']
       #self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Kurto','RappMaxMean','Skewness','TimeMaxSpec']
       #self.opdict['feat_list'] = ['Dur','F_up','Growth','Kurto','RappMaxMean','RappMaxMeanTF','TimeMaxSpec','Width']
       #self.opdict['feat_list'] = ['CentralF','Centroid_time','Dur','Ene0-5','F_up','Growth','IFslope','Kurto','MeanPredF','RappMaxMean','RappMaxMeanTF','Skewness','TimeMaxSpec','Width','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9']
@@ -248,7 +248,7 @@ class Options(object):
 
     ### RESULT FILE ###
     NB_feat = len(self.opdict['feat_list'])
-    if self.opdict['method'] in ['lr','svm','svm_nl','lrsk','kmean']:
+    if self.opdict['method'] in ['lr','svm','svm_nl','lrsk','kmeans']:
       if NB_feat == 1:
         self.opdict['result_file'] = 'results_%s_%s'%(self.opdict['method'],self.opdict['feat_list'][0])
       else:
@@ -257,7 +257,7 @@ class Options(object):
     else:
       self.opdict['result_file'] = '%s_%s_svm'%(self.opdict['method'].upper(),self.opdict['stations'][0])
 
-    self.opdict['result_file'] = 'results_svm_reclass_3c_8f'
+    #self.opdict['result_file'] = 'results_svm_reclass_3c_8f'
 
     self.opdict['result_path'] = '%s/%s'%(self.opdict['res_dir'],self.opdict['result_file'])
 
@@ -463,8 +463,8 @@ class Options(object):
 
     self.gaussians = {}
     for feat in self.opdict['feat_list']:
-      #vec = np.linspace(self.x.min()[feat],self.x.max()[feat],200)
-      vec = np.linspace(self.x.min()[feat]+self.x.std()[feat],self.x.max()[feat]-self.x.std()[feat],200)
+      vec = np.linspace(self.x.min()[feat],self.x.max()[feat],200)
+      #vec = np.linspace(self.x.min()[feat]+self.x.std()[feat],self.x.max()[feat]-self.x.std()[feat],200)
       #vec = np.linspace(self.x.mean()[feat]-self.x.std()[feat],self.x.mean()[feat]+self.x.std()[feat],200)
 
       self.gaussians[feat] = {}
@@ -506,7 +506,9 @@ class Options(object):
       plt.title(feat)
       plt.legend(self.types)
       if save:
-        savename = '%s/fig_%s.png'%(self.opdict['fig_path'],feat)
+        pdf_path = os.path.join(self.opdict['fig_path'],'PDFs')
+        self.verify_and_create(pdf_path)
+        savename = '%s/fig_%s.png'%(pdf_path,feat)
         print "Save PDF for feature %s in %s"%(feat,savename)
         plt.savefig(savename)
       plt.show()
@@ -535,6 +537,8 @@ class Options(object):
       plt.title(feat)
       plt.legend()
       if save:
+        pdf_path = os.path.join(self.opdict['fig_path'],'PDFs')
+        self.verify_and_create(pdf_path)
         savename = '%s/fig_%s.png'%(self.opdict['fig_path'],feat)
         print "Save PDF for feature %s in %s"%(feat,savename)
         plt.savefig(savename)
