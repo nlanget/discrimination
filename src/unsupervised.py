@@ -59,7 +59,7 @@ def classifier(opt):
         print "Test set: Incoherence in x and y dimensions"
         sys.exit()
 
-      if opt.opdict['method'] == 'kmean':
+      if opt.opdict['method'] == 'kmeans':
         # K-Mean
         print "********** KMean **********"
         CLASS_test = implement_kmean(x_test,K)
@@ -86,11 +86,13 @@ def classifier(opt):
       ### PLOT DIAGRAMS ###
       if opt.opdict['plot_confusion'] or opt.opdict['save_confusion']:
         if K > 4:
-          plot_diagrams(CLASS_test,y_test,save=opt.opdict['save_confusion'])
-          #results_histo(CLASS_test,y_test,save=opt.opdict['save_confusion'])
-          results_diagrams(CLASS_test,y_test,save=opt.opdict['save_confusion'])
+          plot_diagrams(CLASS_test,y_test)
+          #results_histo(CLASS_test,y_test)
+          results_diagrams(CLASS_test,y_test)
         else:
-          all_diagrams(CLASS_test,y_test,types_trad,save=opt.opdict['save_confusion'])
+          all_diagrams(CLASS_test,y_test,types_trad)
+        if opt.opdict['save_confusion']:
+          plt.savefig('%s/unsup_diagrams_%df.png'%(opt.opdict['fig_path'],len(opt.opdict['feat_list'])))
         if opt.opdict['plot_confusion']:
           plt.show()
         else:
@@ -271,18 +273,18 @@ def plot_and_compare_pdfs(g1,g2):
     fig.set_facecolor('white')
     for it,t in enumerate(sorted(g1[feat])):
       if t != 'vec':
-        plt.plot(g1[feat]['vec'],g1[feat][t],ls='-',color=c[it],label=t)
+        plt.plot(g1[feat]['vec'],g1[feat][t],ls='-',color=c[it],lw=2.,label=t)
     for it,t in enumerate(sorted(g2[feat])):
       if t != 'vec':
-        plt.plot(g2[feat]['vec'],g2[feat][t],ls='--',color=c[-it-1],label='Class %d'%t)
+        plt.plot(g2[feat]['vec'],g2[feat][t],ls='--',color=c[-it-1],lw=2.,label='Class %d'%t)
     plt.title(feat)
     plt.legend()
-    #plt.savefig('../results/Ijen/figures/Unsupervised/pdf_%s.png'%feat)
+    plt.savefig('../results/Ijen/KMEANS/figures/unsup_pdf_%s.png'%feat)
     plt.show()
 
 # ================================================================
 
-def all_diagrams(y_auto,y_man,trad,save=False):
+def all_diagrams(y_auto,y_man,trad):
   """
   Combines plot_diagrams and results_diagrams on the same figure 
   when the number of classes is < 5.
@@ -304,12 +306,14 @@ def all_diagrams(y_auto,y_man,trad,save=False):
   grid = GridSpec(nb_l,nb_c)
   fig = plt.figure(figsize=(12,8))
   fig.set_facecolor('white')
-  plt.subplot(grid[0,:nb_c/2],title='Manual classes')
-  plt.pie(nb_man,labels=types,autopct='%1.1f%%',colors=colors)
-  plt.axis("equal")
-  plt.subplot(grid[0,nb_c/2:],title='Automatic classes')
-  plt.pie(nb_auto,labels=range(nb_class),autopct='%1.1f%%',colors=colors)
-  plt.axis("equal")
+  ax= fig.add_subplot(grid[0,:nb_c/2])
+  ax.pie(nb_man,labels=types,autopct='%1.1f%%',colors=colors)
+  #ax.text(.4,-.1,r'# events = %d'%np.sum(nb_man),transform=ax.transAxes)
+  ax.axis("equal")
+
+  ax = fig.add_subplot(grid[0,nb_c/2:])
+  ax.pie(nb_auto,labels=range(nb_class),autopct='%1.1f%%',colors=colors)
+  ax.axis("equal")
 
   labels = types.copy()
   if 'VulkanikB' in labels:
@@ -329,16 +333,15 @@ def all_diagrams(y_auto,y_man,trad,save=False):
 
     nbs = [len(b[b.values.ravel()==j]) for j in types]
 
-    plt.subplot(grid[1,2*i:2*i+2])
-    plt.pie(nbs,labels=labels,autopct='%1.1f%%',colors=colors)
-    plt.title(r'Class %d $\approx$ %s'%(i,trad[i]))
+    ax = fig.add_subplot(grid[1,2*i:2*i+2])
+    ax.pie(nbs,labels=labels,autopct='%1.1f%%',colors=colors)
+    ax.set_title(r'Class %d $\approx$ %s'%(i,trad[i]))
+    ax.text(.3,-.1,r'# events = %d'%np.sum(nbs),transform=ax.transAxes)
     #plt.axis("equal")
 
-  plt.figtext(.1,.92,'(a)',fontsize=16)
-  plt.figtext(.55,.92,'(b)',fontsize=16)
-  plt.figtext(.1,.5,'(c)',fontsize=16)
-  if save:
-    plt.savefig('../results/Ijen/figures/Unsupervised/unsup_diagrams_50f.png')
+  plt.figtext(.1,.92,r'(a) Manual classes     (# events = %d)'%np.sum(nb_man),fontsize=16)
+  plt.figtext(.55,.92, r'(b) $K$-means classes',fontsize=16)
+  plt.figtext(.1,.47,'(c)',fontsize=16)
 
 
 # ================================================================
@@ -357,7 +360,7 @@ def compare_unsup_indet():
 
   m = opt.man
   a = opt.auto
-  unsup = read_binary_file('../results/Ijen/KMEAN/results_kmean_3c_11f')
+  unsup = read_binary_file('../results/Ijen/KMEANS/results_kmeans_3c_11f')
 
   nb_auto = [len(opt.auto[opt.auto.Type==t]) for t in opt.opdict['types']]
   NB_class = len(opt.opdict['types'])
@@ -412,10 +415,11 @@ def compare_unsup_indet():
           #ax.set_title(t)
 
         plt.figtext(.1,.92,'(a) %s'%opt.opdict['method'].upper(),fontsize=16)
-        plt.figtext(.55,.92,'(b) Repartition of %s'%cl,fontsize=16)
+        plt.figtext(.55,.92,'(b) Manual repartition of %s'%cl,fontsize=16)
         plt.figtext(.1,.45,r'(c) $K$-means',fontsize=16)
         for it, t in enumerate(trad):
           plt.figtext(.3+it*.15,.45,r'%s $\approx$ %s'%(it,trad[it]))
+        plt.savefig('../results/Ijen/KMEANS/figures/unsup_compSVM_%s.png'%cl)
 
   plt.show()
 
