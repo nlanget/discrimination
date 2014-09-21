@@ -5,7 +5,7 @@ import sys, os, glob
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from plot_2features import plot_2f_synthetics, plot_2f_synth_var
+from plot_2features import plot_2f_synthetics, plot_2f_synth_var, plot_2f_synthetics_nonlinear
 
 def create_synthetics(npts,tup):
   """
@@ -36,6 +36,7 @@ class Synthetics(MultiOptions):
 
     self.synthetics()
     self.fill_opdict()
+    self.opdict['feat_list'] = self.opdict['feat_all']
 
   def set_params(self):
     # Random data
@@ -45,7 +46,7 @@ class Synthetics(MultiOptions):
 
     # Choose the proportions in the test set
     if self.NB_class == 2:
-      prop_test = (.5,.5)
+      prop_test = (.45,.55)
       #prop_test = (.25,.75)
 
     elif self.NB_class == 3:
@@ -53,8 +54,8 @@ class Synthetics(MultiOptions):
       #prop_test = (0.3,0.1,0.6)
 
     # Choose the proportions in the training set
-    prop_train = prop_test
-    #prop_train = (.1,.9)
+    #prop_train = prop_test
+    prop_train = (.35,.65)
 
     if len(prop_test) != self.NB_class:
       print "Warning ! Check number of classes and proportions"
@@ -228,14 +229,24 @@ def plot_sep(opt):
     opt.set_params()
 
     from do_classification import classifier
-    ### SVM ###
+    ### LINEAR SVM ###
     opt.opdict['method'] = 'svm'
     classifier(opt)
+    #opt.plot_PDFs()
     theta_svm = opt.theta
     rate_svm = opt.success
     t_svm = opt.threshold
+    print "SVM", theta_svm
 
-    #opt.plot_PDFs()
+    x_train = opt.train_x
+    x_test = opt.x
+    y_train = opt.train_y
+    y_test = opt.y
+
+    # *** Plot ***
+    plot_2f_synthetics(theta_svm,rate_svm,t_svm,'SVM',x_train,x_test,y_test,y_train=y_train)
+    plt.savefig('%s/Test_%dc_%s_SVM.png'%(opt.opdict['fig_path'],len(opt.types),opt.sep))
+    plt.show()
 
     ### LOGISTIC REGRESSION ###
     opt.opdict['method'] = 'lr'
@@ -249,18 +260,8 @@ def plot_sep(opt):
       t_lr[b] = opt.threshold
 
     print "LR", theta_lr
-    print "SVM", theta_svm
 
-    x_train = opt.train_x
-    x_test = opt.x
-    y_train = opt.train_y
-    y_test = opt.y
-
-    # PLOTS
-    plot_2f_synthetics(theta_svm,rate_svm,t_svm,'SVM',x_train,x_test,y_test,y_train=y_train)
-    plt.savefig('%s/Test_%dc_%s_SVM.png'%(opt.opdict['fig_path'],len(opt.types),opt.sep))
-    plt.show()
-
+    # *** Plot ***
     if len(theta_lr) == 1:
       plot_2f_synthetics(theta_lr[0],rate_lr[0],t_lr[0],'LR',x_train,x_test,y_test,y_train=y_train)
       plt.savefig('%s/Test_%dc_%s_LR.png'%(opt.opdict['fig_path'],len(opt.types),opt.sep))
@@ -278,6 +279,15 @@ def plot_sep(opt):
       plot_2f_synth_var(theta_lr,rate_lr,t_lr,'LR',x_train,x_test,y_test,opt.NB_test)
       plt.savefig('%s/Test_%dc_bad_threshold.png'%(opt.opdict['fig_path'],len(opt.types)))
       plt.show()
+
+
+    ### NON LINEAR SVM ###
+    opt.opdict['method'] = 'svm_nl'
+    classifier(opt)
+    map = opt.map
+    rate_svm = opt.success
+    plot_2f_synthetics_nonlinear(map,rate_svm,opt.opdict['method'],x_train,x_test,y_test,y_train)
+    plt.show()
 
 
 def run_synthetics():

@@ -172,6 +172,9 @@ def classifier(opt):
 
         out = implement_svm(x_train,x_test,y_train,y_test,opt.types,opt.opdict,kern=kern,proba=opt.opdict['probas'])
 
+        if 'map' in sorted(out):
+          opt.map = out['map']
+
         if 'thetas' in sorted(out):
           theta_vec = out['thetas']
           theta,threshold = {},{}
@@ -222,7 +225,7 @@ def classifier(opt):
       if opt.opdict['plot_confusion'] or opt.opdict['save_confusion']:
         plot_confusion_mat(cmat_train,opt.types,'Training',opt.opdict['method'].upper())
         if opt.opdict['save_confusion']:
-          plt.savefig('%s/figures/training_%s.png'%(opt.opdict['outdir'],opt.opdict['result_file'][8:]))
+          plt.savefig('%s/training_%s.png'%(opt.opdict['fig_path'],opt.opdict['result_file'][8:]))
 
       # TEST SET
       print "\t *TEST SET"
@@ -231,9 +234,9 @@ def classifier(opt):
       p_test = dic_percent(cmat_test,opt.types,verbose=True)
       print "   Global : %.2f%%"%p_test['global']
       if opt.opdict['plot_confusion'] or opt.opdict['save_confusion']:
-        plot_confusion_mat(cmat_test,opt.types,'Training',opt.opdict['method'].upper())
+        plot_confusion_mat(cmat_test,opt.types,'Test',opt.opdict['method'].upper())
         if opt.opdict['save_confusion']:
-          plt.savefig('%s/figures/test_%s.png'%(opt.opdict['outdir'],opt.opdict['result_file'][8:]))
+          plt.savefig('%s/test_%s.png'%(opt.opdict['fig_path'],opt.opdict['result_file'][8:]))
         if opt.opdict['plot_confusion']:
           plt.show()
         else:
@@ -328,7 +331,7 @@ def classifier(opt):
         trad_CLASS_test.append(opt.types[i])
       subsubdic['classification'] = trad_CLASS_test
       if opt.opdict['probas']:
-        subsubdic['proba'] = probas
+        subsubdic['proba'] = out['probas']
       subdic[b] = subsubdic
 
     dic_results[opt.trad[isc]] = subdic
@@ -338,7 +341,7 @@ def classifier(opt):
   dic_results['header']['types'] = opt.opdict['types']
   dic_results['header']['catalog'] = opt.opdict['label_test']
 
-  if opt.opdict['method'] == 'lr' or opt.opdict['method'] == 'lrsk' or opt.opdict['method'] == 'svm':
+  if opt.opdict['method'] in ['lr','lrsk','svm','svm_nl']:
     print "Save results in file %s"%opt.opdict['result_path']
     write_binary_file(opt.opdict['result_path'],dic_results)
 
@@ -453,16 +456,18 @@ def implement_svm(x_train,x_test,y_train,y_test,types,opdict,kern='NonLin',proba
   case, the kernel is a gaussian kernel.
   - proba : tells if the probability estimates must be computed
 
-  Returns : 
-  - y_test_SVM : classification predicted by SVM for the test set
-  - (p_tr,p_test) : success rates of the training and test sets respectively
+  Returns an output dictionary with keys :  
+  - label_test : classification predicted by SVM for the test set
+  - label_train : classification predicted by SVM for the training set
 
-  If proba is True, also returns :
-  - the probability estimates for each element of the dataset
+  If proba is True, add the key 'probas' containing 
+  the probability estimates for each element of the dataset
 
-  If kernel is linear, also returns : 
-  - y_train_SVM : classification predicted by SVM for the training set
-  - grid.best_estimator_.raw_coef_ : coefficients of the linear decision boundary
+  If kernel is linear, add the key 'thetas' containing  
+  the coefficients of the linear decision boundary
+
+  If kernel is non linear, add the key "map" containing 
+  the classification map.
   """
   from LR_functions import normalize
   x_train, x_test = normalize(x_train,x_test)
@@ -496,10 +501,17 @@ def implement_svm(x_train,x_test,y_train,y_test,types,opdict,kern='NonLin',proba
   if proba:
     probabilities = grid.best_estimator_.predict_proba(x_test)
     output['probas'] = {}
+    NB_class = len(types)
     for k in range(NB_class):
       output['probas'][types[k]] = probabilities[:,k]
   if kern == 'Lin':
     output['thetas'] = grid.best_estimator_.raw_coef_
+  else:
+    pas = .01
+    x_vec, y_vec = np.arange(-1,1,pas), np.arange(-1,1,pas)
+    x_vec, y_vec = np.meshgrid(x_vec,y_vec)
+    map = grid.best_estimator_.predict(np.c_[x_vec.ravel(),y_vec.ravel()])
+    output['map'] = map.reshape(x_vec.shape)
   return output
 
 # ================================================================
@@ -509,7 +521,7 @@ def implement_lr_sklearn(x_train,x_test,y_train,y_test):
   Implements logistic regression from scikit learn package.
   """
   from LR_functions import normalize
-  #x_train, x_test = normalize(x_train,x_test)
+  x_train, x_test = normalize(x_train,x_test)
 
   from sklearn.grid_search import GridSearchCV
   from sklearn.linear_model import LogisticRegression

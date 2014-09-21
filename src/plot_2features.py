@@ -333,6 +333,119 @@ def plot_2f_synthetics(theta,rate,t,method,x_train,x_test,y_test,y_train=None,th
           cl, icl = key[0], key[1]
           plt.figtext(.78,pos_y-NB_class*pas-(icl+1)*pas,'%s (%d) : %s%%'%(cl,icl,p[(cl,icl)]))
 
+
+# *******************************************************************************
+def plot_2f_synthetics_nonlinear(map,rate,method,x_train,x_test,y_test,y_train=None):
+    """
+    For synthetic tests. Non linear decision boundary.
+    """
+    NB_class = len(np.unique(y_test.Type.values))
+
+    pas = .01
+    x_vec = np.arange(-1,1,pas)
+    y_vec = np.arange(-1,1,pas)
+    x_vec, y_vec = np.meshgrid(x_vec,y_vec)
+
+    #### PLOT ####
+    nullfmt = NullFormatter()
+
+    # definitions for the axes
+    left, width = 0.1, 0.65
+    bottom, height = 0.1, 0.65
+    bottom_h = left_h = left+width+0.02
+
+    rect_scatter = [left, bottom, width, height]
+    rect_histx = [left, bottom_h, width, 0.2]
+    rect_histy = [left_h, bottom, 0.2, height]
+
+    # start with a rectangular Figure
+    fig = plt.figure(1, figsize=(8,8))
+    fig.set_facecolor('white')
+
+    axScatter = plt.axes(rect_scatter)
+    axHistx = plt.axes(rect_histx)
+    axHisty = plt.axes(rect_histy)
+
+    # No labels
+    axHistx.xaxis.set_major_formatter(nullfmt)
+    axHisty.yaxis.set_major_formatter(nullfmt)
+
+    # Scatter plot:
+    from LR_functions import normalize
+    x_train, x_test = normalize(x_train,x_test)
+
+    feat_1 = x_test.columns[0]
+    feat_2 = x_test.columns[1]
+    x = x_test[feat_1]
+    y = x_test[feat_2]
+    axScatter.scatter(x,y,c=list(y_test.NumType.values),cmap=plt.cm.gray)
+    if y_train:
+      axScatter.scatter(x_train[feat_1],x_train[feat_2],c=list(y_train.NumType.values),cmap=plt.cm.YlOrRd)
+
+    # Determine nice limits by hand
+    binwidth = 0.025
+    xymax = np.max( [np.max(np.fabs(x)), np.max(np.fabs(y))] )
+    lim_plot = ( int(xymax/binwidth) + 1) * binwidth
+    bins = np.arange(-lim_plot, lim_plot + binwidth, binwidth)
+
+    # Plot decision boundaries
+    axScatter.contourf(x_vec, y_vec, map, cmap=plt.cm.gray, alpha=0.3)
+    axScatter.set_xlim((-lim_plot, lim_plot))
+    axScatter.set_ylim((-lim_plot, lim_plot))
+
+    # Plot histograms and PDFs
+    x_hist, y_hist = [],[]
+    g_x, g_y = {}, {}
+    if y_train:
+      g_x_train, g_y_train = {}, {}
+
+    if NB_class > 2:
+      colors = ('k','gray','w')
+    elif NB_class == 2:
+      colors = ('k','w')
+    for i in range(NB_class):
+      index = y_test[y_test.NumType.values==i].index
+      x1 = x_test.reindex(columns=[feat_1],index=index).values
+      x2 = x_test.reindex(columns=[feat_2],index=index).values
+      x_hist.append(x1)
+      y_hist.append(x2)
+      g_x[i] = mlab.normpdf(bins, np.mean(x1), np.std(x1))
+      g_y[i] = mlab.normpdf(bins, np.mean(x2), np.std(x2))
+      axHisty.hist(x2,bins=bins,color=colors[i],normed=1,orientation='horizontal',histtype='stepfilled',alpha=.5)
+      if y_train:
+        index = y_train[y_train.NumType.values==i].index
+        x1 = x_train.reindex(columns=[feat_1],index=index).values
+        x2 = x_train.reindex(columns=[feat_2],index=index).values
+        g_x_train[i] = mlab.normpdf(bins, np.mean(x1), np.std(x1))
+        g_y_train[i] = mlab.normpdf(bins, np.mean(x2), np.std(x2))
+
+    axHistx.hist(x_hist,bins=bins,color=colors,normed=1,histtype='stepfilled',alpha=.5)
+
+    if NB_class > 2:
+      colors = ('y','orange','r')
+    elif NB_class == 2:
+      colors = ('y','r')
+    for key in sorted(g_x):
+      axHistx.plot(bins,g_x[key],color=colors[key],lw=2.)
+      axHisty.plot(g_y[key],bins,color=colors[key],lw=2.)
+      if y_train:
+        axHistx.plot(bins,g_x_train[key],color=colors[key],lw=1.,ls='--')
+        axHisty.plot(g_y_train[key],bins,color=colors[key],lw=1.,ls='--')
+
+    axHistx.set_xlim(axScatter.get_xlim())
+    axHisty.set_ylim(axScatter.get_ylim())
+
+    axScatter.set_xlabel(feat_1)
+    axScatter.set_ylabel(feat_2)
+
+    pos_y_ini = .95
+    pas = .025
+    plt.figtext(.78,pos_y_ini,'Test set %s'%method.upper())
+    for key in sorted(rate):
+      if key != 'global':
+        cl, icl = key[0], key[1]
+        plt.figtext(.78,pos_y_ini-(icl+1)*pas,'%s (%d) : %s%%'%(cl,icl,rate[(cl,icl)]))
+
 # *******************************************************************************
 
 def plot_2f_synth_var(theta,rate,t,method,x_train,x_test,y_test):
