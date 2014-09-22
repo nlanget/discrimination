@@ -51,6 +51,105 @@ def class_multi_2f(thetas):
 
 # *******************************************************************************
 
+def plot_histos_and_pdfs_gauss(axHistx,axHisty,bins_x,bins_y,x_test,y_test,x_train=None,y_train=None):
+    """
+    Histograms and gaussian PDFs
+    """
+    x_hist, y_hist = [],[]
+    g_x, g_y = {}, {}
+    if y_train:
+      g_x_train, g_y_train = {}, {}
+
+    feat_1 = x_test.columns[0]
+    feat_2 = x_test.columns[1] 
+    NB_class = len(np.unique(y_test.Type.values))
+
+    if NB_class > 2:
+      colors = ('k','gray','w')
+    elif NB_class == 2:
+      colors = ('k','w')
+    for i in range(NB_class):
+      index = y_test[y_test.NumType.values==i].index
+      x1 = x_test.reindex(columns=[feat_1],index=index).values
+      x2 = x_test.reindex(columns=[feat_2],index=index).values
+      x_hist.append(x1)
+      y_hist.append(x2)
+      g_x[i] = mlab.normpdf(bins_x, np.mean(x1), np.std(x1))
+      g_y[i] = mlab.normpdf(bins_y, np.mean(x2), np.std(x2))
+      axHisty.hist(x2,bins=bins_y,color=colors[i],normed=1,orientation='horizontal',histtype='stepfilled',alpha=.5)
+      if y_train:
+        index = y_train[y_train.NumType.values==i].index
+        x1 = x_train.reindex(columns=[feat_1],index=index).values
+        x2 = x_train.reindex(columns=[feat_2],index=index).values
+        g_x_train[i] = mlab.normpdf(bins_x, np.mean(x1), np.std(x1))
+        g_y_train[i] = mlab.normpdf(bins_y, np.mean(x2), np.std(x2))
+
+    axHistx.hist(x_hist,bins=bins_x,color=colors,normed=1,histtype='stepfilled',alpha=.5)
+
+    if NB_class > 2:
+      colors = ('y','orange','r')
+    elif NB_class == 2:
+      colors = ('y','r')
+    for key in sorted(g_x):
+      axHistx.plot(bins_x,g_x[key],color=colors[key],lw=2.)
+      axHisty.plot(g_y[key],bins_y,color=colors[key],lw=2.)
+      if y_train:
+        axHistx.plot(bins_x,g_x_train[key],color=colors[key],lw=1.,ls='--')
+        axHisty.plot(g_y_train[key],bins_y,color=colors[key],lw=1.,ls='--')
+
+# *******************************************************************************
+
+def plot_histos_and_pdfs_kde(axHistx,axHisty,bins_x,bins_y,x_test,y_test,x_train=None,y_train=None):
+    """
+    Histograms and KDE PDFs
+    """
+    x_hist, y_hist = [],[]
+    g_x, g_y = {}, {}
+    if y_train:
+      g_x_train, g_y_train = {}, {}
+
+    feat_1 = x_test.columns[0]
+    feat_2 = x_test.columns[1] 
+    NB_class = len(np.unique(y_test.Type.values))
+
+    if NB_class > 2:
+      colors = ('k','gray','w')
+    elif NB_class == 2:
+      colors = ('k','w')
+    for i in range(NB_class):
+      index = y_test[y_test.NumType.values==i].index
+      x1 = x_test.reindex(columns=[feat_1],index=index).values
+      x2 = x_test.reindex(columns=[feat_2],index=index).values
+      x_hist.append(x1)
+      y_hist.append(x2)
+      kde = gaussian_kde(x1.ravel())
+      g_x[i] = kde(bins_x)
+      kde = gaussian_kde(x2.ravel())
+      g_y[i] = kde(bins_y)
+      axHisty.hist(x2,bins=bins_y,color=colors[i],normed=1,orientation='horizontal',histtype='stepfilled',alpha=.5)
+      if y_train:
+        index = y_train[y_train.NumType.values==i].index
+        x1 = x_train.reindex(columns=[feat_1],index=index).values
+        x2 = x_train.reindex(columns=[feat_2],index=index).values
+        kde = gaussian_kde(x1.ravel())
+        g_x_train[i] = kde(bins_x)
+        kde = gaussian_kde(x2.ravel())
+        g_y_train[i] = kde(bins_y)
+    axHistx.hist(x_hist,bins=bins_x,color=colors,normed=1,histtype='stepfilled',alpha=.5)
+
+    if NB_class > 2:
+      colors = ('y','orange','r')
+    elif NB_class == 2:
+      colors = ('y','r')
+    for key in sorted(g_x):
+      axHistx.plot(bins_x,g_x[key],color=colors[key],lw=2.)
+      axHisty.plot(g_y[key],bins_y,color=colors[key],lw=2.)
+      if y_train:
+        axHistx.plot(bins_x,g_x_train[key],color=colors[key],lw=1.,ls='--')
+        axHisty.plot(g_y_train[key],bins_y,color=colors[key],lw=1.,ls='--')
+
+# *******************************************************************************
+
 def plot_2f(theta,rate,t,method,x_train,x_test,y_test,th_comp=None,t_comp=None,p=None):
     """
     Plots decision boundaries for a discrimination problem with 
@@ -143,41 +242,15 @@ def plot_2f(theta,rate,t,method,x_train,x_test,y_test,th_comp=None,t_comp=None,p
     axScatter.set_xlim((lim_plot_inf_1, lim_plot_sup_1))
     axScatter.set_ylim((lim_plot_inf_2, lim_plot_sup_2))
 
-    # Plot histograms and PDFs
-    x_hist, y_hist = [],[]
-    g_x, g_y = {}, {}
-
-    if NB_class > 2:
-      colors = ('k','gray','w')
-    elif NB_class == 2:
-      colors = ('k','w')
-    for i in range(NB_class):
-      index = y_test[y_test.NumType.values==i].index
-      x1 = x_test.reindex(columns=[feat_1],index=index).values
-      x2 = x_test.reindex(columns=[feat_2],index=index).values
-      x_hist.append(x1)
-      y_hist.append(x2)
-      kde = gaussian_kde(x1.ravel())
-      g_x[i] = kde(bins_1)
-      kde = gaussian_kde(x2.ravel())
-      g_y[i] = kde(bins_2)
-      axHisty.hist(x2,bins=bins_2,color=colors[i],normed=1,orientation='horizontal',histtype='stepfilled',alpha=.5)
-    axHistx.hist(x_hist,bins=bins_1,color=colors,normed=1,histtype='stepfilled',alpha=.5)
-
-    if NB_class > 2:
-      colors = ('y','orange','r')
-    elif NB_class == 2:
-      colors = ('y','r')
-    for key in sorted(g_x):
-      axHistx.plot(bins_1,g_x[key],color=colors[key],lw=2.)
-      axHisty.plot(g_y[key],bins_2,color=colors[key],lw=2.)
-
-    axHistx.set_xlim(axScatter.get_xlim())
-    axHisty.set_ylim(axScatter.get_ylim())
-
     axScatter.set_xlabel(feat_1)
     axScatter.set_ylabel(feat_2)
 
+    # Plot histograms and PDFs
+    plot_histos_and_pdfs_kde(axHistx,axHisty,bins_1,bins_2,x_test,y_test)
+    axHistx.set_xlim(axScatter.get_xlim())
+    axHisty.set_ylim(axScatter.get_ylim())
+
+    # Display success rates
     pos_y_ini = .95
     pas = .025
     plt.figtext(.78,pos_y_ini,'Test set %s'%method.upper())
@@ -287,52 +360,15 @@ def plot_2f_synthetics(out,x_train,x_test,y_test,y_train=None,out_comp=None,map_
 
     axScatter.set_xlim((-lim_plot, lim_plot))
     axScatter.set_ylim((-lim_plot, lim_plot))
-
-    # Plot histograms and PDFs
-    x_hist, y_hist = [],[]
-    g_x, g_y = {}, {}
-    if y_train:
-      g_x_train, g_y_train = {}, {}
-
-    if NB_class > 2:
-      colors = ('k','gray','w')
-    elif NB_class == 2:
-      colors = ('k','w')
-    for i in range(NB_class):
-      index = y_test[y_test.NumType.values==i].index
-      x1 = x_test.reindex(columns=[feat_1],index=index).values
-      x2 = x_test.reindex(columns=[feat_2],index=index).values
-      x_hist.append(x1)
-      y_hist.append(x2)
-      g_x[i] = mlab.normpdf(bins, np.mean(x1), np.std(x1))
-      g_y[i] = mlab.normpdf(bins, np.mean(x2), np.std(x2))
-      axHisty.hist(x2,bins=bins,color=colors[i],normed=1,orientation='horizontal',histtype='stepfilled',alpha=.5)
-      if y_train:
-        index = y_train[y_train.NumType.values==i].index
-        x1 = x_train.reindex(columns=[feat_1],index=index).values
-        x2 = x_train.reindex(columns=[feat_2],index=index).values
-        g_x_train[i] = mlab.normpdf(bins, np.mean(x1), np.std(x1))
-        g_y_train[i] = mlab.normpdf(bins, np.mean(x2), np.std(x2))
-
-    axHistx.hist(x_hist,bins=bins,color=colors,normed=1,histtype='stepfilled',alpha=.5)
-
-    if NB_class > 2:
-      colors = ('y','orange','r')
-    elif NB_class == 2:
-      colors = ('y','r')
-    for key in sorted(g_x):
-      axHistx.plot(bins,g_x[key],color=colors[key],lw=2.)
-      axHisty.plot(g_y[key],bins,color=colors[key],lw=2.)
-      if y_train:
-        axHistx.plot(bins,g_x_train[key],color=colors[key],lw=1.,ls='--')
-        axHisty.plot(g_y_train[key],bins,color=colors[key],lw=1.,ls='--')
-
-    axHistx.set_xlim(axScatter.get_xlim())
-    axHisty.set_ylim(axScatter.get_ylim())
-
     axScatter.set_xlabel(feat_1)
     axScatter.set_ylabel(feat_2)
 
+    # Plot histograms and PDFs
+    plot_histos_and_pdfs_gauss(axHistx,axHisty,bins,bins,x_test,y_test,x_train=x_train,y_train=y_train)
+    axHistx.set_xlim(axScatter.get_xlim())
+    axHisty.set_ylim(axScatter.get_ylim())
+
+    # Display success rates
     if not (out_comp and map_nl):
       pos_y_ini = .95
       pas = .025
@@ -388,6 +424,7 @@ def plot_2f_synthetics(out,x_train,x_test,y_test,y_train=None,out_comp=None,map_
 
 
 # *******************************************************************************
+
 def plot_2f_synthetics_nonlinear(out,x_train,x_test,y_test,y_train=None):
     """
     For synthetic tests. Non linear decision boundary.
@@ -451,50 +488,13 @@ def plot_2f_synthetics_nonlinear(out,x_train,x_test,y_test,y_train=None):
     axScatter.set_xlim((-lim_plot, lim_plot))
     axScatter.set_ylim((-lim_plot, lim_plot))
 
-    # Plot histograms and PDFs
-    x_hist, y_hist = [],[]
-    g_x, g_y = {}, {}
-    if y_train:
-      g_x_train, g_y_train = {}, {}
-
-    if NB_class > 2:
-      colors = ('k','gray','w')
-    elif NB_class == 2:
-      colors = ('k','w')
-    for i in range(NB_class):
-      index = y_test[y_test.NumType.values==i].index
-      x1 = x_test.reindex(columns=[feat_1],index=index).values
-      x2 = x_test.reindex(columns=[feat_2],index=index).values
-      x_hist.append(x1)
-      y_hist.append(x2)
-      g_x[i] = mlab.normpdf(bins, np.mean(x1), np.std(x1))
-      g_y[i] = mlab.normpdf(bins, np.mean(x2), np.std(x2))
-      axHisty.hist(x2,bins=bins,color=colors[i],normed=1,orientation='horizontal',histtype='stepfilled',alpha=.5)
-      if y_train:
-        index = y_train[y_train.NumType.values==i].index
-        x1 = x_train.reindex(columns=[feat_1],index=index).values
-        x2 = x_train.reindex(columns=[feat_2],index=index).values
-        g_x_train[i] = mlab.normpdf(bins, np.mean(x1), np.std(x1))
-        g_y_train[i] = mlab.normpdf(bins, np.mean(x2), np.std(x2))
-
-    axHistx.hist(x_hist,bins=bins,color=colors,normed=1,histtype='stepfilled',alpha=.5)
-
-    if NB_class > 2:
-      colors = ('y','orange','r')
-    elif NB_class == 2:
-      colors = ('y','r')
-    for key in sorted(g_x):
-      axHistx.plot(bins,g_x[key],color=colors[key],lw=2.)
-      axHisty.plot(g_y[key],bins,color=colors[key],lw=2.)
-      if y_train:
-        axHistx.plot(bins,g_x_train[key],color=colors[key],lw=1.,ls='--')
-        axHisty.plot(g_y_train[key],bins,color=colors[key],lw=1.,ls='--')
-
-    axHistx.set_xlim(axScatter.get_xlim())
-    axHisty.set_ylim(axScatter.get_ylim())
-
     axScatter.set_xlabel(feat_1)
     axScatter.set_ylabel(feat_2)
+
+    # Plot histograms and PDFs
+    plot_histos_and_pdfs_gauss(axHistx,axHisty,bins,bins,x_test,y_test,x_train=x_train,y_train=y_train)
+    axHistx.set_xlim(axScatter.get_xlim())
+    axHisty.set_ylim(axScatter.get_ylim())
 
     pos_y_ini = .95
     pas = .025
@@ -612,38 +612,13 @@ def plot_2f_synth_var(out,x_train,x_test,y_test):
     axScatter.set_xlim((-lim_plot, lim_plot))
     axScatter.set_ylim((-lim_plot, lim_plot))
 
-    # Plot histograms and PDFs
-    x_hist, y_hist = [],[]
-    g_x, g_y = {}, {}
-
-    if NB_class > 2:
-      colors = ('k','gray','w')
-    elif NB_class == 2:
-      colors = ('k','w')
-    for i in range(NB_class):
-      index = y_test[y_test.NumType.values==i].index
-      x1 = x_test.reindex(columns=[feat_1],index=index).values
-      x2 = x_test.reindex(columns=[feat_2],index=index).values
-      x_hist.append(x1)
-      y_hist.append(x2)
-      g_x[i] = mlab.normpdf(bins, np.mean(x1), np.std(x1))
-      g_y[i] = mlab.normpdf(bins, np.mean(x2), np.std(x2))
-      axHisty.hist(x2,bins=bins,color=colors[i],normed=1,orientation='horizontal',histtype='stepfilled',alpha=.5)
-    axHistx.hist(x_hist,bins=bins,color=colors,normed=1,histtype='stepfilled',alpha=.5)
-
-    if NB_class > 2:
-      colors = ('y','orange','r')
-    elif NB_class == 2:
-      colors = ('y','r')
-    for key in sorted(g_x):
-      axHistx.plot(bins,g_x[key],color=colors[key],lw=2.)
-      axHisty.plot(g_y[key],bins,color=colors[key],lw=2.)
-
-    axHistx.set_xlim(axScatter.get_xlim())
-    axHisty.set_ylim(axScatter.get_ylim())
-
     axScatter.set_xlabel(feat_1)
     axScatter.set_ylabel(feat_2)
+
+    # Plot histograms and PDFs
+    plot_histos_and_pdfs_gauss(axHistx,axHisty,bins,bins,x_test,y_test,x_train=x_train,y_train=y_train)
+    axHistx.set_xlim(axScatter.get_xlim())
+    axHisty.set_ylim(axScatter.get_ylim())
 
     pos_y_ini = .95
     pas = .025
@@ -752,41 +727,15 @@ def plot_2f_all(theta,t,rate,method,x_train,y_train,x_test,y_test,x_bad,str_t,p_
     axScatter.set_xlim((lim_plot_inf_1, lim_plot_sup_1))
     axScatter.set_ylim((lim_plot_inf_2, lim_plot_sup_2))
 
-    # Plot histograms and PDFs
-    x_hist, y_hist = [],[]
-    g_x, g_y = {}, {}
-
-    if NB_class > 2:
-      colors = ('k','gray','w')
-    elif NB_class == 2:
-      colors = ('k','w')
-    for i in range(NB_class):
-      index = y_test[y_test.NumType.values==i].index
-      x1 = x_test.reindex(columns=[feat_1],index=index).values
-      x2 = x_test.reindex(columns=[feat_2],index=index).values
-      x_hist.append(x1)
-      y_hist.append(x2)
-      kde = gaussian_kde(x1.ravel())
-      g_x[i] = kde(bins_1)
-      kde = gaussian_kde(x2.ravel())
-      g_y[i] = kde(bins_2)
-      axHisty.hist(x2,bins=bins_2,color=colors[i],normed=1,orientation='horizontal',histtype='stepfilled',alpha=.5)
-    axHistx.hist(x_hist,bins=bins_1,color=colors,normed=1,histtype='stepfilled',alpha=.5)
-
-    if NB_class > 2:
-      colors = ('y','orange','r')
-    elif NB_class == 2:
-      colors = ('y','r')
-    for key in sorted(g_x):
-      axHistx.plot(bins_1,g_x[key],color=colors[key],lw=2.)
-      axHisty.plot(g_y[key],bins_2,color=colors[key],lw=2.)
-
-    axHistx.set_xlim(axScatter.get_xlim())
-    axHisty.set_ylim(axScatter.get_ylim())
-
     axScatter.set_xlabel(x_test.columns[0])
     axScatter.set_ylabel(x_test.columns[1])
 
+    # Plot histograms and PDFs
+    plot_histos_and_pdfs_kde(axHistx,axHisty,bins_1,bins_2,x_test,y_test,x_train=x_train,y_train=y_train) 
+    axHistx.set_xlim(axScatter.get_xlim())
+    axHisty.set_ylim(axScatter.get_ylim())
+
+    # Display success rates
     pos_y_ini = .95
     pas = .025
     plt.figtext(.78,pos_y_ini,'Test set %s'%method.upper())
