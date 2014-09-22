@@ -50,7 +50,49 @@ def class_multi_2f(thetas):
   return x1, x2, np.max(probas,axis=0), np.argmax(probas,axis=0)
 
 # *******************************************************************************
+def plot_limits(x_test,x_train):
+    """
+    Determines limits of the scatter plot.
+    """
+    feat_1 = x_test.columns[0]
+    feat_2 = x_test.columns[1]
 
+    binwidth = 0.025
+    maxi_1 = np.max([np.max(x_test[feat_1]),np.max(x_train[feat_1])])
+    mini_1 = np.min([np.min(x_test[feat_1]),np.min(x_train[feat_1])])
+    lim_plot_sup_1 = (int(maxi_1/binwidth)+2)*binwidth
+    lim_plot_inf_1 = (int(mini_1/binwidth)-2)*binwidth
+    if lim_plot_sup_1 > 1: 
+      lim_plot_sup_1 = 1
+    if lim_plot_inf_1 < -1:
+      lim_plot_inf_1 = -1
+    bins_1 = np.arange(lim_plot_inf_1, lim_plot_sup_1 + binwidth, binwidth)
+
+    maxi_2 = np.max([np.max(x_test[feat_2]),np.max(x_train[feat_2])])
+    mini_2 = np.min([np.min(x_test[feat_2]),np.min(x_train[feat_2])])
+    lim_plot_sup_2 = (int(maxi_2/binwidth)+2)*binwidth
+    lim_plot_inf_2 = (int(mini_2/binwidth)-2)*binwidth
+    if lim_plot_sup_2 > 1: 
+      lim_plot_sup_2 = 1
+    if lim_plot_inf_2 < -1:
+      lim_plot_inf_2 = -1
+    bins_2 = np.arange(lim_plot_inf_2, lim_plot_sup_2 + binwidth, binwidth)
+
+    return bins_1, bins_2
+
+# *******************************************************************************
+def plot_limits_synth(x_test):
+
+    feat_1 = x_test.columns[0]
+    feat_2 = x_test.columns[1]
+
+    binwidth = 0.025
+    xymax = np.max([np.max(np.fabs(x_test[feat_1])), np.max(np.fabs(x_test[feat_2]))])
+    lim_plot = (int(xymax/binwidth)+1)*binwidth
+    bins = np.arange(-lim_plot,lim_plot+binwidth,binwidth)
+    return bins, bins
+
+# *******************************************************************************
 def plot_histos_and_pdfs_gauss(axHistx,axHisty,bins_x,bins_y,x_test,y_test,x_train=None,y_train=None):
     """
     Histograms and gaussian PDFs
@@ -147,14 +189,84 @@ def plot_histos_and_pdfs_kde(axHistx,axHisty,bins_x,bins_y,x_test,y_test,x_train
       if y_train:
         axHistx.plot(bins_x,g_x_train[key],color=colors[key],lw=1.,ls='--')
         axHisty.plot(g_y_train[key],bins_y,color=colors[key],lw=1.,ls='--')
+# *******************************************************************************
+def display_rates(plt,out,out_comp=None,map_nl=None):
+    """
+    Display success rates in the top right corner.
+    """
+    method = out['method']
+    rate = out['rate_test']
+    NB_class = len(rate)-1
+    if not (out_comp and map_nl):
+      pos_y_ini = .95
+      pas = .025
+      plt.figtext(.78,pos_y_ini,'Test set %s'%method.upper())
+      for key in sorted(rate):
+        if key != 'global':
+          cl, icl = key[0], key[1]
+          plt.figtext(.78,pos_y_ini-(icl+1)*pas,'%s (%d) : %s%%'%(cl,icl,rate[(cl,icl)]))
+      if out_comp or map_nl:
+        if out_comp:
+          sup = out_comp
+        elif map_nl:
+          sup = map_nl
+        pos_y = pos_y_ini-.04
+        plt.figtext(.78,pos_y-NB_class*pas,'Test set %s'%sup['method'].upper())
+        p = sup['rate_test']
+        for key in sorted(p):
+          if key != 'global':
+            cl, icl = key[0], key[1]
+            plt.figtext(.78,pos_y-NB_class*pas-(icl+1)*pas,'%s (%d) : %s%%'%(cl,icl,p[(cl,icl)]))
+
+    if out_comp and map_nl:
+      if NB_class == 2:
+        pos_y_ini = .95
+        pas = .02
+      else:
+        pos_y_ini = .96
+        pas = .015
+      s = 10
+      plt.figtext(.78,pos_y_ini,'Test set %s'%method.upper(),size=s+1)
+      for key in sorted(rate):
+        if key != 'global':
+          cl, icl = key[0], key[1]
+          plt.figtext(.78,pos_y_ini-(icl+1)*pas,'%s (%d) : %s%%'%(cl,icl,rate[(cl,icl)]),size=s)
+
+      pos_y = pos_y_ini-.03
+      pos_y_ini = pos_y-NB_class*pas
+      plt.figtext(.78,pos_y_ini,'Test set %s'%out_comp['method'].upper(),size=s+1)
+      p = out_comp['rate_test']
+      for key in sorted(p):
+        if key != 'global':
+          cl, icl = key[0], key[1]
+          plt.figtext(.78,pos_y_ini-(icl+1)*pas,'%s (%d) : %s%%'%(cl,icl,p[(cl,icl)]),size=s)
+
+      pos_y = pos_y_ini-.03
+      pos_y_ini = pos_y-NB_class*pas
+      plt.figtext(.78,pos_y_ini,'Test set %s'%map_nl['method'].upper(),size=s+1)
+      p = map_nl['rate_test']
+      for key in sorted(p):
+        if key != 'global':
+          cl, icl = key[0], key[1]
+          plt.figtext(.78,pos_y_ini-(icl+1)*pas,'%s (%d) : %s%%'%(cl,icl,p[(cl,icl)]),size=s)
 
 # *******************************************************************************
 
-def plot_2f(theta,rate,t,method,x_train,x_test,y_test,th_comp=None,t_comp=None,p=None):
+def plot_2f(out,x_train,x_test,y_test,out_comp):
     """
     Plots decision boundaries for a discrimination problem with 
     2 features.
     """
+    theta = out['thetas']
+    rate = out['rate_test']
+    t = out['threshold']
+    method = out['method']
+
+    if out_comp:
+      th_comp = out_comp['thetas']
+      t_comp = out_comp['threshold']
+      p_comp = out_comp['rate_test']
+      met_comp = out_comp['method']
 
     if len(theta) > 2:
       NB_class = len(theta)
@@ -198,28 +310,6 @@ def plot_2f(theta,rate,t,method,x_train,x_test,y_test,th_comp=None,t_comp=None,p
     y = x_test[feat_2]
     axScatter.scatter(x,y,c=list(y_test.NumType.values),cmap=plt.cm.gray)
 
-    # Determine nice limits by hand
-    binwidth = 0.025
-    maxi_1 = np.max([np.max(x_test[feat_1]),np.max(x_train[feat_1])])
-    mini_1 = np.min([np.min(x_test[feat_1]),np.min(x_train[feat_1])])
-    lim_plot_sup_1 = (int(maxi_1/binwidth)+2)*binwidth
-    lim_plot_inf_1 = (int(mini_1/binwidth)-2)*binwidth
-    if lim_plot_sup_1 > 1: 
-      lim_plot_sup_1 = 1
-    if lim_plot_inf_1 < -1:
-      lim_plot_inf_1 = -1
-    bins_1 = np.arange(lim_plot_inf_1, lim_plot_sup_1 + binwidth, binwidth)
-
-    maxi_2 = np.max([np.max(x_test[feat_2]),np.max(x_train[feat_2])])
-    mini_2 = np.min([np.min(x_test[feat_2]),np.min(x_train[feat_2])])
-    lim_plot_sup_2 = (int(maxi_2/binwidth)+2)*binwidth
-    lim_plot_inf_2 = (int(mini_2/binwidth)-2)*binwidth
-    if lim_plot_sup_2 > 1: 
-      lim_plot_sup_2 = 1
-    if lim_plot_inf_2 < -1:
-      lim_plot_inf_2 = -1
-    bins_2 = np.arange(lim_plot_inf_2, lim_plot_sup_2 + binwidth, binwidth)
-
     # Plot decision boundaries
     if th_comp and t_comp:
       colors = ['b','c']
@@ -228,20 +318,21 @@ def plot_2f(theta,rate,t,method,x_train,x_test,y_test,th_comp=None,t_comp=None,p
     for i in sorted(theta):
       db = -1./theta[i][2]*(theta[i][0]+np.log((1-t[i])/t[i])+theta[i][1]*x_vec[0])
       axScatter.plot(x_vec[0],db,lw=2.,c=colors[0])
-      if th_comp and t_comp:
+      if out_comp:
         db = -1./th_comp[i][2]*(th_comp[i][0]+np.log((1-t_comp[i])/t_comp[i])+th_comp[i][1]*x_vec[0])
         axScatter.plot(x_vec[0],db,lw=3.,c=colors[1])
 
     axScatter.contourf(x_vec, y_vec, map, cmap=plt.cm.gray, alpha=0.2)
 
     label = ['%s (%.2f%%)'%(method.upper(),rate['global'])]
-    if th_comp and t_comp:
-      label.append('SVM (%.2f%%)'%p[1])
+    if out_comp:
+      label.append('%s (%.2f%%)'%(met_comp.upper(),p_comp[1]))
     axScatter.legend(label,loc=4,prop={'size':14})
 
-    axScatter.set_xlim((lim_plot_inf_1, lim_plot_sup_1))
-    axScatter.set_ylim((lim_plot_inf_2, lim_plot_sup_2))
-
+    # Determine nice limits by hand
+    bins_1, bins_2 = plot_limits(x_test,x_train) 
+    axScatter.set_xlim((bins_1[0], bins_1[-1]))
+    axScatter.set_ylim((bins_2[0], bins_2[-1]))
     axScatter.set_xlabel(feat_1)
     axScatter.set_ylabel(feat_2)
 
@@ -251,21 +342,7 @@ def plot_2f(theta,rate,t,method,x_train,x_test,y_test,th_comp=None,t_comp=None,p
     axHisty.set_ylim(axScatter.get_ylim())
 
     # Display success rates
-    pos_y_ini = .95
-    pas = .025
-    plt.figtext(.78,pos_y_ini,'Test set %s'%method.upper())
-    for key in sorted(rate):
-      if key != 'global':
-        cl, icl = key[0], key[1]
-        plt.figtext(.78,pos_y_ini-(icl+1)*pas,'%s (%d) : %s%%'%(cl,icl,rate[(cl,icl)]))
-    if th_comp and t_comp:
-      pos_y = pos_y_ini-.04
-      plt.figtext(.78,pos_y-NB_class*pas,'Test set SVM')
-      for key in sorted(p):
-        if key != 'global':
-          cl, icl = key[0], key[1]
-          plt.figtext(.78,pos_y-NB_class*pas-(icl+1)*pas,'%s (%d) : %s%%'%(cl,icl,p[(cl,icl)]))
-
+    display_rates(plt,out,out_comp=None)
 
 # *******************************************************************************
 
@@ -322,12 +399,6 @@ def plot_2f_synthetics(out,x_train,x_test,y_test,y_train=None,out_comp=None,map_
     if y_train:
       axScatter.scatter(x_train[feat_1],x_train[feat_2],c=list(y_train.NumType.values),cmap=plt.cm.YlOrRd)
 
-    # Determine nice limits by hand
-    binwidth = 0.025
-    xymax = np.max( [np.max(np.fabs(x)), np.max(np.fabs(y))] )
-    lim_plot = ( int(xymax/binwidth) + 1) * binwidth
-    bins = np.arange(-lim_plot, lim_plot + binwidth, binwidth)
-
     # Plot decision boundaries
     if out_comp:
       colors = ['b','c']
@@ -358,76 +429,27 @@ def plot_2f_synthetics(out,x_train,x_test,y_test,y_train=None,out_comp=None,map_
       s = 11
     axScatter.legend(label,loc=4,prop={'size':s})
 
-    axScatter.set_xlim((-lim_plot, lim_plot))
-    axScatter.set_ylim((-lim_plot, lim_plot))
+    # Determine nice limits by hand
+    bins_1, bins_2 = plot_limits_synth(x_test)
+    axScatter.set_xlim((bins_1[0], bins_1[-1]))
+    axScatter.set_ylim((bins_2[0], bins_2[-1]))
     axScatter.set_xlabel(feat_1)
     axScatter.set_ylabel(feat_2)
 
     # Plot histograms and PDFs
-    plot_histos_and_pdfs_gauss(axHistx,axHisty,bins,bins,x_test,y_test,x_train=x_train,y_train=y_train)
+    plot_histos_and_pdfs_gauss(axHistx,axHisty,bins_1,bins_2,x_test,y_test,x_train=x_train,y_train=y_train)
     axHistx.set_xlim(axScatter.get_xlim())
     axHisty.set_ylim(axScatter.get_ylim())
 
     # Display success rates
-    if not (out_comp and map_nl):
-      pos_y_ini = .95
-      pas = .025
-      plt.figtext(.78,pos_y_ini,'Test set %s'%method.upper())
-      for key in sorted(rate):
-        if key != 'global':
-          cl, icl = key[0], key[1]
-          plt.figtext(.78,pos_y_ini-(icl+1)*pas,'%s (%d) : %s%%'%(cl,icl,rate[(cl,icl)]))
-      if out_comp or map_nl:
-        if out_comp:
-          sup = out_comp
-        elif map_nl:
-          sup = map_nl
-        pos_y = pos_y_ini-.04
-        plt.figtext(.78,pos_y-NB_class*pas,'Test set %s'%sup['method'].upper())
-        p = sup['rate_test']
-        for key in sorted(p):
-          if key != 'global':
-            cl, icl = key[0], key[1]
-            plt.figtext(.78,pos_y-NB_class*pas-(icl+1)*pas,'%s (%d) : %s%%'%(cl,icl,p[(cl,icl)]))
-
-    if out_comp and map_nl:
-      if NB_class == 2:
-        pos_y_ini = .95
-        pas = .02
-      else:
-        pos_y_ini = .96
-        pas = .015
-      s = 10
-      plt.figtext(.78,pos_y_ini,'Test set %s'%method.upper(),size=s+1)
-      for key in sorted(rate):
-        if key != 'global':
-          cl, icl = key[0], key[1]
-          plt.figtext(.78,pos_y_ini-(icl+1)*pas,'%s (%d) : %s%%'%(cl,icl,rate[(cl,icl)]),size=s)
-
-      pos_y = pos_y_ini-.03
-      pos_y_ini = pos_y-NB_class*pas
-      plt.figtext(.78,pos_y_ini,'Test set %s'%out_comp['method'].upper(),size=s+1)
-      p = out_comp['rate_test']
-      for key in sorted(p):
-        if key != 'global':
-          cl, icl = key[0], key[1]
-          plt.figtext(.78,pos_y_ini-(icl+1)*pas,'%s (%d) : %s%%'%(cl,icl,p[(cl,icl)]),size=s)
-
-      pos_y = pos_y_ini-.03
-      pos_y_ini = pos_y-NB_class*pas
-      plt.figtext(.78,pos_y_ini,'Test set %s'%map_nl['method'].upper(),size=s+1)
-      p = map_nl['rate_test']
-      for key in sorted(p):
-        if key != 'global':
-          cl, icl = key[0], key[1]
-          plt.figtext(.78,pos_y_ini-(icl+1)*pas,'%s (%d) : %s%%'%(cl,icl,p[(cl,icl)]),size=s)
-
+    display_rates(plt,out,out_comp=out_comp,map_nl=out_comp)
 
 # *******************************************************************************
 
-def plot_2f_synthetics_nonlinear(out,x_train,x_test,y_test,y_train=None):
+def plot_2f_nonlinear(out,x_train,x_test,y_test,y_train=None,synth=False):
     """
-    For synthetic tests. Non linear decision boundary.
+    Non linear decision boundary.
+    synth = True for synthetics.
     """
     NB_class = len(np.unique(y_test.Type.values))
     map = out['map']
@@ -475,34 +497,32 @@ def plot_2f_synthetics_nonlinear(out,x_train,x_test,y_test,y_train=None):
     if y_train:
       axScatter.scatter(x_train[feat_1],x_train[feat_2],c=list(y_train.NumType.values),cmap=plt.cm.YlOrRd)
 
-    # Determine nice limits by hand
-    binwidth = 0.025
-    xymax = np.max( [np.max(np.fabs(x)), np.max(np.fabs(y))] )
-    lim_plot = ( int(xymax/binwidth) + 1) * binwidth
-    bins = np.arange(-lim_plot, lim_plot + binwidth, binwidth)
-
     # Plot decision boundaries
     axScatter.contourf(x_vec, y_vec, map, cmap=plt.cm.gray, alpha=0.3)
     label = ['%s (%.2f%%)'%(method.upper(),rate['global'])]
     axScatter.legend(label,loc=4,prop={'size':14})
-    axScatter.set_xlim((-lim_plot, lim_plot))
-    axScatter.set_ylim((-lim_plot, lim_plot))
 
+    # Determine nice limits by hand
+    if synth:
+      bins_1, bins_2 = plot_limits_synth(x_test)
+    else:
+      bins_1, bins_2 = plot_limits(x_test,x_train)
+    axScatter.set_xlim((bins_1[0], bins_1[-1]))
+    axScatter.set_ylim((bins_2[0], bins_2[-1]))
     axScatter.set_xlabel(feat_1)
     axScatter.set_ylabel(feat_2)
 
     # Plot histograms and PDFs
-    plot_histos_and_pdfs_gauss(axHistx,axHisty,bins,bins,x_test,y_test,x_train=x_train,y_train=y_train)
+    if synth:
+      plot_histos_and_pdfs_gauss(axHistx,axHisty,bins_1,bins_2,x_test,y_test,x_train=x_train,y_train=y_train)
+    else:
+      plot_histos_and_pdfs_kde(axHistx,axHisty,bins_1,bins_2,x_test,y_test,x_train=x_train,y_train=y_train)
+
     axHistx.set_xlim(axScatter.get_xlim())
     axHisty.set_ylim(axScatter.get_ylim())
 
-    pos_y_ini = .95
-    pas = .025
-    plt.figtext(.78,pos_y_ini,'Test set %s'%method.upper())
-    for key in sorted(rate):
-      if key != 'global':
-        cl, icl = key[0], key[1]
-        plt.figtext(.78,pos_y_ini-(icl+1)*pas,'%s (%d) : %s%%'%(cl,icl,rate[(cl,icl)]))
+    # Display succes rates
+    display_rates(plt,out)
 
 # *******************************************************************************
 
@@ -559,12 +579,6 @@ def plot_2f_synth_var(out,x_train,x_test,y_test):
     y = x_test[feat_2]
     axScatter.scatter(x,y,c=list(y_test.NumType.values),cmap=plt.cm.gray)
 
-    # Determine nice limits by hand
-    binwidth = 0.025
-    xymax = np.max( [np.max(np.fabs(x)), np.max(np.fabs(y))] )
-    lim_plot = ( int(xymax/binwidth) + 1) * binwidth
-    bins = np.arange(-lim_plot, lim_plot + binwidth, binwidth)
-
     # Plot decision boundaries
     # VARIABILITY OF THE LR DECISION BOUNDARY
     if len(out) > 1:
@@ -609,33 +623,42 @@ def plot_2f_synth_var(out,x_train,x_test,y_test):
       axScatter.text(0.6*lim_plot,-0.9*lim_plot,'LR (%.1f%%)'%rate['global'])
       axScatter.text(0.6*lim_plot,-0.8*lim_plot,'t = %.1f'%t[1])
 
-    axScatter.set_xlim((-lim_plot, lim_plot))
-    axScatter.set_ylim((-lim_plot, lim_plot))
-
+    # Determine nice limits by hand
+    bins_1, bins_2 = plot_limits_synth(x_test)
+    axScatter.set_xlim((bins_1[0], bins_1[-1]))
+    axScatter.set_ylim((bins_2[0], bins_2[-1]))
     axScatter.set_xlabel(feat_1)
     axScatter.set_ylabel(feat_2)
 
     # Plot histograms and PDFs
-    plot_histos_and_pdfs_gauss(axHistx,axHisty,bins,bins,x_test,y_test,x_train=x_train,y_train=y_train)
+    plot_histos_and_pdfs_gauss(axHistx,axHisty,bins_1,bins_2,x_test,y_test,x_train=x_train,y_train=y_train)
     axHistx.set_xlim(axScatter.get_xlim())
     axHisty.set_ylim(axScatter.get_ylim())
 
-    pos_y_ini = .95
-    pas = .025
-    plt.figtext(.78,pos_y_ini,'Test set %s'%method.upper())
-    for key in sorted(rate):
-      if key != 'global':
-        cl, icl = key[0], key[1]
-        plt.figtext(.78,pos_y_ini-(icl+1)*pas,'%s (%d) : %s%%'%(cl,icl,rate[(cl,icl)]))
+    # Display success rates
+    display_rates(plt,out)
 
 # *******************************************************************************
 
-def plot_2f_all(theta,t,rate,method,x_train,y_train,x_test,y_test,x_bad,str_t,p_train=None,th_comp=None,t_comp=None,p=None):
+def plot_2f_all(out,x_train,y_train,x_test,y_test,x_bad,out_comp=None,map_nl=None):
     """
     Plots decision boundaries for a discrimination problem with 
     2 features.
     Superimposed with scatter plots of both training and test sets.
     """
+
+    theta = out['thetas']
+    t = out['threshold']
+    rate = out['rate_test']
+    method = out['method']
+    str_t = out['types']
+    p_train = out['rate_train']
+
+    if out_comp:
+      th_comp = out_comp['thetas']
+      t_comp = out_comp['threshold']
+      p_comp = out_comp['rate_test']
+      met_comp = out_comp['method']
 
     if len(theta) > 2:
       NB_class = len(theta)
@@ -678,41 +701,24 @@ def plot_2f_all(theta,t,rate,method,x_train,y_train,x_test,y_test,x_bad,str_t,p_
     axScatter.scatter(x_train[feat_1],x_train[feat_2],c=list(y_train.NumType.values),cmap=plt.cm.winter,alpha=.5)
     axScatter.scatter(x_bad[feat_1],x_bad[feat_2],c='r',alpha=.2)
 
-    # Determine nice limits by hand
-    binwidth = 0.025
-    maxi_1 = np.max([np.max(x_test[feat_1]),np.max(x_train[feat_1])])
-    mini_1 = np.min([np.min(x_test[feat_1]),np.min(x_train[feat_1])])
-    lim_plot_sup_1 = (int(maxi_1/binwidth)+2)*binwidth
-    lim_plot_inf_1 = (int(mini_1/binwidth)-2)*binwidth
-    if lim_plot_sup_1 > 1: 
-      lim_plot_sup_1 = 1
-    if lim_plot_inf_1 < -1:
-      lim_plot_inf_1 = -1
-    bins_1 = np.arange(lim_plot_inf_1, lim_plot_sup_1 + binwidth, binwidth)
-
-    maxi_2 = np.max([np.max(x_test[feat_2]),np.max(x_train[feat_2])])
-    mini_2 = np.min([np.min(x_test[feat_2]),np.min(x_train[feat_2])])
-    lim_plot_sup_2 = (int(maxi_2/binwidth)+2)*binwidth
-    lim_plot_inf_2 = (int(mini_2/binwidth)-2)*binwidth
-    if lim_plot_sup_2 > 1: 
-      lim_plot_sup_2 = 1
-    if lim_plot_inf_2 < -1:
-      lim_plot_inf_2 = -1
-    bins_2 = np.arange(lim_plot_inf_2, lim_plot_sup_2 + binwidth, binwidth)
-
     # Plot decision boundaries
     for i in sorted(theta):
       db = -1./theta[i][2]*(theta[i][0]+np.log((1-t[i])/t[i])+theta[i][1]*x_vec[0])
       axScatter.plot(x_vec[0],db,lw=3.,c='orange')
-      if th_comp and t_comp:
+      if out_comp:
         db = -1./th_comp[i][2]*(th_comp[i][0]+np.log((1-t_comp[i])/t_comp[i])+th_comp[i][1]*x_vec[0])
         axScatter.plot(x_vec[0],db,lw=3.,c='purple')
 
-    axScatter.contourf(x_vec, y_vec, map, cmap=plt.cm.gray, alpha=0.2)
-
+    if map_nl:
+      axScatter.contourf(x_vec, y_vec, map_nl['map'], cmap=plt.cm.gray, alpha=0.3)
+    else:
+      axScatter.contourf(x_vec, y_vec, map, cmap=plt.cm.gray, alpha=0.2)
+ 
     label = ['%s (%.2f%%)'%(method.upper(),rate['global'])]
-    if th_comp and t_comp:
-      label.append('SVM (%.2f%%)'%p['global'])
+    if out_comp:
+      label.append('%s (%.2f%%)'%(met_comp.upper(),p_comp['global']))
+    if map_nl:
+      label.append('%s (%.2f%%)'%(map_nl['method'].upper(),map_nl['rate_test']['global']))
     axScatter.legend(label,loc=2,prop={'size':10})
 
     if p_train:
@@ -724,11 +730,12 @@ def plot_2f_all(theta,t,rate,method,x_train,y_train,x_test,y_test,x_bad,str_t,p_
        axScatter.text(x_pos,y_pos-2*pas,"%.2f %% test set"%rate['global'],transform=axScatter.transAxes)
        axScatter.text(x_pos,y_pos-3*pas,"%.2f %% test set"%(100-rate['global']),color='r',transform=axScatter.transAxes)
 
-    axScatter.set_xlim((lim_plot_inf_1, lim_plot_sup_1))
-    axScatter.set_ylim((lim_plot_inf_2, lim_plot_sup_2))
-
-    axScatter.set_xlabel(x_test.columns[0])
-    axScatter.set_ylabel(x_test.columns[1])
+    # Determine nice limits by hand
+    bins_1, bins_2 = plot_limits(x_test,x_train)
+    axScatter.set_xlim((bins_1[0], bins_1[-1]))
+    axScatter.set_ylim((bins_2[0], bins_2[-1]))
+    axScatter.set_xlabel(feat_1)
+    axScatter.set_ylabel(feat_2)
 
     # Plot histograms and PDFs
     plot_histos_and_pdfs_kde(axHistx,axHisty,bins_1,bins_2,x_test,y_test,x_train=x_train,y_train=y_train) 
@@ -736,18 +743,4 @@ def plot_2f_all(theta,t,rate,method,x_train,y_train,x_test,y_test,x_bad,str_t,p_
     axHisty.set_ylim(axScatter.get_ylim())
 
     # Display success rates
-    pos_y_ini = .95
-    pas = .025
-    plt.figtext(.78,pos_y_ini,'Test set %s'%method.upper())
-    for key in sorted(rate):
-      if key != 'global':
-        cl, icl = key[0], key[1]
-        plt.figtext(.78,pos_y_ini-(icl+1)*pas,'%s (%d) : %s%%'%(cl,icl,rate[(cl,icl)]))
-    if th_comp and t_comp:
-      pos_y = pos_y_ini-.04
-      plt.figtext(.78,pos_y-NB_class*pas,'Test set SVM')
-      for key in sorted(p):
-        if key != 'global':
-          cl, icl = key[0], key[1]
-          plt.figtext(.78,pos_y-NB_class*pas-(icl+1)*pas,'%s (%d) : %s%%'%(cl,icl,p[(cl,icl)]))
-
+    display_rates(plt,out,out_comp=out_comp,map_nl=map_nl)

@@ -225,7 +225,7 @@ def classifier(opt):
       from sklearn.metrics import confusion_matrix
       cmat_train = confusion_matrix(y_train_np,CLASS_train)
       p_tr = dic_percent(cmat_train,opt.types,verbose=True)
-      out['rate_tr'] = p_tr
+      out['rate_train'] = p_tr
       print "   Global : %.2f%%"%p_tr['global']
       if opt.opdict['plot_confusion'] or opt.opdict['save_confusion']:
         plot_confusion_mat(cmat_train,opt.types,'Training',opt.opdict['method'].upper())
@@ -256,6 +256,7 @@ def classifier(opt):
 
       pourcentages = (p_tr['global'],p_test['global'])
       out['method'] = opt.opdict['method']
+      out['types'] = opt.types
       opt.out = out
 
       n_feat = x_train.shape[1] # number of features
@@ -266,6 +267,8 @@ def classifier(opt):
           print "Threshold:", threshold
 
           # COMPARE AND PLOT LR AND SVM RESULTS
+          out_comp, out_nl = {},{}
+          dir = '%s_SEP'%opt.opdict['method'].upper()
           if opt.opdict['method']=='lr' and opt.opdict['compare']:
             dir = 'LR_SVM_SEP'
             out_svm = implement_svm(x_train,x_test,y_train,y_test,opt.types,opt.opdict,kern='Lin')
@@ -277,9 +280,25 @@ def classifier(opt):
             for it in range(len(out_svm['thetas'])):
               theta_svm[it+1] = np.append(out_svm['thetas'][it][-1],out_svm['thetas'][it][:-1])
               t_svm[it+1] = 0.5
+            out_svm['thetas'] = theta_svm
+            out_svm['threshold'] = t_svm
+            out_svm['rate_test'] = svm_pt
+            out_svm['rate_train'] = svm_ptr
+            out_svm['method'] = 'SVM'
 
-          else:
-            dir = '%s_SEP'%opt.opdict['method'].upper()
+          if opt.opdict['method'] in ['lr','svm'] and opt.opdict['compare_nl']:
+            dir = '%s_NL_SEP'%opt.opdict['method'].upper()
+            out_nl = implement_svm(x_train,x_test,y_train,y_test,opt.types,opt.opdict,kern='NonLin')
+            cmat_svm_tr = confusion_matrix(y_train_np,out_nl['label_train'])
+            cmat_svm_test = confusion_matrix(y_test_np,out_nl['label_test'])
+            svm_ptr = dic_percent(cmat_svm_tr,opt.types)
+            svm_pt = dic_percent(cmat_svm_test,opt.types)
+            out_nl['rate_test'] = svm_pt
+            out_nl['rate_train'] = svm_ptr
+            out_nl['method'] = 'SVM_NL'
+
+          save_dir = os.path.join(opt.opdict['fig_path'],dir)
+          opt.verify_and_create(save_dir)
 
           from LR_functions import normalize
           x_train, x_test = normalize(x_train,x_test)
@@ -303,12 +322,13 @@ def classifier(opt):
 
           # PLOT FOR 2 ATTRIBUTES AND 2 to 3 CLASSES
           elif n_feat == 2:
-            from plot_2features import plot_2f_all
-            if opt.opdict['method']=='lr' and opt.opdict['compare']:
-              plot_2f_all(theta,threshold,p_test,opt.opdict['method'],x_train,y_train,x_test,y_test,x_test_bad,opt.types,p_train=p_tr,th_comp=theta_svm,t_comp=t_svm,p=svm_pt)
-            else:
-              plot_2f_all(theta,threshold,p_test,opt.opdict['method'],x_train,y_train,x_test,y_test,x_test_bad,opt.types,p_train=p_tr)
             name = '%s_%s'%(opt.opdict['feat_list'][0],opt.opdict['feat_list'][1])
+            if opt.opdict['method'] in ['lr','svm']:
+              from plot_2features import plot_2f_all
+              plot_2f_all(out,x_train,y_train,x_test,y_test,x_test_bad,out_comp=out_svm,map_nl=out_nl)
+            elif opt.opdict['method'] == 'svm_nl':
+              from plot_2features import plot_2f_nonlinear
+              plot_2f_nonlinear(out,x_train,y_train,x_test,y_test,y_train=y_train)
 
           # PLOT FOR 3 ATTRIBUTES
           elif n_feat == 3:
@@ -318,7 +338,7 @@ def classifier(opt):
             name = '%s_%s_%s'%(opt.opdict['feat_list'][0],opt.opdict['feat_list'][1],opt.opdict['feat_list'][2])
 
           if opt.opdict['save_sep']:
-            plt.savefig('%s/%s/1809_sep_%s.png'%(opt.opdict['fig_path'],dir,name))
+            plt.savefig('%s/1809_sep_%s.png'%(save_dir,name))
           if opt.opdict['plot_sep']:
             plt.show()
           else:
