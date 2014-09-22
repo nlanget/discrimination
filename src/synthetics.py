@@ -54,10 +54,10 @@ class Synthetics(MultiOptions):
       #prop_test = (0.3,0.1,0.6)
 
     # Choose the proportions in the training set
-    #prop_train = prop_test
-    prop_train = (.35,.65)
+    prop_train = prop_test
+    #prop_train = (.35,.65)
 
-    if len(prop_test) != self.NB_class:
+    if len(prop_test) != self.NB_class or len(prop_train) != self.NB_class:
       print "Warning ! Check number of classes and proportions"
       sys.exit()
 
@@ -227,16 +227,15 @@ class Synthetics(MultiOptions):
 def plot_sep(opt):
 
     opt.set_params()
+    opt.opdict['fig_path'] = os.path.join(opt.opdict['outdir'],'figures')
 
     from do_classification import classifier
     ### LINEAR SVM ###
     opt.opdict['method'] = 'svm'
     classifier(opt)
     #opt.plot_PDFs()
-    theta_svm = opt.theta
-    rate_svm = opt.success
-    t_svm = opt.threshold
-    print "SVM", theta_svm
+    out_svm = opt.out
+    print "SVM", out_svm['thetas']
 
     x_train = opt.train_x
     x_test = opt.x
@@ -244,39 +243,34 @@ def plot_sep(opt):
     y_test = opt.y
 
     # *** Plot ***
-    plot_2f_synthetics(theta_svm,rate_svm,t_svm,'SVM',x_train,x_test,y_test,y_train=y_train)
+    plot_2f_synthetics(out_svm,x_train,x_test,y_test,y_train=y_train)
     plt.savefig('%s/Test_%dc_%s_SVM.png'%(opt.opdict['fig_path'],len(opt.types),opt.sep))
     plt.show()
 
     ### LOGISTIC REGRESSION ###
     opt.opdict['method'] = 'lr'
-    theta_lr,rate_lr,t_lr = {}, {}, {}
+    out_lr = {}
     for b in range(1):
       opt.opdict['learn_file'] = os.path.join(opt.opdict['libdir'],'LR_%d'%b)
       #os.remove(opt.opdict['learn_file'])
       classifier(opt)
-      theta_lr[b] = opt.theta
-      rate_lr[b] = opt.success
-      t_lr[b] = opt.threshold
+      out_lr[b] = opt.out
 
-    print "LR", theta_lr
+    print "LR", out_lr[0]['thetas']
 
     # *** Plot ***
-    if len(theta_lr) == 1:
-      plot_2f_synthetics(theta_lr[0],rate_lr[0],t_lr[0],'LR',x_train,x_test,y_test,y_train=y_train)
+    if b == 0:
+      plot_2f_synthetics(out_lr[0],x_train,x_test,y_test,y_train=y_train)
       plt.savefig('%s/Test_%dc_%s_LR.png'%(opt.opdict['fig_path'],len(opt.types),opt.sep))
       plt.show()
-      plot_2f_synthetics(theta_lr[0],rate_lr[0],t_lr[0],'LR',x_train,x_test,y_test,th_comp=theta_svm,p=rate_svm,t_comp=t_svm,y_train=y_train)
-      plt.savefig('%s/Test_%dc_%s.png'%(opt.opdict['fig_path'],len(opt.types),opt.sep))
-      plt.show()
 
-    elif len(theta_lr) > 1:
-      plot_2f_variability(theta_lr,rate_lr,t_lr,'LR',x_train,x_test,y_test,opt.NB_test)
+    else:
+      plot_2f_synth_var(out_lr,x_train,x_test,y_test,opt.NB_test)
       plt.savefig('%s/Test_%dc_LR_%s.png'%(opt.opdict['fig_path'],len(opt.types),opt.sep))
       plt.show()
 
     if opt.opdict['plot_prec_rec']:
-      plot_2f_synth_var(theta_lr,rate_lr,t_lr,'LR',x_train,x_test,y_test,opt.NB_test)
+      plot_2f_synth_var(out_lr,x_train,x_test,y_test,opt.NB_test)
       plt.savefig('%s/Test_%dc_bad_threshold.png'%(opt.opdict['fig_path'],len(opt.types)))
       plt.show()
 
@@ -284,9 +278,14 @@ def plot_sep(opt):
     ### NON LINEAR SVM ###
     opt.opdict['method'] = 'svm_nl'
     classifier(opt)
-    map = opt.map
-    rate_svm = opt.success
-    plot_2f_synthetics_nonlinear(map,rate_svm,opt.opdict['method'],x_train,x_test,y_test,y_train)
+    out_svm_nl = opt.out
+    plot_2f_synthetics_nonlinear(out_svm_nl,x_train,x_test,y_test,y_train=y_train)
+    plt.savefig('%s/Test_%dc_SVM_NL_%s.png'%(opt.opdict['fig_path'],len(opt.types),opt.sep))
+    plt.show()
+
+    ### COMPARE ALL 3 METHODS ON THE SAME PLOT ###
+    plot_2f_synthetics(out_lr[0],x_train,x_test,y_test,out_comp=out_svm,y_train=y_train,map_nl=out_svm_nl)
+    plt.savefig('%s/Test_%dc_%s.png'%(opt.opdict['fig_path'],len(opt.types),opt.sep))
     plt.show()
 
 

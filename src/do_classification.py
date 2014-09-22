@@ -181,6 +181,8 @@ def classifier(opt):
           for it in range(len(theta_vec)):
             theta[it+1] = np.append(theta_vec[it][-1],theta_vec[it][:-1])
             threshold[it+1] = 0.5
+          out['thetas'] = theta
+          out['threshold'] = threshold
 
       elif opt.opdict['method'] == 'lrsk':
         # LOGISTIC REGRESSION (scikit learn)
@@ -190,6 +192,8 @@ def classifier(opt):
         for it in range(len(out['thetas'])):
           theta[it+1] = out['thetas'][it]
           threshold[it+1] = 0.5
+        out['thetas'] = theta
+        out['threshold'] = threshold
 
       elif opt.opdict['method'] == 'lr':
         # LOGISTIC REGRESSION
@@ -221,6 +225,7 @@ def classifier(opt):
       from sklearn.metrics import confusion_matrix
       cmat_train = confusion_matrix(y_train_np,CLASS_train)
       p_tr = dic_percent(cmat_train,opt.types,verbose=True)
+      out['rate_tr'] = p_tr
       print "   Global : %.2f%%"%p_tr['global']
       if opt.opdict['plot_confusion'] or opt.opdict['save_confusion']:
         plot_confusion_mat(cmat_train,opt.types,'Training',opt.opdict['method'].upper())
@@ -232,6 +237,7 @@ def classifier(opt):
       y_test_np = y_test.NumType.values.ravel()
       cmat_test = confusion_matrix(y_test_np,CLASS_test)
       p_test = dic_percent(cmat_test,opt.types,verbose=True)
+      out['rate_test'] = p_test
       print "   Global : %.2f%%"%p_test['global']
       if opt.opdict['plot_confusion'] or opt.opdict['save_confusion']:
         plot_confusion_mat(cmat_test,opt.types,'Test',opt.opdict['method'].upper())
@@ -248,15 +254,9 @@ def classifier(opt):
         x_train, x_test = normalize(x_train,x_test)
         plot_precision_recall(x_train,y_train,x_test,y_test,theta)
 
-      try:
-        opt.theta = theta
-        opt.threshold = threshold
-      except:
-        opt.theta = None
-        opt.threshold = None
-
       pourcentages = (p_tr['global'],p_test['global'])
-      opt.success = p_test
+      out['method'] = opt.opdict['method']
+      opt.out = out
 
       n_feat = x_train.shape[1] # number of features
       if n_feat < 4:

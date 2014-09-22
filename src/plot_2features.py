@@ -196,10 +196,14 @@ def plot_2f(theta,rate,t,method,x_train,x_test,y_test,th_comp=None,t_comp=None,p
 
 # *******************************************************************************
 
-def plot_2f_synthetics(theta,rate,t,method,x_train,x_test,y_test,y_train=None,th_comp=None,t_comp=None,p=None):
+def plot_2f_synthetics(out,x_train,x_test,y_test,y_train=None,out_comp=None,map_nl=None):
     """
     For synthetic tests.
     """
+    theta = out['thetas']
+    rate = out['rate_test']
+    t = out['threshold']
+    method = out['method']
 
     if len(theta) > 2:
       NB_class = len(theta)
@@ -252,23 +256,34 @@ def plot_2f_synthetics(theta,rate,t,method,x_train,x_test,y_test,y_train=None,th
     bins = np.arange(-lim_plot, lim_plot + binwidth, binwidth)
 
     # Plot decision boundaries
-    if th_comp:
+    if out_comp:
       colors = ['b','c']
     else:
       colors = ['pink']
     for i in sorted(theta):
       db = -1./theta[i][2]*(theta[i][0]+np.log((1-t[i])/t[i])+theta[i][1]*x_vec[0])
       axScatter.plot(x_vec[0],db,lw=2.,c=colors[0])
-      if th_comp and t_comp:
+      if out_comp:
+        th_comp = out_comp['thetas']
+        t_comp = out_comp['threshold']
         db = -1./th_comp[i][2]*(th_comp[i][0]+np.log((1-t_comp[i])/t_comp[i])+th_comp[i][1]*x_vec[0])
         axScatter.plot(x_vec[0],db,lw=3.,c=colors[1])
 
-    axScatter.contourf(x_vec, y_vec, map, cmap=plt.cm.gray, alpha=0.3)
+    if map_nl:
+      axScatter.contourf(x_vec, y_vec, map_nl['map'], cmap=plt.cm.gray, alpha=0.3)
+    else:
+      axScatter.contourf(x_vec, y_vec, map, cmap=plt.cm.gray, alpha=0.3)
 
     label = ['%s (%.2f%%)'%(method.upper(),rate['global'])]
-    if th_comp and t_comp:
-      label.append('SVM (%.2f%%)'%p['global'])
-    axScatter.legend(label,loc=4,prop={'size':14})
+    if out_comp:
+      label.append('%s (%.2f%%)'%(out_comp['method'].upper(),out_comp['rate_test']['global']))
+    if map_nl:
+      label.append('%s (%.2f%%)'%(map_nl['method'].upper(),map_nl['rate_test']['global']))
+    if len(label) == 1:
+      s = 14
+    else:
+      s = 11
+    axScatter.legend(label,loc=4,prop={'size':s})
 
     axScatter.set_xlim((-lim_plot, lim_plot))
     axScatter.set_ylim((-lim_plot, lim_plot))
@@ -318,28 +333,69 @@ def plot_2f_synthetics(theta,rate,t,method,x_train,x_test,y_test,y_train=None,th
     axScatter.set_xlabel(feat_1)
     axScatter.set_ylabel(feat_2)
 
-    pos_y_ini = .95
-    pas = .025
-    plt.figtext(.78,pos_y_ini,'Test set %s'%method.upper())
-    for key in sorted(rate):
-      if key != 'global':
-        cl, icl = key[0], key[1]
-        plt.figtext(.78,pos_y_ini-(icl+1)*pas,'%s (%d) : %s%%'%(cl,icl,rate[(cl,icl)]))
-    if th_comp and t_comp:
-      pos_y = pos_y_ini-.04
-      plt.figtext(.78,pos_y-NB_class*pas,'Test set SVM')
+    if not (out_comp and map_nl):
+      pos_y_ini = .95
+      pas = .025
+      plt.figtext(.78,pos_y_ini,'Test set %s'%method.upper())
+      for key in sorted(rate):
+        if key != 'global':
+          cl, icl = key[0], key[1]
+          plt.figtext(.78,pos_y_ini-(icl+1)*pas,'%s (%d) : %s%%'%(cl,icl,rate[(cl,icl)]))
+      if out_comp or map_nl:
+        if out_comp:
+          sup = out_comp
+        elif map_nl:
+          sup = map_nl
+        pos_y = pos_y_ini-.04
+        plt.figtext(.78,pos_y-NB_class*pas,'Test set %s'%sup['method'].upper())
+        p = sup['rate_test']
+        for key in sorted(p):
+          if key != 'global':
+            cl, icl = key[0], key[1]
+            plt.figtext(.78,pos_y-NB_class*pas-(icl+1)*pas,'%s (%d) : %s%%'%(cl,icl,p[(cl,icl)]))
+
+    if out_comp and map_nl:
+      if NB_class == 2:
+        pos_y_ini = .95
+        pas = .02
+      else:
+        pos_y_ini = .96
+        pas = .015
+      s = 10
+      plt.figtext(.78,pos_y_ini,'Test set %s'%method.upper(),size=s+1)
+      for key in sorted(rate):
+        if key != 'global':
+          cl, icl = key[0], key[1]
+          plt.figtext(.78,pos_y_ini-(icl+1)*pas,'%s (%d) : %s%%'%(cl,icl,rate[(cl,icl)]),size=s)
+
+      pos_y = pos_y_ini-.03
+      pos_y_ini = pos_y-NB_class*pas
+      plt.figtext(.78,pos_y_ini,'Test set %s'%out_comp['method'].upper(),size=s+1)
+      p = out_comp['rate_test']
       for key in sorted(p):
         if key != 'global':
           cl, icl = key[0], key[1]
-          plt.figtext(.78,pos_y-NB_class*pas-(icl+1)*pas,'%s (%d) : %s%%'%(cl,icl,p[(cl,icl)]))
+          plt.figtext(.78,pos_y_ini-(icl+1)*pas,'%s (%d) : %s%%'%(cl,icl,p[(cl,icl)]),size=s)
+
+      pos_y = pos_y_ini-.03
+      pos_y_ini = pos_y-NB_class*pas
+      plt.figtext(.78,pos_y_ini,'Test set %s'%map_nl['method'].upper(),size=s+1)
+      p = map_nl['rate_test']
+      for key in sorted(p):
+        if key != 'global':
+          cl, icl = key[0], key[1]
+          plt.figtext(.78,pos_y_ini-(icl+1)*pas,'%s (%d) : %s%%'%(cl,icl,p[(cl,icl)]),size=s)
 
 
 # *******************************************************************************
-def plot_2f_synthetics_nonlinear(map,rate,method,x_train,x_test,y_test,y_train=None):
+def plot_2f_synthetics_nonlinear(out,x_train,x_test,y_test,y_train=None):
     """
     For synthetic tests. Non linear decision boundary.
     """
     NB_class = len(np.unique(y_test.Type.values))
+    map = out['map']
+    rate = out['rate_test']
+    method = out['method']
 
     pas = .01
     x_vec = np.arange(-1,1,pas)
@@ -390,6 +446,8 @@ def plot_2f_synthetics_nonlinear(map,rate,method,x_train,x_test,y_test,y_train=N
 
     # Plot decision boundaries
     axScatter.contourf(x_vec, y_vec, map, cmap=plt.cm.gray, alpha=0.3)
+    label = ['%s (%.2f%%)'%(method.upper(),rate['global'])]
+    axScatter.legend(label,loc=4,prop={'size':14})
     axScatter.set_xlim((-lim_plot, lim_plot))
     axScatter.set_ylim((-lim_plot, lim_plot))
 
@@ -448,19 +506,23 @@ def plot_2f_synthetics_nonlinear(map,rate,method,x_train,x_test,y_test,y_train=N
 
 # *******************************************************************************
 
-def plot_2f_synth_var(theta,rate,t,method,x_train,x_test,y_test):
+def plot_2f_synth_var(out,x_train,x_test,y_test):
     """
     Plots decision boundaries for a discrimination problem with 
     2 classes and 2 features.
     """
+    theta_first = out[0]['thetas']
+    rate_first = out[0]['rate_test']
+    t_first = out[0]['threshold']
+    method = out[0]['method']
 
-    if len(theta[0]) > 2:
-      NB_class = len(theta[0])
-      x_vec, y_vec, proba, map = class_multi_2f(theta[0])
+    if len(theta_first) > 2:
+      NB_class = len(theta_first)
+      x_vec, y_vec, proba, map = class_multi_2f(theta_first)
 
-    elif len(theta[0]) == 1:
+    elif len(theta_first) == 1:
       NB_class = 2
-      x_vec, y_vec, proba, map = class_2c_2f(theta[0],t[0])
+      x_vec, y_vec, proba, map = class_2c_2f(theta_first,t_first)
 
 
     #### PLOT ####
@@ -505,17 +567,21 @@ def plot_2f_synth_var(theta,rate,t,method,x_train,x_test,y_test):
 
     # Plot decision boundaries
     # VARIABILITY OF THE LR DECISION BOUNDARY
-    if len(theta) > 1:
+    if len(out) > 1:
       rates = []
-      for i in range(len(theta)):
-        db = -1./theta[i][1][2]*(theta[i][1][0]+np.log((1-t[i][1])/t[i][1])+theta[i][1][1]*x_vec[0])
+      for i in sorted(out):
+        theta = out[i]['thetas']
+        t = out[i]['threshold']
+        db = -1./theta[1][2]*(theta[1][0]+np.log((1-t[1])/t[1])+theta[1][1]*x_vec[0])
         axScatter.plot(x_vec[0],db,lw=1.,c=(0,0.1*i,1))
-        rates.append(rate[i]['global'])
+        rates.append(out[i]['rate_test']['global'])
 
       imax = np.argmax(rates)
-      db = -1./theta[imax][1][2]*(theta[imax][1][0]+np.log((1-t[imax][1])/t[imax][1])+theta[imax][1][1]*x_vec[0])
+      theta = out[imax]['thetas']
+      t = out[imax]['threshold']
+      db = -1./theta[1][2]*(theta[1][0]+np.log((1-t[1])/t[1])+theta[1][1]*x_vec[0])
       axScatter.plot(x_vec[0],db,lw=3.,c='midnightblue')
-      x_vec, y_vec, proba, map = class_2c_2f(theta[imax],t[imax])
+      x_vec, y_vec, proba, map = class_2c_2f(theta,t)
       axScatter.contourf(x_vec,y_vec,map,cmap=plt.cm.gray,alpha=.2)
 
       axScatter.text(0.6*lim_plot,-0.9*lim_plot,r'%.1f$\pm$%.1f%%'%(np.mean(rates),np.std(rates)))
@@ -532,13 +598,16 @@ def plot_2f_synth_var(theta,rate,t,method,x_train,x_test,y_test):
       CS = axScatter.contour(x_vec,y_vec,proba,10,colors=blue_scale)
       axScatter.clabel(CS, inline=1, fontsize=10)
 
+      theta = out[0]['thetas']
+      t = out[0]['threshold']
+      rate = out[0]['rate_test']
       if NB_class == 2:
-        db = -1./theta[0][1][2]*(theta[0][1][0]+np.log((1-t[0][1])/t[0][1])+theta[0][1][1]*x_vec[0])
+        db = -1./theta[1][2]*(theta[1][0]+np.log((1-t[1])/t[1])+theta[1][1]*x_vec[0])
         axScatter.plot(x_vec[0],db,lw=3.,c='midnightblue')
       axScatter.contourf(x_vec,y_vec,map,cmap=plt.cm.gray,alpha=.2)
 
-      axScatter.text(0.6*lim_plot,-0.9*lim_plot,'LR (%.1f%%)'%rate[0]['global'])
-      axScatter.text(0.6*lim_plot,-0.8*lim_plot,'t = %.1f'%t[0][1])
+      axScatter.text(0.6*lim_plot,-0.9*lim_plot,'LR (%.1f%%)'%rate['global'])
+      axScatter.text(0.6*lim_plot,-0.8*lim_plot,'t = %.1f'%t[1])
 
     axScatter.set_xlim((-lim_plot, lim_plot))
     axScatter.set_ylim((-lim_plot, lim_plot))
