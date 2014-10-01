@@ -204,7 +204,7 @@ def display_rates(plt,out,out_comp=None,map_nl=None):
       for key in sorted(rate):
         if key != 'global':
           cl, icl = key[0], key[1]
-          plt.figtext(.78,pos_y_ini-(icl+1)*pas,'%s (%d) : %s%%'%(cl,icl,rate[(cl,icl)]))
+          plt.figtext(.78,pos_y_ini-(icl+1)*pas,'%s (%d) : %.1f%%'%(cl,icl,rate[(cl,icl)]))
       if out_comp or map_nl:
         if out_comp:
           sup = out_comp
@@ -216,7 +216,7 @@ def display_rates(plt,out,out_comp=None,map_nl=None):
         for key in sorted(p):
           if key != 'global':
             cl, icl = key[0], key[1]
-            plt.figtext(.78,pos_y-NB_class*pas-(icl+1)*pas,'%s (%d) : %s%%'%(cl,icl,p[(cl,icl)]))
+            plt.figtext(.78,pos_y-NB_class*pas-(icl+1)*pas,'%s (%d) : %.1f%%'%(cl,icl,p[(cl,icl)]))
 
     if out_comp and map_nl:
       if NB_class == 2:
@@ -230,7 +230,7 @@ def display_rates(plt,out,out_comp=None,map_nl=None):
       for key in sorted(rate):
         if key != 'global':
           cl, icl = key[0], key[1]
-          plt.figtext(.78,pos_y_ini-(icl+1)*pas,'%s (%d) : %s%%'%(cl,icl,rate[(cl,icl)]),size=s)
+          plt.figtext(.78,pos_y_ini-(icl+1)*pas,'%s (%d) : %.1f%%'%(cl,icl,rate[(cl,icl)]),size=s)
 
       pos_y = pos_y_ini-.03
       pos_y_ini = pos_y-NB_class*pas
@@ -239,7 +239,7 @@ def display_rates(plt,out,out_comp=None,map_nl=None):
       for key in sorted(p):
         if key != 'global':
           cl, icl = key[0], key[1]
-          plt.figtext(.78,pos_y_ini-(icl+1)*pas,'%s (%d) : %s%%'%(cl,icl,p[(cl,icl)]),size=s)
+          plt.figtext(.78,pos_y_ini-(icl+1)*pas,'%s (%d) : %.1f%%'%(cl,icl,p[(cl,icl)]),size=s)
 
       pos_y = pos_y_ini-.03
       pos_y_ini = pos_y-NB_class*pas
@@ -248,7 +248,7 @@ def display_rates(plt,out,out_comp=None,map_nl=None):
       for key in sorted(p):
         if key != 'global':
           cl, icl = key[0], key[1]
-          plt.figtext(.78,pos_y_ini-(icl+1)*pas,'%s (%d) : %s%%'%(cl,icl,p[(cl,icl)]),size=s)
+          plt.figtext(.78,pos_y_ini-(icl+1)*pas,'%s (%d) : %.1f%%'%(cl,icl,p[(cl,icl)]),size=s)
 
 # *******************************************************************************
 
@@ -442,7 +442,7 @@ def plot_2f_synthetics(out,x_train,x_test,y_test,y_train=None,out_comp=None,map_
     axHisty.set_ylim(axScatter.get_ylim())
 
     # Display success rates
-    display_rates(plt,out,out_comp=out_comp,map_nl=out_comp)
+    display_rates(plt,out,out_comp=out_comp,map_nl=map_nl)
 
 # *******************************************************************************
 
@@ -645,6 +645,8 @@ def plot_2f_all(out,x_train,y_train,x_test,y_test,x_bad,out_comp=None,map_nl=Non
     Plots decision boundaries for a discrimination problem with 
     2 features.
     Superimposed with scatter plots of both training and test sets.
+    If out_comp : comparison of the decision boundary from another method
+    If map_nl : map of the non-linear decision boundary computed by SVM
     """
 
     theta = out['thetas']
@@ -744,3 +746,121 @@ def plot_2f_all(out,x_train,y_train,x_test,y_test,x_bad,out_comp=None,map_nl=Non
 
     # Display success rates
     display_rates(plt,out,out_comp=out_comp,map_nl=map_nl)
+
+
+# *******************************************************************************
+
+def plot_2f_variability(dic,x_train,y_train,x_test,y_test):
+    """
+    Plots decision boundaries for a discrimination problem with 
+    2 features in function of the training set draws.
+    Superimposed with scatter plots of both training and test sets.
+    """
+
+    #### PLOT ####
+    nullfmt = NullFormatter()
+
+    # definitions for the axes
+    left, width = 0.1, 0.65
+    bottom, height = 0.1, 0.65
+    bottom_h = left_h = left+width+0.02
+
+    rect_scatter = [left, bottom, width, height]
+    rect_histx = [left, bottom_h, width, 0.2]
+    rect_histy = [left_h, bottom, 0.2, height]
+
+    # start with a rectangular Figure
+    fig = plt.figure(1, figsize=(8,8))
+    fig.set_facecolor('white')
+
+    axScatter = plt.axes(rect_scatter)
+    axHistx = plt.axes(rect_histx)
+    axHisty = plt.axes(rect_histy)
+
+    # No labels
+    axHistx.xaxis.set_major_formatter(nullfmt)
+    axHisty.yaxis.set_major_formatter(nullfmt)
+
+    # Scatter plot:
+    from LR_functions import normalize
+    x_train, x_test = normalize(x_train,x_test)
+    feat_1 = x_test.columns[0]
+    feat_2 = x_test.columns[1]
+    axScatter.scatter(x_test[feat_1],x_test[feat_2],c=list(y_test.NumType.values),cmap=plt.cm.gray,alpha=.2)
+    axScatter.scatter(x_train[feat_1],x_train[feat_2],c=list(y_train.NumType.values),cmap=plt.cm.winter,alpha=.5)
+
+    # Plot decision boundaries
+    x_vec = np.arange(-1,1,.01)
+    rates = []
+    for draw in sorted(dic):
+      theta = dic[draw]['out']['thetas']
+      t = dic[draw]['out']['threshold']
+      rates.append(dic[draw]['out']['rate_test']['global'])
+      db = -1./theta[1][2]*(theta[1][0]+np.log((1-t[1])/t[1])+theta[1][1]*x_vec)
+      axScatter.plot(x_vec,db,lw=1.,c=(0,0.1*draw,1))
+
+    imax = np.argmax(rates)
+    theta = dic[imax]['out']['thetas']
+    t = dic[imax]['out']['threshold']
+    method = dic[imax]['out']['method'].upper()
+    types = dic[imax]['out']['types']
+    lab = r'%s %.1f$\pm$%.1f%%'%(method,np.mean(rates),np.std(rates))
+    db_max = -1./theta[1][2]*(theta[1][0]+np.log((1-t[1])/t[1])+theta[1][1]*x_vec)
+    axScatter.plot(x_vec,db_max,lw=3.,c='midnightblue',label=lab)
+    axScatter.legend(loc=4)
+
+    x_vec, y_vec, proba, map = class_2c_2f(theta,t)
+    axScatter.contourf(x_vec, y_vec, map, cmap=plt.cm.gray, alpha=0.2)
+ 
+    # Determine nice limits by hand
+    bins_1, bins_2 = plot_limits(x_test,x_train)
+    axScatter.set_xlim((bins_1[0], bins_1[-1]))
+    axScatter.set_ylim((bins_2[0], bins_2[-1]))
+    axScatter.set_xlabel(feat_1)
+    axScatter.set_ylabel(feat_2)
+
+    # Plot histograms and PDFs
+    plot_histos_and_pdfs_kde(axHistx,axHisty,bins_1,bins_2,x_test,y_test,x_train=x_train,y_train=y_train) 
+    axHistx.set_xlim(axScatter.get_xlim())
+    axHisty.set_ylim(axScatter.get_ylim())
+
+    # Display success rates
+    pos_x = .76
+    pos_y_ini = .95
+    pas = .025
+    plt.figtext(pos_x,pos_y_ini,'Training set %s'%method)
+    rate_tr,rate_tr_1, rate_tr_2 = [],[],[]
+    for draw in sorted(dic):
+      p = dic[draw]['out']['rate_train']
+      rate_tr.append(p['global'])
+      for key in sorted(p):
+        if key != 'global':
+          cl, icl = key[0], key[1]
+          if icl == 1:
+            rate_tr_1.append(p[(cl,icl)])
+          else:
+            rate_tr_2.append(p[(cl,icl)])
+
+    plt.figtext(pos_x,pos_y_ini-1*pas,'Global : %.1f$\pm$%.1f%%'%(np.mean(rate_tr),np.std(rate_tr)))
+    plt.figtext(pos_x,pos_y_ini-2*pas,'%s (%d) : %.1f$\pm$%.1f%%'%(types[0],0,np.mean(rate_tr_1),np.std(rate_tr_1)))
+    plt.figtext(pos_x,pos_y_ini-3*pas,'%s (%d) : %.1f$\pm$%.1f%%'%(types[1],1,np.mean(rate_tr_2),np.std(rate_tr_2)))
+
+    pos_y_ini = pos_y_ini-4.5*pas
+    pas = .025
+    plt.figtext(pos_x,pos_y_ini,'Test set %s'%method)
+    rate_test,rate_test_1, rate_test_2 = [],[],[]
+    for draw in sorted(dic):
+      p = dic[draw]['out']['rate_test']
+      rate_test.append(p['global'])
+      for key in sorted(p):
+        if key != 'global':
+          cl, icl = key[0], key[1]
+          if icl == 1:
+            rate_test_1.append(p[(cl,icl)])
+          else:
+            rate_test_2.append(p[(cl,icl)])
+
+    plt.figtext(pos_x,pos_y_ini-1*pas,'Global : %.1f$\pm$%.1f%%'%(np.mean(rate_test),np.std(rate_test)))
+    plt.figtext(pos_x,pos_y_ini-2*pas,'%s (%d) : %.1f$\pm$%.1f%%'%(types[0],0,np.mean(rate_test_1),np.std(rate_test_1)))
+    plt.figtext(pos_x,pos_y_ini-3*pas,'%s (%d) : %.1f$\pm$%.1f%%'%(types[1],1,np.mean(rate_test_2),np.std(rate_test_2)))
+

@@ -85,8 +85,8 @@ def ijen():
   opdict['dir'] = 'Ijen'
   opdict['channels'] = ['Z']#,'E','N']
   opdict['network'] = 'ID'
-  opdict['stations'] = ['IJEN']
-  #opdict['stations'] = ['DAM','IBLW','IGEN','IJEN','IMLB','IPAL','IPLA','IPSW','KWUI','MLLR','POS','POSI','PSG','PUN','RAUN','TRWI']
+  #opdict['stations'] = ['IJEN']
+  opdict['stations'] = ['DAM','IBLW','IGEN','IJEN','IMLB','IPAL','IPLA','IPSW','KWUI','MLLR','POS','POSI','PSG','PUN','RAUN','TRWI']
   #opdict['types'] = ['Hembusan','Hibrid','LF','Longsoran','Tektonik','Tremor','VulkanikA','VulkanikB']
   opdict['types'] = ['Tremor','VulkanikB','?']
   #opdict['types'] = ['Tremor','VulkanikB']
@@ -131,8 +131,8 @@ class Options(object):
   def __init__(self):
 
     self.opdict = {}
-    self.opdict = ijen()
-    #self.opdict = piton()
+    #self.opdict = ijen()
+    self.opdict = piton()
 
     ### Import classification options ###
     self.set_classi_options()
@@ -150,7 +150,7 @@ class Options(object):
 
     ### Number of iterations ###
     # a new training set is generated at each 'iteration'
-    self.opdict['boot'] = 1
+    self.opdict['boot'] = 10
 
     ### Choice of the classification algorithm ###
     # could be 'lr' (LR = logistic regression)
@@ -160,11 +160,11 @@ class Options(object):
     # or '1b1' (1-by-1 extractor)
     # or 'lrsk' (Logistic regression from scikit.learn package)
     # or 'kmeans' (K-means from scikit.learn package)
-    self.opdict['method'] = 'svm_nl'
+    self.opdict['method'] = 'lr'
 
     ### Also compute the probabilities for each class ###
     ### Computation time increases
-    self.opdict['probas'] = True
+    self.opdict['probas'] = False
 
     ### Display and save the PDFs of the features ###
     self.opdict['plot_pdf'] = False
@@ -178,6 +178,8 @@ class Options(object):
     self.opdict['plot_sep'] = False
     self.opdict['save_sep'] = False
     self.opdict['compare'] = False # plot SVM and LR decision boundaries on the same plot
+    self.opdict['compare_nl'] = False # plot SVM non-linear decision boundaries on the same plot
+    self.opdict['plot_var'] = True # plot decision boundaries for different training set draws
 
     ### Plot precision and recall ###
     self.opdict['plot_prec_rec'] = False # plot precision and recall
@@ -229,9 +231,11 @@ class Options(object):
     if self.opdict['option'] == 'norm':
       # Features "normales"
       #self.opdict['feat_list'] = self.opdict['feat_all']
+      self.opdict['feat_list'] = ['Dur','Ene']
+      #self.opdict['feat_log'] = ['Ene']
       #self.opdict['feat_log'] = self.opdict['feat_list']
       #self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Growth','Kurto','RappMaxMean','RappMaxMeanTF','Skewness','TimeMaxSpec','Width']
-      self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Kurto','RappMaxMean','Skewness','TimeMaxSpec']
+      #self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Kurto','RappMaxMean','Skewness','TimeMaxSpec']
       #self.opdict['feat_list'] = ['Dur','F_up','Growth','Kurto','RappMaxMean','RappMaxMeanTF','TimeMaxSpec','Width']
       #self.opdict['feat_list'] = ['CentralF','Centroid_time','Dur','Ene0-5','F_up','Growth','IFslope','Kurto','MeanPredF','RappMaxMean','RappMaxMeanTF','Skewness','TimeMaxSpec','Width','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9']
       #self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_low','F_up','IFslope','Kurto','MeanPredF','RappMaxMean','Skewness','ibw0','if6','if7','if8','v8']
@@ -253,7 +257,7 @@ class Options(object):
       if NB_feat == 1:
         self.opdict['result_file'] = 'results_%s_%s'%(self.opdict['method'],self.opdict['feat_list'][0])
       else:
-        self.opdict['result_file'] = '2109_results_%s_%dc_%df'%(self.opdict['method'],len(self.opdict['types']),len(self.opdict['feat_list']))
+        self.opdict['result_file'] = '0110_results_%s_%dc_%df'%(self.opdict['method'],len(self.opdict['types']),len(self.opdict['feat_list']))
  
     else:
       self.opdict['result_file'] = '%s_%s_svm'%(self.opdict['method'].upper(),self.opdict['stations'][0])
@@ -275,7 +279,7 @@ class Options(object):
     self.opdict['channels'] = ['Z']
     self.opdict['types'] = ['A','B']
 
-    self.sep = 'well'
+    self.sep = 'very_well'
     self.opdict['feat_train'] = '%s_%dc_train.csv'%(self.sep,len(self.opdict['types']))
     self.opdict['feat_test'] = '%s_%dc_test.csv'%(self.sep,len(self.opdict['types']))
     self.opdict['label_train'] = '%s_%dc_train.csv'%(self.sep,len(self.opdict['types']))

@@ -188,12 +188,12 @@ def classifier(opt):
         # LOGISTIC REGRESSION (scikit learn)
         print "********* Logistic regression (sklearn) **********"
         out = implement_lr_sklearn(x_train,x_test,y_train,y_test)
-        theta,threshold = {},{}
+        threshold, theta = {},{}
         for it in range(len(out['thetas'])):
-          theta[it+1] = out['thetas'][it]
           threshold[it+1] = 0.5
-        out['thetas'] = theta
+          theta[it+1] = np.append(out['thetas'][it][-1],out['thetas'][it][:-1])
         out['threshold'] = threshold
+        out['thetas'] = theta
 
       elif opt.opdict['method'] == 'lr':
         # LOGISTIC REGRESSION
@@ -259,6 +259,7 @@ def classifier(opt):
       out['types'] = opt.types
       opt.out = out
 
+      # PLOT DECISION BOUNDARIES
       n_feat = x_train.shape[1] # number of features
       if n_feat < 4:
         if opt.opdict['plot_sep'] or opt.opdict['save_sep']:
@@ -338,12 +339,13 @@ def classifier(opt):
             name = '%s_%s_%s'%(opt.opdict['feat_list'][0],opt.opdict['feat_list'][1],opt.opdict['feat_list'][2])
 
           if opt.opdict['save_sep']:
-            plt.savefig('%s/1809_sep_%s.png'%(save_dir,name))
+            plt.savefig('%s/CL_sep_%s.png'%(save_dir,name))
           if opt.opdict['plot_sep']:
             plt.show()
           else:
             plt.close()
 
+      # WRITE RESULTS INTO A DICTIONARY
       subsubdic['%'] = pourcentages
       trad_CLASS_test = []
       for i in CLASS_test:
@@ -352,7 +354,16 @@ def classifier(opt):
       subsubdic['classification'] = trad_CLASS_test
       if opt.opdict['probas']:
         subsubdic['proba'] = out['probas']
+      if opt.opdict['plot_var']:
+        subsubdic['out'] = out
       subdic[b] = subsubdic
+
+    if opt.opdict['plot_var'] and opt.opdict['method'] in ['lr','svm','lrsk'] and n_feat==2 and len(opt.opdict['types'])==2:
+      from plot_2features import plot_2f_variability
+      plot_2f_variability(subdic,x_train,y_train,x_test,y_test)
+      plt.savefig('%s/%s_variability.png'%(opt.opdict['fig_path'],opt.opdict['method'].upper()))
+      plt.show()
+
 
     dic_results[opt.trad[isc]] = subdic
 
@@ -462,7 +473,7 @@ def dic_percent(cmat,types,verbose=False):
     l_man = np.sum(cmat[i,:])
     l_auto = np.sum(cmat[:,i])
     p_cl = cmat[i,i]*1./l_man*100
-    p[('%s'%types[i],i)] = '%.2f'%p_cl
+    p[('%s'%types[i],i)] = round(p_cl,2)
     if verbose:
         print "Extraction of %s (%d) : %.2f%%"%(types[i],i,p_cl)
   return p
