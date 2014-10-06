@@ -21,25 +21,27 @@ def compare_clement():
   opt.opdict['channels'] = ['Z']
 
   # Mes calculs
-  opt.opdict['feat_list'] = ['Dur','AsDec','RappMaxMean','Kurto','Ene']
-  opt.opdict['feat_log'] = ['AsDec','RappMaxMean','Kurto','Ene']
+  opt.opdict['feat_list'] = ['Dur','AsDec','RappMaxMean','Kurto','KRapp']
+  opt.opdict['feat_log'] = ['AsDec','RappMaxMean','Kurto']
+  #opt.opdict['feat_list'] = ['Ene']
+  #opt.opdict['feat_log'] = ['Ene']
   opt.do_tri()
   opt.x = opt.xs[0]
   opt.y = opt.ys[0]
-  opt.opdict['feat_list'] = ['Dur','AsDec','RappMaxMean','Kurto','Ene']
   opt.x.columns = opt.opdict['feat_list']
   opt.compute_pdfs()
   my_gauss = opt.gaussians
 
-  fig = plt.figure()
-  fig.set_facecolor('white')
-  plt.plot(np.log(opt.x.Kurto),np.log(opt.x.RappMaxMean),'ko')
-  plt.xlabel('Kurto')
-  plt.ylabel('RappMaxMean')
-  plt.show()
+  if 'Kurto' in opt.opdict['feat_list'] and 'RappMaxMean' in opt.opdict['feat_list']:
+    fig = plt.figure()
+    fig.set_facecolor('white')
+    plt.plot(np.log(opt.x.Kurto),np.log(opt.x.RappMaxMean),'ko')
+    plt.xlabel('Kurto')
+    plt.ylabel('RappMaxMean')
+    plt.show()
 
   # Les calculs de Clément
-  opt.opdict['feat_list'] = ['Dur','AsDec','RappMaxMean','Kurto','Ene']
+  #opt.opdict['feat_list'] = ['Dur','AsDec','RappMaxMean','Kurto','Ene']
   opt.opdict['feat_log'] = []
   opt.opdict['feat_train'] = 'clement_train.csv'
   opt.opdict['feat_test'] = 'clement_test.csv'
@@ -50,7 +52,177 @@ def compare_clement():
 
   # Trait plein --> Clément
   # Trait tireté --> moi
-  opt.plot_superposed_pdfs(my_gauss)
+  opt.plot_superposed_pdfs(my_gauss,save=False)
+
+# ================================================================
+def compare_lissage():
+  """
+  Comparaison des kurtosis avec deux lissages différents.
+  """
+
+  plot_envelopes()
+
+  from options import MultiOptions
+  opt = MultiOptions()
+  opt.opdict['channels'] = ['Z']
+
+  # Lissage sur des fenêtres de 0.5 s 
+  opt.opdict['feat_list'] = ['Kurto']
+  opt.opdict['feat_log'] = ['Kurto']
+  opt.do_tri()
+  opt.x = opt.xs[0]
+  opt.y = opt.ys[0]
+  opt.x.columns = opt.opdict['feat_list']
+  opt.compute_pdfs()
+  gauss_stand = opt.gaussians
+
+  # Lissage sur des fenêtres de 1 s
+  opt.opdict['feat_train'] = '0610_Piton_trainset.csv'
+  opt.opdict['feat_test'] = '0610_Piton_testset.csv'
+  opt.do_tri()
+  opt.x = opt.xs[0]
+  opt.y = opt.ys[0]
+  opt.compute_pdfs()
+  gauss_1s = opt.gaussians
+
+  # Lissage sur des fenêtres de 5 s
+  opt.opdict['feat_train'] = '1809_Piton_trainset.csv'
+  opt.opdict['feat_test'] = '1809_Piton_testset.csv'
+  opt.do_tri()
+  opt.x = opt.xs[0]
+  opt.y = opt.ys[0]
+  opt.compute_pdfs()
+  gauss_5s = opt.gaussians
+
+  # Lissage sur des fenêtres de 10 s
+  opt.opdict['feat_train'] = '0510_Piton_trainset.csv'
+  opt.opdict['feat_test'] = '0510_Piton_testset.csv'
+  opt.do_tri()
+  opt.x = opt.xs[0]
+  opt.y = opt.ys[0]
+  opt.compute_pdfs()
+  gauss_10s = opt.gaussians
+
+  ### PLOT OF SUPERPOSED PDFs ###
+  fig = plt.figure(figsize=(12,2.5))
+  fig.set_facecolor('white') 
+  for feat in sorted(opt.gaussians):
+    maxi = int(np.max([gauss_stand[feat]['vec'],gauss_1s[feat]['vec'],gauss_5s[feat]['vec'],gauss_10s[feat]['vec']]))
+
+    ax1 = fig.add_subplot(141)
+    ax1.plot(gauss_stand[feat]['vec'],gauss_stand[feat]['VT'],ls='-',c='b',lw=2.,label='VT')
+    ax1.plot(gauss_stand[feat]['vec'],gauss_stand[feat]['EB'],ls='-',c='r',lw=2.,label='EB')
+    ax1.set_xlim([0,maxi])
+    ax1.set_xlabel(feat)
+    ax1.set_title('0.5 s')
+    ax1.legend(prop={'size':10})
+
+    ax2 = fig.add_subplot(142)
+    ax2.plot(gauss_1s[feat]['vec'],gauss_1s[feat]['VT'],ls='-',c='b',lw=2.)
+    ax2.plot(gauss_1s[feat]['vec'],gauss_1s[feat]['EB'],ls='-',c='r',lw=2.)
+    ax2.set_xlim([0,maxi])
+    ax2.set_xlabel(feat)
+    ax2.set_title('1 s')
+    ax2.set_yticklabels('')
+
+    ax3 = fig.add_subplot(143)
+    ax3.plot(gauss_5s[feat]['vec'],gauss_5s[feat]['VT'],ls='-',c='b',lw=2.)
+    ax3.plot(gauss_5s[feat]['vec'],gauss_5s[feat]['EB'],ls='-',c='r',lw=2.)
+    ax3.set_xlim([0,maxi])
+    ax3.set_xlabel(feat)
+    ax3.set_title('5 s')
+    ax3.set_yticklabels('')
+
+    ax4 = fig.add_subplot(144)
+    ax4.plot(gauss_10s[feat]['vec'],gauss_10s[feat]['VT'],ls='-',c='b',lw=2.)
+    ax4.plot(gauss_10s[feat]['vec'],gauss_10s[feat]['EB'],ls='-',c='r',lw=2.)
+    ax4.set_xlim([0,maxi])
+    ax4.set_xlabel(feat)
+    ax4.set_title('10 s')
+    ax4.set_yticklabels('')
+
+    #plt.savefig('%s/features/comp_%s.png'%(opt.opdict['outdir'],feat))
+    plt.show()
+
+
+def plot_envelopes():
+  """
+  Plot d'un VT et d'un EB avec des enveloppes calculées avec 
+  plusieurs paramètres de lissage.
+  """
+  from  options import read_binary_file
+  from features_extraction_piton import process_envelope
+  datadir = '../data/Piton/envelope'
+  
+  fig = plt.figure()
+  fig.set_facecolor('white')
+
+  colors = ['r','b','g','y']
+
+  ### EB ###
+  tr_eb = read_binary_file('%s/trace_EB'%datadir)
+  time = np.linspace(0,len(tr_eb)*0.01,len(tr_eb))
+  
+  env_51 = process_envelope(tr_eb,w=51)
+  env_101 = process_envelope(tr_eb,w=101)
+  env_501 = process_envelope(tr_eb,w=501)
+  env_1001 = process_envelope(tr_eb,w=1001)
+
+  ax1 = fig.add_subplot(211)
+  #ax1.plot(time,tr_eb,'k')
+  ax1.plot(time[:-1],env_51,c=colors[0],label='0.5 s')
+  ax1.plot(time[:-1],env_101,c=colors[1],label='1 s')
+  ax1.plot(time[:-1],env_501,c=colors[2],lw=2.,label='5 s')
+  ax1.plot(time[:-1],env_1001,c=colors[3],lw=2.,label='10 s')
+  from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+  axins = inset_axes(ax1,width="30%",height="60%",loc=1)
+  i1, i2 = 6000, 8000
+  ax1.axvspan(time[i1],time[i2],color='gray',alpha=.3)
+  axins.plot(time[i1:i2],env_51[i1:i2],c=colors[0])
+  axins.plot(time[i1:i2],env_101[i1:i2],c=colors[1])
+  axins.plot(time[i1:i2],env_501[i1:i2],c=colors[2],lw=2.)
+  axins.plot(time[i1:i2],env_1001[i1:i2],c=colors[3],lw=2.)
+  axins.xaxis.set_ticks_position('bottom')
+  axins.yaxis.set_ticklabels('')
+  axins.yaxis.set_visible(False)
+  ax1.set_title('Eboulement')
+  ax1.set_xlim([0,time[-1]])
+  ax1.set_xticklabels('')
+  ax1.legend(loc=2,prop={'size':10})
+
+  ### VT ###
+  tr_vt = read_binary_file('%s/trace_VT'%datadir)
+
+  env_51 = process_envelope(tr_vt,w=51)
+  env_101 = process_envelope(tr_vt,w=101)
+  env_501 = process_envelope(tr_vt,w=501)
+  env_1001 = process_envelope(tr_vt,w=1001)
+
+  ax2 = fig.add_subplot(212)
+  #ax2.plot(tr_vt,'k')
+  ax2.plot(time[:-1],env_51,c=colors[0])
+  ax2.plot(time[:-1],env_101,c=colors[1])
+  ax2.plot(time[:-1],env_501,c=colors[2],lw=2.)
+  ax2.plot(time[:-1],env_1001,c=colors[3],lw=2.)
+  from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+  axins = inset_axes(ax2,width="30%",height="70%",loc=1)
+  i1, i2 = 3000,5000
+  ax2.axvspan(time[i1],time[i2],color='gray',alpha=.3)
+  axins.plot(time[i1:i2],env_51[i1:i2],c=colors[0])
+  axins.plot(time[i1:i2],env_101[i1:i2],c=colors[1])
+  axins.plot(time[i1:i2],env_501[i1:i2],c=colors[2],lw=2.)
+  axins.plot(time[i1:i2],env_1001[i1:i2],c=colors[3],lw=2.)
+  axins.xaxis.set_ticks_position('bottom')
+  axins.yaxis.set_ticklabels('')
+  axins.yaxis.set_visible(False)
+  ax2.set_title('Volcano-tectonique')
+  ax2.set_xlim([0,time[-1]])
+  ax2.set_xlabel('Time (s)')
+
+  plt.figtext(0.03,0.89,'(a)')
+  plt.figtext(0.03,0.46,'(b)')
+  #plt.savefig('../results/Piton/features/envelopes.png')
+  plt.show()
 
 # ================================================================
 def compare_ponsets(set='test'):
@@ -206,7 +378,7 @@ def plot_pdf_subsets():
   feat_list = [('AsDec',0,1),('Bandwidth',5,0),('CentralF',1,0),('Centroid_time',4,0),('Dur',4,1),('Ene0-5',1,4),('Ene5-10',0,4),('Ene',0,3),('F_low',4,2),('F_up',0,7),('IFslope',7,8),('Kurto',2,0),('MeanPredF',1,4),('PredF',1,4),('RappMaxMean',0,1),('RappMaxMeanTF',4,0),('Skewness',2,5),('TimeMaxSpec',4,0),('Rectilinearity',8,3),('Planarity',1,2)]
 
   opt.opdict['feat_list'] = opt.opdict['feat_all']
-  opt.opdict['feat_filepath'] = '../results/Piton/features/Piton_trainset.csv'
+  opt.opdict['feat_filename'] = '../results/Piton/features/Piton_trainset.csv'
   opt.opdict['label_filename'] = '../lib/Piton/class_train_set.csv'
   x_all, y_all = opt.features_onesta('BOR','Z')
   print len(y_all)
@@ -272,7 +444,7 @@ def plot_pdf_subsets():
     ax1.legend()
     ax2.legend()
     plt.suptitle(feat)
-    #plt.savefig('%s/subsets_Kurto.png'%(opt.opdict['fig_path']))
+    plt.savefig('%s/subsets_%s.png'%(opt.opdict['fig_path'],feat))
     plt.show()
       
 # ================================================================
@@ -287,7 +459,8 @@ def plot_best_worst():
   feat_list = [('AsDec',0,1),('Bandwidth',5,0),('CentralF',1,0),('Centroid_time',4,0),('Dur',4,1),('Ene0-5',1,4),('Ene5-10',0,4),('Ene',0,3),('F_low',4,2),('F_up',0,7),('IFslope',7,8),('Kurto',2,0),('MeanPredF',1,4),('PredF',1,4),('RappMaxMean',0,1),('RappMaxMeanTF',4,0),('Skewness',2,5),('TimeMaxSpec',4,0),('Rectilinearity',8,3),('Planarity',1,2)]
 
   opt.opdict['feat_list'] = opt.opdict['feat_all']
-  opt.opdict['feat_filepath'] = '../results/Piton/features/Piton_trainset.csv'
+  opt.opdict['feat_log'] = ['AsDec','Ene','Kurto','RappMaxMean']
+  opt.opdict['feat_filename'] = '../results/Piton/features/Piton_trainset.csv'
   opt.opdict['label_filename'] = '../lib/Piton/class_train_set.csv'
   x_all, y_all = opt.features_onesta('BOR','Z')
   
@@ -330,7 +503,7 @@ def plot_best_worst():
 
     plt.legend()
     plt.title(feat)
-    #plt.savefig('%s/best_worst.png'%opt.opdict['fig_path'])
+    plt.savefig('%s/best_worst_%s.png'%(opt.opdict['fig_path'],feat))
     plt.show()
 # ================================================================
 def dataset_pies():
@@ -360,10 +533,11 @@ def dataset_pies():
 # ================================================================
 if __name__ == '__main__':
   #compare_clement()
+  compare_lissage()
   #compare_ponsets(set='test')
   #search_corr_feat()
   #compare_training()
-  plot_pdf_subsets()
+  #plot_pdf_subsets()
   #plot_best_worst()
   #dataset_pies()
 

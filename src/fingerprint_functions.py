@@ -345,7 +345,7 @@ def FuncFingerprint(mat,time,tr,f,end,plot=False,error=False):
     ax2.set_xlabel('Time (s)')
     ax2.set_ylabel('Frequency (Hz)')
     ax2.set_title('Spectrogram')
-    print "duration : %f s"%(time[-1]-time[0])
+    print "Duration : %f s"%(time[-1]-time[0])
 
     ax3 = fig.add_subplot(gs1[2])
     extent = (0,len(time),0,len(f))

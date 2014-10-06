@@ -12,6 +12,18 @@ Functions adapted to Piton de la Fournaise volcano dataset.
 *.mat files
 """
 
+def process_envelope(tr,w=51):
+  """
+  Runs envelope processing on a waveform.
+  w is the length of the sliding window
+  """
+  from obspy.signal import filter
+  env = filter.envelope(tr)
+  s = np.r_[env[w-1:0:-1],env,env[-1:-w:-1]]
+  window = np.ones(w,'d')
+  return np.convolve(window/window.sum(),s,mode='valid')[w/2:-w/2]
+
+
 class SeismicTraces():
 
   """
@@ -22,7 +34,8 @@ class SeismicTraces():
 
   def __init__(self,mat,comp,train=None):
     self.read_file(mat,comp,train)
-    self.process_envelope()
+    if not 'tr_env' in self.__dict__.keys():
+      self.tr_env = process_envelope(self.tr,w=101)
     self.dt = .01
     self.station = 'BOR'
     self.t0 = 0
@@ -38,7 +51,7 @@ class SeismicTraces():
         self.tr = mat[kname][0][i][1][0][0]
       elif comp == 'N':
         self.tr = mat[kname][0][i][2][0][0]
-      self.tr_env = mat['%s_ENV'%kname][i]
+      #self.tr_env = mat['%s_ENV'%kname][i]
       self.tr_grad = mat['%s_GRAD'%kname][i]
     else:
       df = pd.DataFrame(mat['SIG2'])
@@ -48,7 +61,7 @@ class SeismicTraces():
         self.tr = mat['SIG2'][:,1][0][0]
       elif comp == 'N':
         self.tr = mat['SIG2'][:,2][0][0]
-      self.tr_env = mat['SIG_ENV'].T[0]
+      #self.tr_env = mat['SIG_ENV'].T[0]
       self.tr_grad = mat['SIG_GRAD'].T[0]
 
 
@@ -64,18 +77,6 @@ class SeismicTraces():
       self.tr_z = mat['SIG2'][:,0][0][0]
       self.tr_e = mat['SIG2'][:,1][0][0]
       self.tr_n = mat['SIG2'][:,2][0][0]
-
-
-  def process_envelope(self):
-    """
-    Runs envelope processing on a waveform.
-    """
-    from obspy.signal import filter
-    env = filter.envelope(self.tr)
-    w = 51 # length of the sliding window
-    s = np.r_[env[w-1:0:-1],env,env[-1:-w:-1]]
-    window = np.ones(w,'d')
-    self.tr_env = np.convolve(window/window.sum(),s,mode='valid')[w/2:-w/2]
 
 
   def spectrum(self,plot=False):
@@ -173,12 +174,12 @@ def read_data_for_features_extraction(set='test',save=False):
   opt = MultiOptions()
 
   if set == 'train':
-    opt.opdict['feat_filepath'] = '%s/features/%s'%(opt.opdict['outdir'],opt.opdict['feat_train'])
-  print opt.opdict['feat_filepath']
+    opt.opdict['feat_filename'] = '%s/features/%s'%(opt.opdict['outdir'],opt.opdict['feat_train'])
+  print opt.opdict['feat_filename']
 
   if save:
-    if os.path.exists(opt.opdict['feat_filepath']):
-      print "WARNING !! File %s already exists"%opt.opdict['feat_filepath']
+    if os.path.exists(opt.opdict['feat_filename']):
+      print "WARNING !! File %s already exists"%opt.opdict['feat_filename']
       print "Check if you really want to replace it..." 
       sys.exit()
 
@@ -263,7 +264,7 @@ def read_data_for_features_extraction(set='test',save=False):
         d_mean = (df.Dur[(i,'BOR',comp)] + df.Dur[(i,'BOR','E')] + df.Dur[(i,'BOR','Z')])/3.
         po_mean = int((df.Ponset[(i,'BOR',comp)] + df.Ponset[(i,'BOR','E')] + df.Ponset[(i,'BOR','Z')])/3)
         s.read_all_files(mat,train=[i,'EB'])
-        rect, plan, az, iang = polarization_analysis(s,d_mean,po_mean,plot=True)
+        rect, plan, az, iang = polarization_analysis(s,d_mean,po_mean,plot=False)
         if 'Rectilinearity' in list_features:
           df.Rectilinearity[(i,'BOR','Z')], df.Rectilinearity[(i,'BOR','N')], df.Rectilinearity[(i,'BOR','E')] = rect, rect, rect
         if 'Planarity' in list_features:
@@ -298,7 +299,7 @@ def read_data_for_features_extraction(set='test',save=False):
         d_mean = (df.Dur[(i+neb,'BOR',comp)] + df.Dur[(i+neb,'BOR','E')] + df.Dur[(i+neb,'BOR','Z')])/3.
         po_mean = int((df.Ponset[(i+neb,'BOR',comp)] + df.Ponset[(i+neb,'BOR','E')] + df.Ponset[(i+neb,'BOR','Z')])/3)
         s.read_all_files(mat,train=[i,'VT'])
-        rect, plan, az, iang = polarization_analysis(s,d_mean,po_mean,plot=True)
+        rect, plan, az, iang = polarization_analysis(s,d_mean,po_mean,plot=False)
         if 'Rectilinearity' in list_features:
           df.Rectilinearity[(i+neb,'BOR','Z')], df.Rectilinearity[(i+neb,'BOR','N')], df.Rectilinearity[(i+neb,'BOR','E')] = rect, rect, rect
         if 'Planarity' in list_features:
@@ -309,8 +310,8 @@ def read_data_for_features_extraction(set='test',save=False):
           df.Incidence[(i+neb,'BOR','Z')], df.Incidence[(i+neb,'BOR','N')], df.Incidence[(i+neb,'BOR','E')] = iang, iang, iang
 
   if save:
-    print "Features written in %s"%opt.opdict['feat_filepath']
-    df.to_csv(opt.opdict['feat_filepath'])
+    print "Features written in %s"%opt.opdict['feat_filename']
+    df.to_csv(opt.opdict['feat_filename'])
 
 # ================================================================
 
@@ -370,7 +371,7 @@ def extract_norm_features(s,list_features,dic):
       if 'RappMaxMean' in list_features:
         # Max over mean ratio of the envelope
         from waveform_features import max_over_mean
-        dic['RappMaxMean'] = max_over_mean(s.tr[s.ponset:s.tend])
+        dic['RappMaxMean'] = max_over_mean(s.tr_env[s.ponset:s.tend])
 
       if 'AsDec' in list_features:
         # Ascendant phase duration over descendant phase duration
@@ -400,7 +401,7 @@ def extract_norm_features(s,list_features,dic):
       if ('F_low' in list_features) or ('F_up' in list_features):
         # Lowest and highest frequency for kurtogram analysis
         from waveform_features import kurto_bandpass
-        dic['F_low'],dic['F_up'] = kurto_bandpass(s,plot=True)
+        dic['F_low'],dic['F_up'] = kurto_bandpass(s,plot=False)
 
       if 'Centroid_time' in list_features:
         # Centroid time
@@ -456,9 +457,6 @@ def polarization_analysis(S,dur,ponset,plot=False):
   #cov_mat = np.cov((S.tr_z,S.tr_n,S.tr_e))
   vals, vecs = np.linalg.eig(cov_mat)
 
-  print len(S.tr_z)
-  print cov_mat.shape
-  
   vals_sort,vecs_sort = np.sort(vals)[::-1], np.array([])
   for i in range(len(vals)):
     ind = np.where(vals == vals_sort[i])[0]
