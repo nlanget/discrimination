@@ -42,10 +42,6 @@ class SeismicTraces():
       else:
         self.process_envelope()
 
-      # Compute the spectrum
-      self.spectrum(plot=False)
-
-
   def read_file(self,filename):
     #tb,ta = 15, 135
     tb,ta = 20, 100
@@ -58,7 +54,7 @@ class SeismicTraces():
       tr = st[0]
       self.dt = tr.stats.delta
       self.starttime = self.t0 - tb 
-      self.i1, self.i2 = 0,len(tr)-1
+      #self.i1, self.i2 = 0,len(tr)-1
       if len(tr.data) != int((ta+tb)*1./self.dt)+1:
         print len(tr.data),int((ta+tb)*1./self.dt)+1
         return [] 
@@ -102,6 +98,7 @@ class SeismicTraces():
       ax2.set_xlim([0,20])
       fig.suptitle(self.tr.stats.station)
       plt.show()
+
 
   def duration(self):
     from waveform_features import signal_duration
@@ -172,8 +169,8 @@ def read_data_for_features_extraction(save=False):
   opt = MultiOptions()
 
   if save:
-    if os.path.exists(opt.opdict['feat_filepath']):
-      print "WARNING !! File %s already exists"%opt.opdict['feat_filepath']
+    if os.path.exists(opt.opdict['feat_filename']):
+      print "WARNING !! File %s already exists"%opt.opdict['feat_filename']
       print "Check if you really want to replace it..." 
       sys.exit()
 
@@ -229,8 +226,8 @@ def read_data_for_features_extraction(save=False):
           df.Incidence[(date,sta,'Z')], df.Incidence[(date,sta,'N')], df.Incidence[(date,sta,'E')] = iang, iang, iang
 
   if save:
-    print "Features written in %s"%opt.opdict['feat_filepath']
-    df.to_csv(opt.opdict['feat_filepath'])
+    print "Features written in %s"%opt.opdict['feat_filename']
+    df.to_csv(opt.opdict['feat_filename'])
 
 # ================================================================
 
@@ -252,15 +249,16 @@ def extract_norm_features(list_features,date,file,dic):
     #s.display_traces()
     #s.amplitude_distribution()
 
-    if len(list_attr) > 7:
+    if len(list_attr) > 5:
 
-      if 'Dur' in list_features:
-        # Mean of the predominant frequency
-        from waveform_features import spectrogram
-        s, dic['MeanPredF'], dic['TimeMaxSpec'], dic['NbPeaks'], dic['Width'], hob, vals, dic['sPredF'] = spectrogram(s,plot=False)
-        for i in range(len(vals)):
-          dic['v%d'%i] = vals[i]
-        dic['Dur'] = s.dur
+      from waveform_features import spectrogram
+      s, dic['MeanPredF'], dic['TimeMaxSpec'], dic['NbPeaks'], dic['Width'], hob, vals, dic['sPredF'] = spectrogram(s,plot=False)
+      for i in range(len(vals)):
+        dic['v%d'%i] = vals[i]
+      dic['Dur'] = s.dur
+
+      # Compute the spectrum
+      s.spectrum(plot=False)
 
       if 'Acorr' in list_features:
         from waveform_features import autocorrelation,filt_ratio
@@ -289,7 +287,7 @@ def extract_norm_features(list_features,date,file,dic):
       if 'RappMaxMean' in list_features:
         # Max over mean ratio of the envelope
         from waveform_features import max_over_mean
-        dic['RappMaxMean'] = max_over_mean(s.tr[s.i1:s.i2])
+        dic['RappMaxMean'] = max_over_mean(s.tr[s.ponset:s.tend])
 
       if 'AsDec' in list_features:
         # Ascendant phase duration over descendant phase duration
@@ -305,20 +303,20 @@ def extract_norm_features(list_features,date,file,dic):
       if 'Skewness' in list_features:
         # Skewness
         from waveform_features import skewness
-        sk = skewness(s.tr_env[s.i1:s.i2])
+        sk = skewness(s.tr_env[s.ponset:s.tend])
         dic['Skewness'] = sk
         #s.amplitude_distribution()
 
       if 'Kurto' in list_features: 
         # Kurtosis
         from waveform_features import kurtosis_envelope
-        k = kurtosis_envelope(s.tr_env[s.i1:s.i2])
+        k = kurtosis_envelope(s.tr_env[s.ponset:s.tend])
         dic['Kurto'] = k
 
       if ('F_low' in list_features) or ('F_up' in list_features):
         # Lowest and highest frequency for kurtogram analysis
         from waveform_features import kurto_bandpass
-        dic['F_low'],dic['F_up'] = kurto_bandpass(s,plot=False)
+        dic['F_low'],dic['F_up'] = kurto_bandpass(s,plot=True)
 
       if 'Centroid_time' in list_features:
         # Centroid time

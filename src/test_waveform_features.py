@@ -10,7 +10,7 @@ def suite():
   #suite.addTest(FeatureTests('test_energy_between_10Hz_and_30Hz'))
   #suite.addTest(FeatureTests('test_gaussian_kurtosis'))
   #suite.addTest(FeatureTests('test_max_over_mean'))
-  #suite.addTest(FeatureTests('test_signal_duration_and_growth_over_decay'))
+  suite.addTest(FeatureTests('test_signal_duration_and_growth_over_decay'))
   #suite.addTest(FeatureTests('test_spectral_features'))
   #suite.addTest(FeatureTests('test_cepstrum'))
   #suite.addTest(FeatureTests('test_instantaneous_bandwidth'))
@@ -19,7 +19,7 @@ def suite():
   #suite.addTest(TestAnalyticFeatures('test_sin'))
   #suite.addTest(TestAnalyticFeatures('test_linear_mod'))
   #suite.addTest(TestAnalyticFeatures('test_sum_sin'))
-  suite.addTest(TestRicker('test_ricker'))
+  #suite.addTest(TestRicker('test_ricker'))
   #suite.addTest(TestRicker('test_trace'))
   return suite
 

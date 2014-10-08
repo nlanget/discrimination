@@ -5,7 +5,7 @@ import sys, os, glob
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from plot_2features import plot_2f_synthetics, plot_2f_synth_var, plot_2f_synthetics_nonlinear
+from plot_2features import plot_2f_synthetics, plot_2f_synth_var, plot_2f_nonlinear
 
 def create_synthetics(npts,tup):
   """
@@ -46,12 +46,12 @@ class Synthetics(MultiOptions):
 
     # Choose the proportions in the test set
     if self.NB_class == 2:
-      prop_test = (.45,.55)
+      prop_test = (.5,.5)
       #prop_test = (.25,.75)
 
     elif self.NB_class == 3:
-      prop_test = (1./3,1./3,1./3)
-      #prop_test = (0.3,0.1,0.6)
+      #prop_test = (1./3,1./3,1./3)
+      prop_test = (0.3,0.1,0.6)
 
     # Choose the proportions in the training set
     prop_train = prop_test
@@ -260,6 +260,7 @@ def plot_sep(opt):
 
     # *** Plot ***
     if b == 0:
+      print sorted(out_lr[0])
       plot_2f_synthetics(out_lr[0],x_train,x_test,y_test,y_train=y_train)
       plt.savefig('%s/Test_%dc_%s_LR.png'%(opt.opdict['fig_path'],len(opt.types),opt.sep))
       plt.show()
@@ -279,8 +280,8 @@ def plot_sep(opt):
     opt.opdict['method'] = 'svm_nl'
     classifier(opt)
     out_svm_nl = opt.out
-    plot_2f_synthetics_nonlinear(out_svm_nl,x_train,x_test,y_test,y_train=y_train)
-    plt.savefig('%s/Test_%dc_SVM_NL_%s.png'%(opt.opdict['fig_path'],len(opt.types),opt.sep))
+    plot_2f_nonlinear(out_svm_nl,x_train,x_test,y_test,y_train=y_train,synth=True)
+    plt.savefig('%s/Test_%dc_%s_SVM_NL.png'%(opt.opdict['fig_path'],len(opt.types),opt.sep))
     plt.show()
 
     ### COMPARE ALL 3 METHODS ON THE SAME PLOT ###

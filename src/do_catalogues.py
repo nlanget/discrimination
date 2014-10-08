@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# encoding: utf-8
+
 import pandas as pd
 import sys,os,glob
 import numpy as np
@@ -287,6 +290,11 @@ def nearest_pow2(x):
 # *******************************************************************************
 
 def plotSampleWF():
+  """
+  Tire au hasard 10 événements de chaque classe manuelle et affiche 
+  les formes d'ondes.
+  1 figure par classe.
+  """
   datadir = '../data/Ijen/ID/IJEN/EHZ.D'
   catname = '../lib/Ijen/Ijen_reclass_all.csv'
   df = pd.read_csv(catname)
@@ -325,6 +333,10 @@ def plotSampleWF():
 # *******************************************************************************
 
 def plotOneSampleWF():
+  """
+  Tire au hasard un événement de chaque classe et affiche les formes d'ondes.
+  1 figure avec toutes les formes d'ondes.
+  """
   datadir = '../data/Ijen/ID/IJEN/EHZ.D'
   catname = '../lib/Ijen/Ijen_class_all.csv'
   df = pd.read_csv(catname)
@@ -361,6 +373,60 @@ def plotOneSampleWF():
   plt.show()
 
 
+# *******************************************************************************
+
+def plotOneSampleWF_redac():
+  """
+  Tire au hasard un événement de chaque classe et affiche les formes d'ondes.
+  1 figure avec toutes les formes d'ondes.
+  """
+  from matplotlib.gridspec import GridSpec
+  datadir = '../data/Ijen/ID/IJEN/EHZ.D'
+  catname = '../lib/Ijen/Ijen_reclass_all.csv'
+  df = pd.read_csv(catname)
+  df = df.dropna(how='any')
+  #df = df.reindex(index=df[df.Type!='?'].index)
+  df = df.reindex(index=df[df.Type!='n'].index)
+
+  tuniq = np.unique(df.Type.values)
+  print tuniq
+  fig = plt.figure(figsize=(12,12))
+  fig.set_facecolor('white')
+  grid = GridSpec(16,3)
+  for i in range(len(tuniq)):
+    df_type = df[df.Type==tuniq[i]]
+    permut = np.random.permutation(df_type.index)
+    marker = 1
+    j = 0
+    compteur = 0
+    while marker:
+      p = permut[j]
+      j = j+1
+      date = utcdatetime.UTCDateTime(str(df.Date[p]))
+      files = glob.glob('%s/*%d%02d%02d_%02d%02d%02d*'%(datadir,date.year,date.month,date.day,date.hour,date.minute,date.second))
+      files.sort()
+      if len(files) > 0:
+        compteur = compteur+1
+        if compteur == 3:
+          marker = 0
+        file = files[0]
+        st = read(file)
+        st.filter('bandpass',freqmin=1,freqmax=10)
+
+        if compteur == 1:
+          ax = fig.add_subplot(grid[2*i+1,:])
+          ax.plot(st[0],'k')
+        else:
+          ax = fig.add_subplot(grid[2*i,compteur-1])
+          ax.plot(st[0],'k')
+        ax.set_axis_off()
+    ax = fig.add_subplot(grid[2*i,0])
+    ax.text(.2,.5,tuniq[i],transform=ax.transAxes)
+    ax.set_axis_off()
+  plt.savefig('/home/nadege/Desktop/sample_waveforms.png')
+  plt.show()
+
+
 if __name__ == '__main__':
   #common_events_catalogs()
   #plot_catalogs()
@@ -368,5 +434,6 @@ if __name__ == '__main__':
   #classif_auto()
   #spectral_content('/home/nadege/Desktop/IJEN_catalogues/test_extraction.csv','/home/nadege/Desktop/NEW_CLASS/Cat_POS/POS')
   #plotSampleWF()
-  plotOneSampleWF()
+  #plotOneSampleWF()
+  plotOneSampleWF_redac()
 

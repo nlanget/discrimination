@@ -16,7 +16,7 @@ class AnalyseResults(MultiOptions):
   def __init__(self):
     MultiOptions.__init__(self)
 
-    print "ANALYSIS OF %s"%self.opdict['result_path']
+    print "\nANALYSIS OF %s"%self.opdict['result_path']
     self.opdict['class_auto_file'] = 'auto_class.csv'
     self.opdict['class_auto_path'] = '%s/%s/%s'%(self.opdict['outdir'],self.opdict['method'].upper(),self.opdict['class_auto_file'])
 

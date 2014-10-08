@@ -304,7 +304,7 @@ def growth_over_decay(trace):
   emax = np.argmax(trace.tr_env[trace.ponset:trace.tend])+trace.ponset
   tmax = time[emax]
   p = (tmax - ti)/(tf - tmax)
-  print ti, tmax, tf, p
+  print "asdec:",ti, tmax, tf, p
   return p
 
 
@@ -324,6 +324,7 @@ def desc_and_asc(trace):
   tmax = time[emax]
   #p1 = (tf - tmax)/trace.dur  # decay
   p2 = (tmax - ti)/trace.dur  # growth
+  print "growth:",ti, tmax, tf, p2
   return p2
 
 
@@ -378,17 +379,44 @@ def kurto_bandpass(trace,plot=False):
   from waveloc.kurtogram import Fast_Kurtogram
   import matplotlib.pyplot as plt
 
-  data = trace.tr
+  data = trace.tr[trace.i1:trace.i2]
   N = len(data)
   N2 = np.log2(N)-7
   nlevel = int(np.fix(N2))
 
   dt = trace.dt
 
-  fig = plt.figure()
-  fig.set_facecolor('white')
-  Kwav, Level_w, freq_w, c, f_lower, f_upper = Fast_Kurtogram(np.array(data,dtype=float), nlevel,verbose=plot,Fs=1./dt,opt2=1)
-  plt.savefig('../results/Piton/figures/Examples/kurto.png')
+  if plot:
+    import matplotlib.gridspec as gridspec
+    G = gridspec.GridSpec(3, 2)
+    fig = plt.figure(figsize=(15, 6))
+    fig.set_facecolor('white')
+    plt.subplot(G[:,0])
+    save = '../results/Piton/figures/Examples/kurtogram.png'
+
+  Kwav, Level_w, freq_w, c, f_lower, f_upper = Fast_Kurtogram(np.array(data,dtype=float), nlevel,Fs=1./dt,opt2=1,verbose=plot)
+
+  if plot:
+    from obspy.signal.filter import bandpass
+    data_filt = bandpass(trace.tr,f_lower,f_upper,1./dt)
+
+    t = np.linspace(0,len(trace.tr)*dt,len(trace.tr))
+    plt.subplot(G[0,1])
+    plt.plot(t,trace.tr,'k')
+    plt.plot(t[trace.i1:trace.i2],trace.tr[trace.i1:trace.i2],'r')
+    k = kurtosis(trace.tr[trace.i1:trace.i2], axis=0, fisher=False, bias=True)
+    plt.xlim([t[0],t[-1]])
+    plt.figtext(.84,.9,'K=%.1f'%k)
+
+    plt.subplot(G[1,1])
+    plt.plot(t,data_filt,'k')
+    plt.plot(t[trace.i1:trace.i2],data_filt[trace.i1:trace.i2],'r')
+    k = kurtosis(data_filt[trace.i1:trace.i2], axis=0, fisher=False, bias=True)
+    plt.xlim([t[0],t[-1]])
+    plt.figtext(.84,.57,'K=%.1f'%k)
+    plt.xlabel('Time (s)')
+    plt.savefig(save)
+    plt.show()
 
   return f_lower, f_upper
 
@@ -457,8 +485,8 @@ def spectrogram(trace,plot=False):
     trace.dur = durf-time[ponset]
   trace.tend = trace.ponset + trace.dur * 1./trace.dt
   if det_ponset:
-    if trace.tend+500 < len(trace.tr):
-      trace.i2 = int(trace.tend+500)
+    if trace.tend+200 < len(trace.tr):
+      trace.i2 = int(trace.tend+200)
     else:
       trace.i2 = int(len(trace.tr)-1)
 
@@ -828,9 +856,6 @@ def instant_bw(trace, env, dt, TF, ponset=0, tend=0, plot=False):
   else: 
     A = np.abs(analytic)
 
-  phase = np.angle(analytic,deg=False)
-  ifreq = 1./(2*pi) * np.gradient(np.unwrap(phase)) * 1./dt
-
   gradA = np.gradient(A) * 1./dt
   ibw = np.sqrt((1./(2*pi*A) * gradA)**2)
 
@@ -850,16 +875,26 @@ def instant_bw(trace, env, dt, TF, ponset=0, tend=0, plot=False):
     fig = plt.figure()
     fig.set_facecolor('white')
     ax1 = fig.add_subplot(211,title='Analytic signal')
-    ax1.plot(time,trace,'k',lw=2.,label='real')
-    ax1.plot(time,hilb,'r',label='imag')
-    ax1.plot(time,A,'g',label='envelope')
-    ax1.legend()
+    ax1.plot(time,trace,'k',lw=2.)
+    ax1.plot(time,hilb,'r')
+    ax1.plot(time,A,'g')
+    ax1.legend(['real','imag','envelope'],loc=1,prop={'size':12})
     ax1.set_xticklabels('')
-    ax2 = fig.add_subplot(212,title='Instantaneous bandwidth and frequency')
-    ax2.plot(time[10:-10],ibw[10:-10],'k')
-    ax2.plot(time[10:],ifreq[10:],'g')
-    #ax2.plot(tval,val,'r')
+    ax1.text(.025,1.05,'(a)',transform=ax1.transAxes)
+
+    ax2 = fig.add_subplot(212,title='Instantaneous bandwidth')
+    ax2.plot(time[10:-10],ibw[10:-10],'k',lw=2.)
+    ax2.text(.025,1.05,'(b)',transform=ax2.transAxes)
+
+    #phase = np.angle(analytic,deg=False)
+    #ifreq = 1./(2*pi) * np.gradient(np.unwrap(phase)) * 1./dt
+    #p = np.polyfit(time,np.unwrap(phase),1)
+    #val, tval = window_p(ifreq,time,ponset,tend,befp=50,opt='mean')
+
+    ax2.plot(time[10:],ifreq[10:],'g',lw=2.)
+    ax2.plot(tval,val,'r')
     ax2.set_xlabel('Time (s)')
+    #plt.legend(['Instantaneous bandwidth','Instantaneous frequency'],loc=1,prop={'size':10})
     plt.show()
 
   return val, normEnv

@@ -85,8 +85,8 @@ def ijen():
   opdict['dir'] = 'Ijen'
   opdict['channels'] = ['Z']#,'E','N']
   opdict['network'] = 'ID'
-  #opdict['stations'] = ['IJEN']
-  opdict['stations'] = ['DAM','IBLW','IGEN','IJEN','IMLB','IPAL','IPLA','IPSW','KWUI','MLLR','POS','POSI','PSG','PUN','RAUN','TRWI']
+  opdict['stations'] = ['IJEN']
+  #opdict['stations'] = ['DAM','IBLW','IGEN','IJEN','IMLB','IPAL','IPLA','IPSW','KWUI','MLLR','POS','POSI','PSG','PUN','RAUN','TRWI']
   #opdict['types'] = ['Hembusan','Hibrid','LF','Longsoran','Tektonik','Tremor','VulkanikA','VulkanikB']
   opdict['types'] = ['Tremor','VulkanikB','?']
   #opdict['types'] = ['Tremor','VulkanikB']
@@ -108,7 +108,7 @@ def piton():
   opdict['types'] = ['EB','VT']
   opdict['datadir'] = os.path.join('../data/%s/full_data'%opdict['dir'])
   ### FEATURES FILES
-  opdict['feat_train'] = 'clement_train.csv'
+  #opdict['feat_train'] = 'clement_train.csv'
   opdict['feat_test'] = 'clement_test.csv'
   #opdict['feat_train'] = 'Piton_trainset.csv'
   #opdict['feat_test'] = 'Piton_testset.csv'
@@ -116,10 +116,10 @@ def piton():
   opdict['hash_train'] = 'ClHT_Piton_trainset.csv'
   opdict['hash_test'] = 'ClHT_Piton_testset.csv'
   ### LABEL FILES
-  opdict['label_train'] = 'class_train_set.csv'
+  #opdict['label_train'] = 'class_train_set.csv'
   opdict['label_test'] = 'class_test_set.csv'
   ### DECOMPOSITION OF THE TRAINING SET
-  opdict['learn_file'] = 'learning_set'
+  #opdict['learn_file'] = 'learning_set'
   ### FEATURES LIST
   opdict['feat_all'] = ['AsDec','Bandwidth','CentralF','Centroid_time','Dur','Ene','Ene5-10','Ene0-5','F_low','F_up','Growth','IFslope','Kurto','MeanPredF','NbPeaks','PredF','RappMaxMean','RappMaxMeanTF','Skewness','sPredF','TimeMaxSpec','Width','ibw0','ibw1','ibw2','ibw3','ibw4','ibw5','ibw6','ibw7','ibw8','ibw9','if0','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9','Rectilinearity','Planarity','Azimuth','Incidence','KRapp'] 
   return opdict
@@ -175,11 +175,11 @@ class Options(object):
     self.opdict['save_confusion'] = False
 
     ### Plot and save the decision boundaries ###
-    self.opdict['plot_sep'] = False
+    self.opdict['plot_sep'] = True
     self.opdict['save_sep'] = False
-    self.opdict['compare'] = False # plot SVM and LR decision boundaries on the same plot
+    self.opdict['compare'] = True # plot SVM and LR decision boundaries on the same plot
     self.opdict['compare_nl'] = False # plot SVM non-linear decision boundaries on the same plot
-    self.opdict['plot_var'] = True # plot decision boundaries for different training set draws
+    self.opdict['plot_var'] = False # plot decision boundaries for different training set draws
 
     ### Plot precision and recall ###
     self.opdict['plot_prec_rec'] = False # plot precision and recall
@@ -213,14 +213,14 @@ class Options(object):
     ### Check the existence of files ###
     ### Features file
     self.opdict['feat_filename'] = '%s/features/%s'%(self.opdict['outdir'],self.opdict['feat_test'])
-    self.verify_file(self.opdict['feat_filename'])
+    #self.verify_file(self.opdict['feat_filename'])
     ### Label file
     self.opdict['label_filename'] = '%s/%s'%(self.opdict['libdir'],self.opdict['label_test'])
     self.verify_file(self.opdict['label_filename'])
 
 
     ### DIFFERENT TRAINING SETS (CREATED FROM THE TEST SET)
-    if 'train_file' in sorted(self.opdict):
+    if not 'feat_train' in sorted(self.opdict):
       self.opdict['train_file'] = '%s/train_%d'%(self.opdict['libdir'],self.opdict['boot'])
     ### DECOMPOSITION OF THE TRAINING SET (training, CV, test)
     if 'learn_file' in sorted(self.opdict):
@@ -231,7 +231,7 @@ class Options(object):
     if self.opdict['option'] == 'norm':
       # Features "normales"
       #self.opdict['feat_list'] = self.opdict['feat_all']
-      self.opdict['feat_list'] = ['Dur','Ene']
+      self.opdict['feat_list'] = ['Dur']
       #self.opdict['feat_log'] = ['Ene']
       #self.opdict['feat_log'] = self.opdict['feat_list']
       #self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Growth','Kurto','RappMaxMean','RappMaxMeanTF','Skewness','TimeMaxSpec','Width']

@@ -361,7 +361,7 @@ def classifier(opt):
     if opt.opdict['plot_var'] and opt.opdict['method'] in ['lr','svm','lrsk'] and n_feat==2 and len(opt.opdict['types'])==2:
       from plot_2features import plot_2f_variability
       plot_2f_variability(subdic,x_train,y_train,x_test,y_test)
-      plt.savefig('%s/%s_variability.png'%(opt.opdict['fig_path'],opt.opdict['method'].upper()))
+      plt.savefig('%s/%s_variability_pas.png'%(opt.opdict['fig_path'],opt.opdict['method'].upper()))
       plt.show()
 
 
