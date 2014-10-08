@@ -292,21 +292,16 @@ def logistic_reg(x,y,theta,l=0,verbose=0,method='g'):
 
 # ---------------------------------------------------
 
-def degree_and_regularization(xtest,ytest,xcv,ycv,xtrain,ytrain,verbose=False):
+def degree_and_regularization(xcv,ycv,xtrain,ytrain,verbose=False):
   """
   Looks for the best polynomial degree (model selection) and lambda (regularization)
-  xtest, ytest, xcv, ycv, xtrain, ytrain are pandas DataFrame
+  xcv, ycv, xtrain, ytrain are pandas DataFrame
   """
-  n = xtest.shape[1] # number of features
-  K = ytest.shape[1] # number of classes
-  mtest = xtest.shape[0] # size of test set
+  n = xtrain.shape[1] # number of features
+  K = ytrain.shape[1] # number of classes
   mcv = xcv.shape[0] # size of cross-validation set
   mtraining = xtrain.shape[0] # size of training set
   
-  print "\tSize of training set:", mtraining
-  print "\tSize of CV set:", mcv
-  print "\tSize of test set:", mtest
-
   # Polynomial degrees vector
   DEG_MAX = 1
   degrees = np.array(range(1,DEG_MAX+1),dtype=int)
@@ -315,13 +310,12 @@ def degree_and_regularization(xtest,ytest,xcv,ycv,xtrain,ytrain,verbose=False):
 
   all_theta = {}
 
-  list_j_cv,list_j_test,list_j_train = {},{},{}
+  list_j_cv,list_j_train = {},{}
   min_cv = np.zeros(K)+10**3
   best_dl = np.empty([K,2])
 
   # loop on polynomial degree
   for deg in degrees:
-    xtest_deg = poly(deg,xtest)
     xcv_deg = poly(deg,xcv)
     xtrain_deg = poly(deg,xtrain)
 
@@ -342,17 +336,14 @@ def degree_and_regularization(xtest,ytest,xcv,ycv,xtrain,ytrain,verbose=False):
       if verbose:
         print deg,l,theta
 
-      list_j_cv[deg,l],list_j_test[deg,l],list_j_train[deg,l] = [],[],[]
+      list_j_cv[deg,l],list_j_train[deg,l] = [],[]
       for k in range(1,K+1):
         CF_cv = CostFunction(xcv_deg,ycv[k],l)
         j_cv = CF_cv.compute_cost(theta[k])
         CF_train = CostFunction(xtrain_deg,ytrain[k],l)
         j_train = CF_train.compute_cost(theta[k])
-        CF_test = CostFunction(xtest_deg,ytest[k],l)
-        j_test = CF_test.compute_cost(theta[k])
 
         list_j_cv[deg,l].append(j_cv)
-        list_j_test[deg,l].append(j_test)
         list_j_train[deg,l].append(j_train)
 
         if j_cv < min_cv[k-1]:
@@ -603,65 +594,6 @@ def data_sets(x,y,wtr=None,verbose=False):
   return retlist
 
 # ---------------------------------------------------
-
-def evaluation(x,y,wtr=np.array([]),learn=False,verbose=False):
-  """
-  Returns the best theta vector as well as the polynomial degree, lambda and the prediction threshold
-  x, y are pandas DataFrame
-  If learn = True, then learning curves are computed and displayed
-  """ 
-  m = x.shape[0] # size of the training set
-  n = x.shape[1] # number of features
-  K = y.shape[1] # number of classes
-
-  # Separation of the training set in: training/CV/test sets for learning curves calculation
-  xcv,ycv,xtest,ytest,xtrain,ytrain,wtr = data_sets(x,y,wtr=wtr,verbose=False)
-
-  mcv = xcv.shape[0]
-  mtest = xtest.shape[0]
-  mtraining = xtrain.shape[0]
-
-  # Determination of the best hypothesis function
-  best_dl,theta = degree_and_regularization(xtest,ytest,xcv,ycv,xtrain,ytrain,verbose=verbose)
-
-  plot_cost = False
-  if plot_cost:
-    for k in range(1,K+1):
-      CF_train = CostFunction(x,y[k],best_dl[k-1][1])
-      plot_cost_function(theta[k])
- 
-  # Misclassification error on test set
-  dic_xtest,dic_xcv,dic_xtrain,dic_x = {},{},{},{}
-  err,best_threshold = {},{}
-  for k in range(1,K+1):
-    degree = int(best_dl[k-1][0])
-    l = best_dl[k-1][1]
-
-    dic_x[k] = poly(degree,x)
-    dic_xtest[k] = poly(degree,xtest)
-    dic_xcv[k] = poly(degree,xcv)
-    dic_xtrain[k] = poly(degree,xtrain)
-
-    # Determination of the best prediction threshold
-    best_threshold[k] = precision_and_recall(dic_xcv[k],ycv[k].values,theta[k])
-
-    CF_test = CostFunction(dic_xtest[k],ytest[k],l)
-    y_test_pred = CF_test.predict_y(theta[k])
-    err[k] = misclassification_error(ytest[k].values,y_test_pred,best_threshold[k])
-  print "MISCLASSIFICATION TEST ERROR", err
-
-  # Learning curves
-  learn = False
-  if learn:
-    print "Computing learning curves......."
-    plot_learning_curves(dic_xtrain,dic_xcv,ytrain,ycv,best_dl)
-
-  retlist = theta,best_dl,best_threshold
-  if list(wtr):
-    retlist = retlist + (wtr,)
-
-  return retlist
-# ---------------------------------------------------
 def plot_learning_curves(xtrain,xcv,ytrain,ycv,best):
   """
   Compute and plot learning curves to diagnose 
@@ -711,31 +643,26 @@ def bad_class(x_test,list_i):
   x_bad = x_bad.reindex(index=list_i)
   return x_bad
 # ---------------------------------------------------
-def do_all_logistic_regression(x,y_all,x_testset,y_testset,norm=True,wtr=np.array([])):
+def do_all_logistic_regression(x_all,y_all,norm=True,wtr=np.array([])):
   """
   Implements the whole logistic regression process
-  1) datasets normalization
-  2) determination of the best theta vector (associated with the best degree/lambda/threshold) for each class
-  3) prediction and classification of the test set
-  y_testset: if available, the function will compare it to the results obtained by logistic regression 
+  1) decomposition of the whole set in training, CV and test sets
+  2) datasets normalization
+  3) determination of the best theta vector (associated with the best degree/lambda/threshold) for each class
+  4) prediction and classification of the test set
   If norm = True: data from the training and test sets are normalized. Default is True. 
             Must be deactivated if data are already normalized (e.g. after PCA...)
   If wtr: indexes of the events in the following order : "true" training set (60%), CV set (20%) and test set (20%)
   """
-  x.index = range(len(x.index))
+  x_all.index = range(len(x_all.index))
   y_all.index = range(len(y_all.index))
-  x_testset.index = range(len(x_testset.index))
-  if y_testset:
-    y_testset.index = range(len(y_testset.index))
-
-  x_unnorm = x.copy()
-  x_test_unnorm = x_testset.copy()
 
   # For multiclass: separation of values in y for "one-vs-all" strategy
   K = len(np.unique(y_all.NumType.values)) # Number of classes
-  print "Number of events - training set = %d"%y_all.shape[0]
-  print "Number of events - test set = %d"%x_testset.shape[0]
-  print "Number of features = %d"%x.shape[1]
+  m = x_all.shape[0] # size of the whole set
+  n = x_all.shape[1] # number of features
+  print "Number of events - whole set = %d"%m
+  print "Number of features = %d"%n
   print "Number of classes = %d"%K
   if K > 2:
     y = y_all.reindex(columns=[])
@@ -748,13 +675,60 @@ def do_all_logistic_regression(x,y_all,x_testset,y_testset,norm=True,wtr=np.arra
     y = y_all.reindex(columns=['NumType'])
 
   y.columns = range(1,y.shape[1]+1) # Class numbering begins at 1 (instead of 0)
+  x = x_all.copy()
 
+  # Separation of the whole set in: training/CV/test sets
+  xcv,ycv,xtest,ytest,xtrain,ytrain,wtr = data_sets(x,y,wtr=wtr,verbose=False)
 
   # Normalization
-  if norm:
-    x,x_testset = normalize(x,x_testset)
+  xtrain_unnorm = xtrain.copy()
+  xtrain,xtest = normalize(xtrain_unnorm,xtest)
+  xtrain,xcv = normalize(xtrain_unnorm,xcv)
 
-  theta,deg_and_lambda,thres,wtr = evaluation(x,y,wtr=wtr,learn=False,verbose=False)
+  mtraining = xtrain.shape[0] # size of the training set
+  mcv = xcv.shape[0] # size of the cross-validation set
+  mtest = xtest.shape[0] # size of the test set
+
+  print "\tSize of training set:", mtraining
+  print "\tSize of CV set:", mcv
+  print "\tSize of test set:", mtest
+
+  # Determination of the best hypothesis function
+  best_dl,theta = degree_and_regularization(xcv,ycv,xtrain,ytrain,verbose=verbose)
+
+  plot_cost = False
+  if plot_cost:
+    for k in range(1,K+1):
+      CF_train = CostFunction(x_all,y[k],best_dl[k-1][1])
+      plot_cost_function(theta[k])
+
+  ### MISCLASSIFICATION ERROR COMPUTED ON THE TEST SET ###
+  dic_xtest,dic_xcv,dic_xtrain,dic_x = {},{},{},{}
+  err,best_threshold = {},{}
+  for k in range(1,K+1):
+    degree = int(best_dl[k-1][0])
+    l = best_dl[k-1][1]
+
+    dic_xtest[k] = poly(degree,xtest)
+    dic_xcv[k] = poly(degree,xcv)
+    dic_xtrain[k] = poly(degree,xtrain)
+
+    # Determination of the best prediction threshold
+    best_threshold[k] = precision_and_recall(dic_xcv[k],ycv[k].values,theta[k])
+
+    CF_test = CostFunction(dic_xtest[k],ytest[k],l)
+    y_test_pred = CF_test.predict_y(theta[k])
+    err[k] = misclassification_error(ytest[k].values,y_test_pred,best_threshold[k])
+  print "MISCLASSIFICATION TEST ERROR", err
+
+  # Learning curves
+  learn = False
+  if learn:
+    print "Computing learning curves......."
+    plot_learning_curves(dic_xtrain,dic_xcv,ytrain,ycv,best_dl)
+
+  deg_and_lambda = best_dl
+  thres = best_threshold
 
   for k in range(1,len(theta)+1):
     print "Class %d: degree = %d - lambda = %.1f - threshold = %.2f"%(k,int(deg_and_lambda[k-1,0]),deg_and_lambda[k-1,1],thres[k])
