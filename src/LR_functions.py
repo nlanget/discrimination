@@ -39,17 +39,57 @@ def normalize(x,x_data):
   return x, x_data
 
 # ---------------------------------------------------
+def plot_cost_function(thetas):
+  """
+  Plot of the cost function.
+  """
+  n = len(thetas)-1 # number of features
+  pas = .01
+  x_ini = np.arange(-1,1,pas)
+
+  if n == 1:
+    x = np.vstack((np.ones(len(x_ini)),x_ini))
+    thx = np.dot(thetas.T,x)
+  else:
+    x = np.vstack((np.ones(len(x_ini)),x_ini))
+    i = 1
+    while i < n:
+      x = np.vstack((x,x_ini))
+      i = i+1
+    thx = np.dot(thetas.T,x)
+
+  h = g(thx)
+
+  fig = plt.figure(figsize=(10,4.5))
+  fig.set_facecolor('white')
+
+  ax1 = fig.add_subplot(121)
+  plt.plot(h,-np.log(h),'b',lw=3.)
+  plt.xlabel(r'$h_\theta(x)$')
+  plt.ylabel('Cost function')
+  ax1.text(.75,.9,'y = 1',size='xx-large',transform=ax1.transAxes)
+
+  ax2 = fig.add_subplot(122)
+  plt.plot(h,-np.log(1-h),'b',lw=3.)
+  plt.xlabel(r'$h_\theta(x)$')
+  plt.ylabel('Cost function')
+  ax2.text(.75,.9,'y = 0',size='xx-large',transform=ax2.transAxes)
+
+  plt.show()
+
+# ---------------------------------------------------
 
 class CostFunction():
 
 
   def __init__(self,x,y,l):
-    self.x = x # dataset (DataFrame type)
-    self.y = y # label (DataFrame type)
+    self.x = x # dataset (type : pandas.core.series.Series)
+    self.y = y # label (type : pandas.core.series.Series)
     self.l = l # regularization coefficient
     self.m = self.x.shape[0] # number of data set examples
     self.n = self.x.shape[1] # number of features
     self.x_mat = np.vstack((np.ones(self.m),self.x.T.values)) # np.array with the bias term
+
 
   def predict_y(self,theta):
     """
@@ -66,10 +106,8 @@ class CostFunction():
     """
     y_pred = self.predict_y(theta)
 
-    jVal = 0
-    for i in range(len(self.y)):
-      jVal+=self.y[i]*np.log10(y_pred[i])+(1-self.y[i])*np.log10(1-y_pred[i])
-    jVal = -1./self.m*jVal+1./(2*self.m)*self.l*np.sum(theta[1:]**2)
+    j = self.y*np.log10(y_pred)+(1-self.y)*np.log10(1-y_pred)
+    jVal = -1./self.m*np.sum(j) + 1./(2*self.m)*self.l*np.sum(theta[1:]**2)
 
     return jVal
 
@@ -89,10 +127,8 @@ class CostFunction():
     """
     y_pred = self.predict_y(theta)
 
-    jVal = 0
-    for i in range(len(self.y)):
-      jVal+=self.y[i]*np.log10(y_pred[i])+(1-self.y[i])*np.log10(1-y_pred[i])
-    jVal = -1./self.m*jVal+1./(2*self.m)*self.l*np.sum(theta[1:]**2)
+    j = self.y*np.log10(y_pred)+(1-self.y)*np.log10(1-y_pred)
+    jVal = -1./self.m*np.sum(j) + 1./(2*self.m)*self.l*np.sum(theta[1:]**2)
 
     gradient = 1./self.m*np.dot(self.x_mat,y_pred-self.y)
 
@@ -111,43 +147,15 @@ class CostFunction():
       for j in range(i,self.n+1):
         A[i,j] = np.dot(self.x_mat[i,:],self.x_mat[j,:])
         print A[i,j].shape
-        raw_input('PPPPPPPp')
         A[j,i] = A[i,j]
 
     hessian = 1./self.m*A*y_pred*(1-y_pred)
 
     return hessian
 
-
-  def plot_cost_function(self,params=None):
-    """
-    Plots the cost function.
-    """
-    from mpl_toolkits.mplot3d import Axes3D
-    pas = .1
-    thetas = np.arange(-10,11,pas)
-    xplot,yplot = np.meshgrid(thetas,thetas)
-    cost = np.zeros((len(thetas),len(thetas)))
-    for i,th1 in enumerate(thetas):
-      for j,th2 in enumerate(thetas):
-        th_vec = np.array([th1,th2])
-        cost[i,j] = self.compute_cost(th_vec)
-
-    fig = plt.figure()
-    fig.set_facecolor('white')
-    ax = fig.add_subplot(111,projection='3d')
-    ax.plot_wireframe(xplot,yplot,cost,color='k',cstride=int(pas*10),rstride=int(pas*10))
-    if list(params):
-      cost_min = self.compute_cost(params)
-      ax.scatter(params[0],params[1],cost_min,'ro')
-    ax.set_xlabel('Theta')
-    ax.set_ylabel('Theta')
-    ax.set_zlabel('Cost function')
-    plt.show()
-
 # ---------------------------------------------------
 
-def gradient_descent(CF,theta,opt=1,verbose=False):
+def gradient_descent(CF,theta,eps,opt=1,verbose=False):
   """
   Gradient descent
   Options:
@@ -155,8 +163,7 @@ def gradient_descent(CF,theta,opt=1,verbose=False):
     opt = 1: learning rate alpha is optimized at each iteration
     Default is opt = 0
   """
-  eps = 10**-5
-  alpha = 0.5#*10
+  alpha = 0.05#*10
   prev_cost = 1000
   cost = 0
   diff = np.abs(prev_cost-cost)
@@ -211,7 +218,7 @@ def logistic_reg(x,y,theta,l=0,verbose=0,method='g'):
   # Number of training set examples
   m = x.shape[0]
   # Number of classes
-  K = y.shape[1]
+  K = len(y.columns)
 
   if len(theta[1]) != n+1:
     print "In logistic_reg.py:\nproblem of dimension between number of features and number of parameters !!"
@@ -234,19 +241,19 @@ def logistic_reg(x,y,theta,l=0,verbose=0,method='g'):
       if n == 3:
         plot_db_3d(x,y[k],theta[k],lim=3,title='Initial decision boundary')
 
-    method = 'g'
-    stop = 10**-4
+    method = 'bfgs'
+    stop = 10**-5
     if method == 'cg':
       # Conjugate gradient
       from scipy.optimize import fmin_cg
-      theta[k],allvecs = fmin_cg(CF.compute_cost,theta[k],fprime=CF.compute_gradient,gtol=stop,disp=verbose,retall=True)
+      theta[k],allvecs = fmin_cg(CF.compute_cost,theta[k],fprime=CF.compute_gradient,gtol=stop,disp=False,retall=True)#,maxiter=1000)
     elif method == 'bfgs':
     # BFGS (Broyden Fletcher Goldfarb Shanno)
       from scipy.optimize import fmin_bfgs
-      theta[k],allvecs = fmin_bfgs(CF.compute_cost,theta[k],fprime=CF.compute_gradient,gtol=stop,disp=verbose,retall=True)
+      theta[k],allvecs = fmin_bfgs(CF.compute_cost,theta[k],fprime=CF.compute_gradient,gtol=stop,disp=False,retall=True)
     elif method == 'g':
       # Gradient descent
-      theta[k],min_cost = gradient_descent(CF,theta[k],opt=0)
+      theta[k],min_cost = gradient_descent(CF,theta[k],stop,opt=0)
       allvecs = None
 
     verbose = False 
@@ -256,8 +263,8 @@ def logistic_reg(x,y,theta,l=0,verbose=0,method='g'):
         for vec in allvecs:
           min_cost.append(CF.compute_cost(vec))
       nb_iter = len(min_cost)
-      plot_cost_function_iter(nb_iter,min_cost)
-      plt.show()
+      #plot_cost_function_iter(nb_iter,min_cost)
+      #plt.show()
 
   verbose = False
   if verbose:
@@ -618,10 +625,10 @@ def evaluation(x,y,wtr=np.array([]),learn=False,verbose=False):
   best_dl,theta = degree_and_regularization(xtest,ytest,xcv,ycv,xtrain,ytrain,verbose=verbose)
 
   plot_cost = False
-  if n==1 and plot_cost:
+  if plot_cost:
     for k in range(1,K+1):
       CF_train = CostFunction(x,y[k],best_dl[k-1][1])
-      CF_train.plot_cost_function(theta[k])
+      plot_cost_function(theta[k])
  
   # Misclassification error on test set
   dic_xtest,dic_xcv,dic_xtrain,dic_x = {},{},{},{}
@@ -644,51 +651,56 @@ def evaluation(x,y,wtr=np.array([]),learn=False,verbose=False):
   print "MISCLASSIFICATION TEST ERROR", err
 
   # Learning curves
+  learn = False
   if learn:
     print "Computing learning curves......."
-    verbose = True
-    list_j_cv,list_j_train={},{}
-    c = {}
-    for k in range(1,K+1):
-      list_j_cv[k],list_j_train[k] = [],[]
-      l = best_dl[k-1][1]
-
-      t = {1:theta[k]}
-
-      M = m
-      for i in range(1,M):
-        b = dic_x[k].reindex(index=range(i))
-        c = pd.DataFrame({1:ytrain[k][:i]})
-
-        CF_cv = CostFunction(b,ycv[k][:i],l)
-        j_cv = CF_cv.compute_cost(theta[k])
-        CF_train = CostFunction(b,y[k][:i],l)
-        j_train = CF_train.compute_cost(theta[k])
-        list_j_cv[k].append(j_cv)
-        list_j_train[k].append(j_train)
-
-      if verbose:
-        fig = plt.figure()
-        fig.set_facecolor('white')
-        plt.plot(range(1,M),list_j_cv[k],'b')
-        plt.plot(range(1,M),list_j_train[k],'r')
-        plt.xlabel('Size of training set')
-        plt.xlim([mcv,M])
-        plt.ylabel('Cost function')
-        plt.legend(('Jcv','Jtrain'),'upper right')
-        plt.title('Class %d'%k)
-        plt.show()
-
-        if len(dic_x[k]) == 2:
-          plot_db(dic_x[k],y[k].values,theta[k])
-        if len(dic_x[k]) == 3:
-          plot_db_3d(dic_x[k],y[k].values,theta[k])
+    plot_learning_curves(dic_xtrain,dic_xcv,ytrain,ycv,best_dl)
 
   retlist = theta,best_dl,best_threshold
   if list(wtr):
     retlist = retlist + (wtr,)
 
   return retlist
+# ---------------------------------------------------
+def plot_learning_curves(xtrain,xcv,ytrain,ycv,best):
+  """
+  Compute and plot learning curves to diagnose 
+  bias vs variance in a discrimination problem.
+  """
+  K = len(sorted(xtrain)) # number of classes
+  # For a class k
+  for k in range(1,K+1):
+    mcv = xcv[k].shape[0] # number of samples in the CV set
+    mtrain = xtrain[k].shape[0] # number of samples in the training set
+    n_feat = xtrain[k].shape[1] # number of features
+    min = mcv
+
+    list_jcv, list_jtrain = [],[]
+    l = best[k-1][1] # lambda
+    for i in range(min,mtrain):
+      int_xtrain = xtrain[k].reindex(index=range(i))
+      int_ytrain = ytrain[k].reindex(index=range(i))
+
+      thetaL = logistic_reg(int_xtrain,pd.DataFrame(int_ytrain),{1:np.zeros(n_feat+1)},l=l,method='g',verbose=False)
+      CF_train = CostFunction(int_xtrain,int_ytrain,l)
+      j_train = CF_train.compute_cost(thetaL[1])
+
+      CF_cv = CostFunction(xcv[k],ycv[k],l)
+      j_cv = CF_cv.compute_cost(thetaL[1])
+
+      list_jcv.append(j_cv)
+      list_jtrain.append(j_train)
+
+    fig = plt.figure()
+    fig.set_facecolor('white')
+    plt.plot(range(min,mtrain),list_jcv,'b',label=r'$J_{CV}$')
+    plt.plot(range(min,mtrain),list_jtrain,'r',label=r'$J_{train}$')
+    plt.xlabel('Size of training set')
+    plt.ylabel('Cost function')
+    plt.title('Class %d'%k)
+    plt.legend(loc=1)
+    plt.show()
+
 # ---------------------------------------------------
 def bad_class(x_test,list_i):
   """
@@ -699,7 +711,7 @@ def bad_class(x_test,list_i):
   x_bad = x_bad.reindex(index=list_i)
   return x_bad
 # ---------------------------------------------------
-def do_all_logistic_regression(x,y_all,x_testset,y_testset=None,norm=True,verbose=False,wtr=np.array([])):
+def do_all_logistic_regression(x,y_all,x_testset,y_testset,norm=True,wtr=np.array([])):
   """
   Implements the whole logistic regression process
   1) datasets normalization
@@ -751,41 +763,8 @@ def do_all_logistic_regression(x,y_all,x_testset,y_testset=None,norm=True,verbos
   # Test hypothesis function on training set
   y_pred_train = test_hyp(x,theta,deg=deg,threshold=thres[1],verbose=False)
 
-  print "\nTRAINING SET"
-  p_tr = np.float(len(np.where(y_pred_train-y_all.NumType==0)[0]))*100/y.shape[0]
-  print "Correct classification: %.2f %%"%p_tr
-
-  # Test hypothesis function on test set
+  # Classify the test set
   y_pred = test_hyp(x_testset,theta,deg=deg,threshold=thres[1],verbose=False)
-  if y_testset:
-    x_bad = bad_class(x_test_unnorm,np.where(y_pred-y_testset.NumType!=0)[0])
-    print "TEST SET"
-    p_test = 100-np.float(x_bad.shape[0]*100)/y_testset.shape[0]
-    print "Correct classification: %.2f %%"%p_test
-
-  #verbose=True
-  if verbose and x.shape[1] < 5:
-    list_key = x_unnorm.columns
-    for i,key1 in enumerate(list_key):
-      for key2 in list_key[i+1:]:
-        fig = plt.figure()
-        fig.set_facecolor('white')
-        plt.scatter(x_unnorm[key1],x_unnorm[key2],c=y.values[:,0],cmap=plt.cm.gray)
-        plt.xlabel(key1)
-        plt.ylabel(key2)
-        plt.title('Training set')
-
-        fig = plt.figure()
-        fig.set_facecolor('white')
-        plt.scatter(x_test_unnorm[key1],x_test_unnorm[key2],c=y_pred,cmap=plt.cm.gray)
-        if y_testset:
-          plt.plot(x_bad[key1],x_bad[key2],'ro')
-          plt.legend(('Bad class',),numpoints=1)
-        plt.xlabel(key1)
-        plt.ylabel(key2)
-        plt.title('Test set')
-    plt.show()
-
 
   output = {}
   output['label_test'] = y_pred
