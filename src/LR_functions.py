@@ -503,7 +503,7 @@ def plot_precision_recall(x_train,y_train,x_test,y_test,theta):
   thress = np.arange(0,1.05,.05)
   for t in thress:
     y_pred = test_hyp(x_test,theta,threshold=t,verbose=False)
-    false_pos,false_neg,true_pos = comparison(y_pred,y_test.values[:,0])
+    false_pos,false_neg,true_pos = comparison(y_pred,y_test)
 
     if true_pos != 0:
       precision.append(true_pos*1./(true_pos+false_pos))
@@ -513,7 +513,7 @@ def plot_precision_recall(x_train,y_train,x_test,y_test,theta):
       rappel.append(0)
 
     y_pred_tr = test_hyp(x_train,theta,threshold=t,verbose=False)
-    false_pos,false_neg,true_pos = comparison(y_pred_tr,y_train.values[:,0])
+    false_pos,false_neg,true_pos = comparison(y_pred_tr,y_train)
 
     if true_pos != 0:
       precision_tr.append(true_pos*1./(true_pos+false_pos))
@@ -541,59 +541,10 @@ def plot_precision_recall(x_train,y_train,x_test,y_test,theta):
   plt.xlim([0.3,1.1])
   plt.ylim([0.3,1.1])
   plt.figtext(0.49,0.88,'(b)')
-  #plt.savefig('/home/nadege/Dropbox/Figures/Piton/Clement/KRapp_prec_rec.png')
-  #plt.savefig('../results/Test/figures/prec_rec_bad.png')
   plt.show()
 
 # ---------------------------------------------------
 
-def data_sets(x,y,wtr=None,verbose=False):
-  """
-  Randomly generates training/cross-validation/test sets
-  x, y are pandas DataFrame
-  """
-  m = x.shape[0] # size of the training set
-  n = x.shape[1] # number of features
-  K = y.shape[1] # number of classes
-
-  mtraining = int(0.6*m)
-  mtest = int(0.2*m)
-  mcv = int(0.2*m)
-
-  if not list(wtr):
-    wtr = list(np.random.permutation(m))
-
-  xtrain = x.reindex(index=wtr[:mtraining])
-  ytrain = y.reindex(index=wtr[:mtraining])
-  xtrain.index = range(xtrain.shape[0])
-  ytrain.index = range(ytrain.shape[0])
-
-  xcv = x.reindex(index=wtr[mtraining:mtraining+mcv])
-  ycv = y.reindex(index=wtr[mtraining:mtraining+mcv])
-  xcv.index = range(xcv.shape[0])
-  ycv.index = range(ycv.shape[0])
-
-  xtest = x.reindex(index=wtr[mtraining+mcv:])
-  ytest = y.reindex(index=wtr[mtraining+mcv:])
-  xtest.index = range(xtest.shape[0])
-  ytest.index = range(ytest.shape[0])
-
-  if verbose:
-    if n > 1:
-      fig = plt.figure()
-      fig.set_facecolor('white')
-      plt.plot(xtrain.values[:,0],xtrain.values[:,1],'ko')
-      plt.plot(xcv.values[:,0],xcv.values[:,1],'yo')
-      plt.plot(xtest.values[:,0],xtest.values[:,1],'ro')
-      plt.xlabel(x.columns[0])
-      plt.ylabel(x.columns[1])
-      plt.legend(('Training set','CV set','Test set'),numpoints=1)#,'upper left')
-      plt.show()
-
-  retlist = xcv,ycv,xtest,ytest,xtrain,ytrain,wtr
-  return retlist
-
-# ---------------------------------------------------
 def plot_learning_curves(xtrain,xcv,ytrain,ycv,best):
   """
   Compute and plot learning curves to diagnose 
@@ -643,16 +594,15 @@ def bad_class(x_test,list_i):
   x_bad = x_bad.reindex(index=list_i)
   return x_bad
 # ---------------------------------------------------
-def do_all_logistic_regression(x_all,y_all,norm=True,wtr=np.array([])):
+def do_all_logistic_regression(x_all,y_all,i_train,i_cv,i_test,norm=True):
   """
   Implements the whole logistic regression process
   1) decomposition of the whole set in training, CV and test sets
   2) datasets normalization
   3) determination of the best theta vector (associated with the best degree/lambda/threshold) for each class
   4) prediction and classification of the test set
-  If norm = True: data from the training and test sets are normalized. Default is True. 
+  If norm = True: data from the training and test sets are normalized. Default is True.
             Must be deactivated if data are already normalized (e.g. after PCA...)
-  If wtr: indexes of the events in the following order : "true" training set (60%), CV set (20%) and test set (20%)
   """
   x_all.index = range(len(x_all.index))
   y_all.index = range(len(y_all.index))
@@ -661,7 +611,6 @@ def do_all_logistic_regression(x_all,y_all,norm=True,wtr=np.array([])):
   K = len(np.unique(y_all.NumType.values)) # Number of classes
   m = x_all.shape[0] # size of the whole set
   n = x_all.shape[1] # number of features
-  print "Number of events - whole set = %d"%m
   print "Number of features = %d"%n
   print "Number of classes = %d"%K
   if K > 2:
@@ -675,36 +624,33 @@ def do_all_logistic_regression(x_all,y_all,norm=True,wtr=np.array([])):
     y = y_all.reindex(columns=['NumType'])
 
   y.columns = range(1,y.shape[1]+1) # Class numbering begins at 1 (instead of 0)
+
+  ### Separation of the whole set in: training/CV/test sets ###
   x = x_all.copy()
 
-  # Separation of the whole set in: training/CV/test sets
-  xcv,ycv,xtest,ytest,xtrain,ytrain,wtr = data_sets(x,y,wtr=wtr,verbose=False)
+  xtrain = x.reindex(index=i_train)
+  ytrain = y.reindex(index=i_train)
+  xcv = x.reindex(index=i_cv)
+  ycv = y.reindex(index=i_cv)
+  xtest = x.reindex(index=i_test)
+  ytest = y.reindex(index=i_test)
 
   # Normalization
   xtrain_unnorm = xtrain.copy()
-  xtrain,xtest = normalize(xtrain_unnorm,xtest)
-  xtrain,xcv = normalize(xtrain_unnorm,xcv)
+  xtrain, xcv = normalize(xtrain_unnorm,xcv)
+  xtrain, xtest = normalize(xtrain_unnorm,xtest)
 
   mtraining = xtrain.shape[0] # size of the training set
   mcv = xcv.shape[0] # size of the cross-validation set
   mtest = xtest.shape[0] # size of the test set
 
-  print "\tSize of training set:", mtraining
-  print "\tSize of CV set:", mcv
-  print "\tSize of test set:", mtest
-
   # Determination of the best hypothesis function
-  best_dl,theta = degree_and_regularization(xcv,ycv,xtrain,ytrain,verbose=verbose)
-
-  plot_cost = False
-  if plot_cost:
-    for k in range(1,K+1):
-      CF_train = CostFunction(x_all,y[k],best_dl[k-1][1])
-      plot_cost_function(theta[k])
+  best_dl,theta = degree_and_regularization(xcv,ycv,xtrain,ytrain,verbose=False)
 
   ### MISCLASSIFICATION ERROR COMPUTED ON THE TEST SET ###
-  dic_xtest,dic_xcv,dic_xtrain,dic_x = {},{},{},{}
-  err,best_threshold = {},{}
+  dic_xtest, dic_xcv, dic_xtrain, dic_x = {},{},{},{}
+  err, best_threshold = {},{}
+  K = y.shape[1]
   for k in range(1,K+1):
     degree = int(best_dl[k-1][0])
     l = best_dl[k-1][1]
@@ -718,8 +664,8 @@ def do_all_logistic_regression(x_all,y_all,norm=True,wtr=np.array([])):
 
     CF_test = CostFunction(dic_xtest[k],ytest[k],l)
     y_test_pred = CF_test.predict_y(theta[k])
-    err[k] = misclassification_error(ytest[k].values,y_test_pred,best_threshold[k])
-  print "MISCLASSIFICATION TEST ERROR", err
+    err[k] = misclassification_error(ytest[k].values,y_test_pred,best_threshold[k])*100
+  print "MISCLASSIFICATION TEST ERROR ",err
 
   # Learning curves
   learn = False
@@ -735,16 +681,14 @@ def do_all_logistic_regression(x_all,y_all,norm=True,wtr=np.array([])):
 
   deg = deg_and_lambda[:,0]
   # Test hypothesis function on training set
-  y_pred_train = test_hyp(x,theta,deg=deg,threshold=thres[1],verbose=False)
+  y_pred_train = test_hyp(xtrain,theta,deg=deg,threshold=thres[1],verbose=False)
 
   # Classify the test set
-  y_pred = test_hyp(x_testset,theta,deg=deg,threshold=thres[1],verbose=False)
+  y_pred = test_hyp(xtest,theta,deg=deg,threshold=thres[1],verbose=False)
 
   output = {}
   output['label_test'] = y_pred
   output['label_train'] = y_pred_train
   output['thetas'] = theta
   output['threshold'] = thres
-  if list(wtr):
-    output['training_set'] = wtr
   return output

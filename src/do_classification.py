@@ -52,7 +52,9 @@ def classifier(opt):
       if os.path.exists(opt.opdict['train_file']):
         TRAIN_Y = read_binary_file(opt.opdict['train_file'])
       else:
-        TRAIN_Y = []
+        TRAIN_Y = {}
+        for tir in range(opt.opdict['boot']):
+          TRAIN_Y[tir] = {}
     elif 'train_x' in list_attr:
       opt.x = opt.xs_train[isc]
       opt.y = opt.ys_train[isc]
@@ -79,63 +81,82 @@ def classifier(opt):
     y_ref = opt.y
     x_ref = opt.x
 
-    K = len(opt.types)
+    #K = len(opt.types)
 
+    ### ITERATE OVER TRAINING SET DRAWS ###
     for b in range(opt.opdict['boot']):
       print "\n-------------------- # iter: %d --------------------\n"%(b+1)
 
       subsubdic = {}
-
+      print "WHOLE SET", x_ref.shape, y_ref.shape
       x_test = x_ref.copy()
       y_test = y_ref.copy()
 
+      ### if there is no pre-defined training set ###
       if 'train_x' not in list_attr:
         x_train = x_test.copy()
         if len(opt.opdict['stations']) == 1 and opt.opdict['boot'] > 1:
-          if len(TRAIN_Y) > b:
-            y_train = y_ref.reindex(index=TRAIN_Y[b])
+          if len(TRAIN_Y[b]) > 0:
+            y_train = y_ref.reindex(index=TRAIN_Y[b]['training_set'])
             y_train = y_train.dropna(how='any')
+            y_cv = y_ref.reindex(index=TRAIN_Y[b]['cv_set'])
+            y_cv = y_cv.dropna(how='any')
+            y_test = y_ref.reindex(index=TRAIN_Y[b]['test_set'])
+            y_test = y_test.dropna(how='any')
           else:
-            y_train = create_training_set(y_ref,opt.numt)
-            list_ev_train = y_train.index        
-            TRAIN_Y.append(list(y_train.index))
+            y_train, y_cv, y_test = generate_datasets(opt,y_ref)
+            TRAIN_Y[b]['training_set'] = list(y_train.index)
+            TRAIN_Y[b]['cv_set'] = list(y_cv.index)
+            TRAIN_Y[b]['test_set'] = list(y_test.index)
 
+        ### multi-stations case ###
         else:
           if marker_sta == 0:
-            y_train = create_training_set(y_ref,opt.numt)
+            y_train, y_cv, y_test = generate_datasets(opt,y_ref)
             list_ev_train = y_train.index
+            list_ev_cv = y_cv.index
+            list_ev_test = y_test.index
           else:
             y_train = y_ref.reindex(index=list_ev_train)
             y_train = y_train.dropna(how='any')
+            y_cv = y_ref.reindex(index=list_ev_cv)
+            y_cv = y_cv.dropna(how='any')
+            y_test = y_ref.reindex(index=list_ev_test)
+            y_test = y_test.dropna(how='any')
 
+        x_train = x_ref.reindex(index=y_train.index)
+
+      ### if a training set was pre-defined ###
       else:
         x_train = x_ref_train.copy()
         y_train = y_ref_train.copy()
+        y_train, y_cv, y_test = generate_datasets(opt,y_ref,y_train=y_train)
 
-      y = y_train.copy()
+      x_cv = x_ref.reindex(index=y_cv.index)
+      x_test = x_ref.reindex(index=y_test.index)
 
-      in_train = np.intersect1d(np.array(y_test.index),np.array(y_train.index))
-      set[b] = np.zeros(set.shape[0])
-      set[b][in_train] = 1
-
-      y_train = y.copy()
-      x_train = x_train.reindex(index=y_train.index)
-      x_test = x_test.reindex(index=y_test.index)
-
-      print "# types in the test set:",len(np.unique(y_test.NumType.values.ravel()))
-      print "# types in the training set:",len(np.unique(y_train.NumType.values.ravel()))
+      i_train = y_train.index
       x_train.index = range(x_train.shape[0])
       y_train.index = range(y_train.shape[0])
-      print x_train.shape, y_train.shape
+      print "TRAINING SET", x_train.shape, y_train.shape
       if x_train.shape[0] != y_train.shape[0]:
         print "Training set: Incoherence in x and y dimensions"
         sys.exit()
 
+      i_cv = y_cv.index
+      x_cv.index = range(x_cv.shape[0])
+      y_cv.index = range(y_cv.shape[0])
+      print "CROSS-VALIDATION SET", x_cv.shape, y_cv.shape
+      if x_cv.shape[0] != y_cv.shape[0]:
+        print "Cross-validation set: Incoherence in x and y dimensions"
+        sys.exit()
+
       subsubdic['list_ev'] = np.array(y_test.index)
 
+      i_test = y_test.index
       x_test.index = range(x_test.shape[0])
       y_test.index = range(y_test.shape[0])
-      print x_test.shape, y_test.shape
+      print "TEST SET", x_test.shape, y_test.shape
       if x_test.shape[0] != y_test.shape[0]:
         print "Test set: Incoherence in x and y dimensions"
         sys.exit()
@@ -199,17 +220,7 @@ def classifier(opt):
         # LOGISTIC REGRESSION
         print "********* Logistic regression **********"
         from LR_functions import do_all_logistic_regression
-        wtr = np.array([])
-        if 'learn_file' in sorted(opt.opdict):
-          learn_filename = '%s_%d'%(opt.opdict['learn_file'],b+1)
-          if os.path.exists(learn_filename):
-            wtr_ini = read_binary_file(learn_filename)
-            wtr = wtr_ini[:len(y_train)]
-            wtr = np.array(wtr)
-            if len(wtr[wtr>len(wtr)-1]) > 0:
-              rep_wtr = np.array(wtr_ini[len(y_train):])
-              wtr[wtr>len(wtr)-1] = rep_wtr[rep_wtr<len(wtr)]
-        out = do_all_logistic_regression(x_train,y_train,x_test,y_test,wtr=wtr)
+        out = do_all_logistic_regression(x_ref,y_ref,i_train,i_cv,i_test)
         theta = out['thetas']
         threshold = out['threshold']
         if 'learn_file' in sorted(opt.opdict):
@@ -252,7 +263,7 @@ def classifier(opt):
       if opt.opdict['plot_prec_rec']:
         from LR_functions import normalize,plot_precision_recall
         x_train, x_test = normalize(x_train,x_test)
-        plot_precision_recall(x_train,y_train,x_test,y_test,theta)
+        plot_precision_recall(x_train,y_train.NumType,x_test,y_test.NumType,theta)
 
       pourcentages = (p_tr['global'],p_test['global'])
       out['method'] = opt.opdict['method']
@@ -382,7 +393,7 @@ def classifier(opt):
 
 # ================================================================
 
-def create_training_set(y_ref,numt):
+def create_training_set(y_ref,numt,prop):
 
   """
   Generates a training set randomly from the test set.
@@ -394,7 +405,7 @@ def create_training_set(y_ref,numt):
   list_index = np.array([])
   for i in numt:
     a = y[y.NumType==i]
-    nb = int(np.floor(0.4*len(a)))
+    nb = int(np.floor(prop*len(a)))
     if nb < 3:
       nb = 3
     y_train = y_train.append(a[:nb])
@@ -428,6 +439,41 @@ def create_training_set_fix(y_ref,numt):
   y_train = y.reindex(index=map(int,list_index))
   return y_train
 
+# ================================================================
+def generate_datasets(opt,y_ref,y_train=None):
+  """
+  Split the whole dataset into :
+    * a training set
+    * a cross-validation set
+    * a test set
+  Behave differently if a training set does already exist.
+  """
+  y = y_ref.copy()
+  prop_train, prop_cv, prop_test = opt.opdict['proportions']
+  if not y_train:
+    y_train = create_training_set(y,opt.numt,prop_train)
+    itrain = list(y_train.index)
+    ifull = list(y.index)
+    new_ifull = np.setxor1d(ifull,itrain)
+    y = y.reindex(index=new_ifull)
+
+    y_cv = create_training_set(y,opt.numt,prop_cv)
+    icv = list(y_cv.index)
+    ifull = list(y.index)
+    new_ifull = np.setxor1d(ifull,icv)
+    y = y.reindex(index=new_ifull)
+    y_test = y.copy()
+
+  else:
+    prop_cv = len(y_train)*1./len(y_ref) # proportion of the training set wrt the whole set
+    y_cv = create_training_set(y,opt.numt,prop_cv)
+    icv = list(y_cv.index)
+    ifull = list(y.index)
+    new_ifull = np.setxor1d(ifull,icv)
+    y = y.reindex(index=new_ifull)
+    y_test = y.copy()
+
+  return y_train, y_cv, y_test
 # ================================================================
 
 def plot_confusion_mat(cmat,l,set,method,ax=None):

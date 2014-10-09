@@ -152,6 +152,9 @@ class Options(object):
     # a new training set is generated at each 'iteration'
     self.opdict['boot'] = 10
 
+    ### Proportions in the dataset (decomposition in training/CV/test sets) ###
+    self.opdict['proportions'] = (0.4,0.2,0.4)
+
     ### Choice of the classification algorithm ###
     # could be 'lr' (LR = logistic regression)
     # or 'svm' (SVM = Support Vector Machine from scikit.learn package ; default is linear)
@@ -182,7 +185,7 @@ class Options(object):
     self.opdict['plot_var'] = False # plot decision boundaries for different training set draws
 
     ### Plot precision and recall ###
-    self.opdict['plot_prec_rec'] = False # plot precision and recall
+    self.opdict['plot_prec_rec'] = False 
 
 
   def fill_opdict(self):
@@ -231,7 +234,7 @@ class Options(object):
     if self.opdict['option'] == 'norm':
       # Features "normales"
       #self.opdict['feat_list'] = self.opdict['feat_all']
-      self.opdict['feat_list'] = ['Dur']
+      self.opdict['feat_list'] = ['AsDec','KRapp']
       #self.opdict['feat_log'] = ['Ene']
       #self.opdict['feat_log'] = self.opdict['feat_list']
       #self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Growth','Kurto','RappMaxMean','RappMaxMeanTF','Skewness','TimeMaxSpec','Width']
