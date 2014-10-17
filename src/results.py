@@ -282,7 +282,7 @@ class AnalyseResultsExtraction(MultiOptions):
         self.composition_dataset()
         self.repartition_extraction()
 
-        self.plot_all_diagrams()
+        #self.plot_all_diagrams()
         self.plot_diagrams_one_draw()
         #self.plot_pdf_extract()
         #self.unclass_histo()
@@ -407,6 +407,8 @@ class AnalyseResultsExtraction(MultiOptions):
     from matplotlib.gridspec import GridSpec
 
     types = np.unique(self.y.Type.values)
+    #if 'i_train' in types:
+    #  types.remove('i_train')
     N = np.array(range(len(np.unique(types))))
     width = 0.1
     colors = ['yellowgreen', 'gold', 'lightskyblue', 'lightcoral','lightgreen','khaki','plum','powderblue']
