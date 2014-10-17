@@ -312,8 +312,8 @@ class AnalyseResultsExtraction(MultiOptions):
         fig = plt.figure(figsize=(6,6))
         fig.set_facecolor('white')
         plt.pie(nbs,labels=labels,autopct='%1.1f',colors=colors)
+        plt.figtext(0.4,0.1,'# events = %d'%np.sum(nbs))
         plt.title('Repartition after the extraction')
-        #plt.savefig('%s/OBO_repartition_tir%d.png'%(self.opdict['fig_path'],tir))
       plt.show()
 
     elif self.opdict['method'] == 'ova':
@@ -337,8 +337,8 @@ class AnalyseResultsExtraction(MultiOptions):
         fig = plt.figure(figsize=(6,6))
         fig.set_facecolor('white')
         plt.pie(nbs,labels=labels,autopct='%1.1f',colors=colors)
+        plt.figtext(0.4,0.1,'# events = %d'%np.sum(nbs))
         plt.title('Repartition after the extraction')
-        plt.savefig('%s/OVA_repartition_tir%d.png'%(self.opdict['fig_path'],tir))
       plt.show()
 
 
@@ -433,8 +433,9 @@ class AnalyseResultsExtraction(MultiOptions):
       unclass_types = self.y.reindex(index=unclass,columns=['Type']).values
       nb = [len(unclass_types[unclass_types==t]) for t in types]
 
-      plt.subplot(grid[:2,:2],aspect=1,title='Unclassified events')
-      plt.pie(nb,labels=types,autopct='%1.1f%%',colors=colors)
+      ax = fig.add_subplot(grid[:2,:2],aspect=1,title='Unclassified events')
+      ax.pie(nb,labels=types,autopct='%1.1f%%',colors=colors)
+      ax.text(.35,0,"# events = %d"%np.sum(nb),transform=ax.transAxes)
 
       orga = [(0,2),(0,3),(1,2),(1,3),(2,0),(2,1),(2,2),(2,3)]
       for it,t in enumerate(types):
@@ -442,11 +443,11 @@ class AnalyseResultsExtraction(MultiOptions):
         nb_tot = len(self.y[self.y.Type==t])
         il = orga[it][0]
         icol = orga[it][1]
-        plt.subplot(grid[il,icol],aspect=1,title=t)
-        plt.pie([nb,nb_tot-nb],explode=(.05,0),labels=['unclass',''],autopct='%1.1f%%',colors=((.5,.5,.5),'w'))
+        ax = fig.add_subplot(grid[il,icol],aspect=1,title=t)
+        ax.pie([nb,nb_tot-nb],explode=(.05,0),labels=['unclass',''],autopct='%1.1f%%',colors=((.5,.5,.5),'w'))
+        ax.text(0.2,-.02,"# events = %d"%nb_tot,transform=ax.transAxes)
       plt.figtext(.1,.91,'(a)',fontsize=18)
       plt.figtext(.5,.91,'(b)',fontsize=18)
-    #plt.savefig('../results/Ijen/figures/unclass_OBO.png')
     plt.show()
 
 
@@ -475,13 +476,15 @@ class AnalyseResultsExtraction(MultiOptions):
     grid = GridSpec(1,2)
     fig = plt.figure(figsize=(12,5))
     fig.set_facecolor('white')
-    plt.subplot(grid[0,0])
-    plt.pie(nb_dataset,labels=types,autopct='%1.1f%%',colors=colors)
-    plt.title('(a) Whole dataset')
-    plt.subplot(grid[0,1])
-    plt.pie(nb,labels=types,autopct='%1.1f%%',colors=colors)
-    plt.title('(b) Unclassified events')
-    #plt.savefig('../results/Ijen/figures/unclass_all_OBO.png')
+    ax = fig.add_subplot(grid[0,0])
+    ax.pie(nb_dataset,labels=types,autopct='%1.1f%%',colors=colors)
+    ax.set_title('(a) Whole dataset')
+    ax.text(.4,0,"# events = %d"%np.sum(nb_dataset),transform=ax.transAxes)
+
+    ax = fig.add_subplot(grid[0,1])
+    ax.pie(nb,labels=types,autopct='%1.1f%%',colors=colors)
+    ax.set_title('(b) Unclassified events')
+    ax.text(.4,0,"# events = %d"%np.sum(nb),transform=ax.transAxes)
     plt.show()
 
     self.types = types[np.argsort(nb)][-3:]
@@ -632,13 +635,14 @@ class AnalyseResultsExtraction(MultiOptions):
         col = iter%nbc * 2
 
         valok = dic['rate_%s'%cl][1]
-        plt.subplot(grid[row,col],aspect=1)
+        ax = fig.add_subplot(grid[row,col],aspect=1)
         classname = cl
         if classname == 'VulkanikB':
           classname = 'VB'
         if classname == 'VulkanikA':
           classname = 'VA'
-        plt.pie([valok,100-valok],explode=(.05,0),labels=(classname,'R'),autopct='%1.1f%%',colors=('w',(.5,.5,.5)))
+        ax.pie([valok,100-valok],explode=(.05,0),labels=(classname,'R'),autopct='%1.1f%%',colors=('w',(.5,.5,.5)))
+        ax.text(0.2,0,'# events = %d'%dic['nb'],transform=ax.transAxes)
 
         fracs = [tup[1]*1./(dic['nb']-dic['nb_common']) for tup in dic['nb_other'] if tup[1]!=0]
         labels = np.array([tup[0] for tup in dic['nb_other'] if tup[1]!=0])
@@ -659,7 +663,6 @@ class AnalyseResultsExtraction(MultiOptions):
         plt.subplot(grid[row,col+1],aspect=1)
         plt.pie(fracs,labels=labels,autopct='%1.1f%%',colors=colors)
       plt.suptitle('Extraction of %s'%cl)
-      #plt.savefig('../results/Ijen/figures/OBO_%s_svm.png'%cl)
 
     plt.show()
 
@@ -699,13 +702,14 @@ class AnalyseResultsExtraction(MultiOptions):
         col = icl%nbc * 2
 
         valok = dic['rate_%s'%cl][1]
-        plt.subplot(grid[row,col],aspect=1)
+        ax = fig.add_subplot(grid[row,col],aspect=1)
         classname = cl
         if classname == 'VulkanikB':
           classname = 'VB'
         if classname == 'VulkanikA':
           classname = 'VA'
-        plt.pie([valok,100-valok],explode=(.05,0),labels=(classname,'R'),autopct='%1.1f%%',colors=('w',(.5,.5,.5)))
+        ax.pie([valok,100-valok],explode=(.05,0),labels=(classname,'R'),autopct='%1.1f%%',colors=('w',(.5,.5,.5)))
+        ax.text(0.2,-.1,"# events = %d"%dic['nb'],transform=ax.transAxes)
 
         fracs = [tup[1]*1./(dic['nb']-dic['nb_common']) for tup in dic['nb_other'] if tup[1]!=0]
         labels = np.array([tup[0] for tup in dic['nb_other'] if tup[1]!=0])
@@ -734,7 +738,6 @@ class AnalyseResultsExtraction(MultiOptions):
           plt.figtext(.1,.43,'(c) Extraction of %s'%types[icl])
         elif icl == 3:
           plt.figtext(.55,.43,'(d) Extraction of %s'%types[icl])
-      #plt.savefig('../results/Ijen/figures/OBO_SVM_tir%d.png'%tir)
 
     plt.show()
 
