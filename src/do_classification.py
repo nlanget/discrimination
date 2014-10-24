@@ -9,7 +9,6 @@ from LR_functions import comparison
 from options import read_binary_file, write_binary_file
 
 def classifier(opt):
-
   """
   Classification of the different types of events.
   opt is an object of the class Options()
@@ -48,6 +47,7 @@ def classifier(opt):
 
 
     # About the training set
+    print opt.opdict['train_file']
     if len(opt.opdict['stations']) == 1 and opt.opdict['boot'] > 1 and 'train_x' not in list_attr:
       if os.path.exists(opt.opdict['train_file']):
         TRAIN_Y = read_binary_file(opt.opdict['train_file'])
@@ -81,6 +81,9 @@ def classifier(opt):
     y_ref = opt.y
     x_ref = opt.x
 
+    if opt.opdict['plot_dataset']:
+      opt.composition_dataset()
+
     #K = len(opt.types)
 
     ### ITERATE OVER TRAINING SET DRAWS ###
@@ -89,8 +92,6 @@ def classifier(opt):
 
       subsubdic = {}
       print "WHOLE SET", x_ref.shape, y_ref.shape
-      x_test = x_ref.copy()
-      y_test = y_ref.copy()
 
       ### if there is no pre-defined training set ###
       if 'train_x' not in list_attr:
@@ -105,9 +106,9 @@ def classifier(opt):
             y_test = y_test.dropna(how='any')
           else:
             y_train, y_cv, y_test = generate_datasets(opt,y_ref)
-            TRAIN_Y[b]['training_set'] = list(y_train.index)
-            TRAIN_Y[b]['cv_set'] = list(y_cv.index)
-            TRAIN_Y[b]['test_set'] = list(y_test.index)
+            TRAIN_Y[b]['training_set'] = map(int,list(y_train.index))
+            TRAIN_Y[b]['cv_set'] = map(int,list(y_cv.index))
+            TRAIN_Y[b]['test_set'] = map(int,list(y_test.index))
 
         ### multi-stations case ###
         else:
@@ -175,12 +176,12 @@ def classifier(opt):
       if opt.opdict['method'] == '1b1':
         # EXTRACTEURS
         print "********** EXTRACTION 1-BY-1 **********"
-        one_by_one(opt,x_test,y_test,set['Otime'],boot=10,method='svm')
+        one_by_one(opt,x_ref,y_ref,set['Otime'],boot=10,method='svm')
         continue
 
       elif opt.opdict['method'] == 'ova':
         print "********** EXTRACTION 1-VS-ALL **********"
-        one_vs_all(opt,x_test,y_test,set['Otime'],boot=10,method='svm')
+        one_vs_all(opt,x_ref,y_ref,set['Otime'],boot=10,method='svm')
         continue
 
       elif opt.opdict['method'] in ['svm','svm_nl']:
@@ -279,7 +280,7 @@ def classifier(opt):
           print "Threshold:", threshold
 
           # COMPARE AND PLOT LR AND SVM RESULTS
-          out_comp, out_nl = {},{}
+          out_svm, out_nl = {},{}
           dir = '%s_SEP'%opt.opdict['method'].upper()
           if opt.opdict['method']=='lr' and opt.opdict['compare']:
             dir = 'LR_SVM_SEP'
@@ -404,6 +405,7 @@ def create_training_set(y_ref,numt,prop):
   y_train = pd.DataFrame(columns=y.columns)
   list_index = np.array([])
   for i in numt:
+    #print i, y.NumType.values[:5]
     a = y[y.NumType==i]
     nb = int(np.floor(prop*len(a)))
     if nb < 3:
@@ -583,10 +585,12 @@ def implement_svm(x_train,x_test,y_train,y_test,types,opdict,kern='NonLin',proba
       output['probas'][types[k]] = probabilities[:,k]
   if kern == 'Lin':
     output['thetas'] = grid.best_estimator_.raw_coef_
-  else:
+  elif len(x_train.columns) == 2:
     pas = .01
     x_vec, y_vec = np.arange(-1,1,pas), np.arange(-1,1,pas)
     x_vec, y_vec = np.meshgrid(x_vec,y_vec)
+    vec = np.c_[x_vec.ravel(),y_vec.ravel()]
+    print vec.shape
     map = grid.best_estimator_.predict(np.c_[x_vec.ravel(),y_vec.ravel()])
     output['map'] = map.reshape(x_vec.shape)
   return output
@@ -646,12 +650,14 @@ def one_by_one(opt,x_test_ref0,y_test_ref0,otimes_ref,boot=1,method='lr'):
     for t in numt:
       EXT[num_ext]['nb_%s'%types[t]] = []
 
+  p_train, p_cv, p_test = opt.opdict['proportions']
+
   for b in range(boot):
 
     otimes = map(str,list(otimes_ref.values))
     otimes = np.array(otimes)
 
-    x_test = x_test_ref0.copy()
+    x_test_ref = x_test_ref0.copy()
     y_test_ref = y_test_ref0.copy()
 
     print "\n\tONE BY ONE EXTRACTION ------ iteration %d"%b
@@ -660,11 +666,25 @@ def one_by_one(opt,x_test_ref0,y_test_ref0,otimes_ref,boot=1,method='lr'):
     for n in range(len_numt):
 
       sub_dic={}
-      y_train_ref = create_training_set(y_test_ref,numt)
-      x_train = x_test.reindex(index=map(int,y_train_ref.index))
-      sub_dic["i_train"] = otimes[map(int,list(y_train_ref.index))]
+
+      ### Splitting of the whole set in training, CV and test sets ###
+      y_train_ref, y_cv, y_test_ref = generate_datasets(opt,y_test_ref)
+      y_test_ref = pd.concat([y_cv,y_test_ref])
+      i_train = y_train_ref.index
+      i_cv = y_cv.index
+      i_test = y_test_ref.index
+
+      ### Defining the training set ###
+      x_train = x_test_ref.reindex(index=y_train_ref.index)
       y_train_ref.index = range(y_train_ref.shape[0])
       x_train.index = range(x_train.shape[0])
+      sub_dic["i_train"] = otimes[map(int,list(y_train_ref.index))]
+
+      ### Defining the test set ###
+      x_test = x_test_ref.reindex(index=y_test_ref.index)
+      x_test.index = range(x_test.shape[0])
+      y_test_ref.index = range(y_test_ref.shape[0])
+      sub_dic["i_test"] = otimes[map(int,list(y_test_ref.index))]
 
       if x_train.shape[0] != y_train_ref.shape[0]:
         print "Training set: Incoherence in x and y dimensions"
@@ -672,10 +692,6 @@ def one_by_one(opt,x_test_ref0,y_test_ref0,otimes_ref,boot=1,method='lr'):
 
       if x_test.shape[0] != y_test_ref.shape[0]:
         print "Test set: Incoherence in x and y dimensions"
-        sys.exit()
-
-      if len(otimes) != len(y_test_ref):
-        print "Warning !! Check lengths !"
         sys.exit()
 
       y_train = y_train_ref.copy()
@@ -697,39 +713,47 @@ def one_by_one(opt,x_test_ref0,y_test_ref0,otimes_ref,boot=1,method='lr'):
 
       if method == 'lr':
         print "Logistic Regression\n"
-        LR_train,theta,LR_test,wtr = do_all_logistic_regression(x_train,y_train,x_test,y_test,output=True)
+        out = do_all_logistic_regression(x_test_ref0,y_test_ref0,i_train,i_cv,i_test,)
       elif method == 'svm':
-        kern = 'nonlinear'
+        kern = 'NonLin'
         print "SVM\n"
-        from sklearn.grid_search import GridSearchCV
-        from sklearn import svm
-        C_range = 10.0 ** np.arange(-2, 5)
-        if kern == 'linear':
-          param_grid = dict(C=C_range)
-          grid = GridSearchCV(svm.LinearSVC(), param_grid=param_grid, n_jobs=-1)
+        out = implement_svm(x_train,x_test,y_train,y_test,opt.types,opt.opdict,kern=kern)
+
+      CLASS_test = out['label_test']
+      CLASS_train = out['label_train']
+
+      # TRAINING SET
+      print "\t *TRAINING SET"
+      y_train_np = y_train.NumType.values.ravel()  
+      from sklearn.metrics import confusion_matrix
+      cmat_train = confusion_matrix(y_train_np,CLASS_train)
+      p_tr = dic_percent(cmat_train,[types[n],'Rest'],verbose=True)
+      out['rate_train'] = p_tr
+      print "   Global : %.2f%%"%p_tr['global']
+      if opt.opdict['plot_confusion'] or opt.opdict['save_confusion']:
+        plot_confusion_mat(cmat_train,opt.types,'Training',opt.opdict['method'].upper())
+        if opt.opdict['save_confusion']:
+          plt.savefig('%s/training_%s.png'%(opt.opdict['fig_path'],opt.opdict['result_file'][8:]))
+
+      # TEST SET
+      print "\t *TEST SET"
+      y_test_np = y_test.NumType.values.ravel()
+      cmat_test = confusion_matrix(y_test_np,CLASS_test)
+      p_test = dic_percent(cmat_test,[types[n],'Rest'],verbose=True)
+      out['rate_test'] = p_test
+      print "   Global : %.2f%%"%p_test['global']
+      if opt.opdict['plot_confusion'] or opt.opdict['save_confusion']:
+        plot_confusion_mat(cmat_test,opt.types,'Test',opt.opdict['method'].upper())
+        if opt.opdict['save_confusion']:
+          plt.savefig('%s/test_%s.png'%(opt.opdict['fig_path'],opt.opdict['result_file'][8:]))
+        if opt.opdict['plot_confusion']:
+          plt.show()
         else:
-          gamma_range = 10.0 ** np.arange(-3,3)
-          param_grid = dict(gamma=gamma_range, C=C_range)
-          grid = GridSearchCV(svm.SVC(kernel='rbf'), param_grid=param_grid, n_jobs=-1)
-        grid.fit(x_train.values, y_train.NumType.values.ravel())
-        LR_train = grid.best_estimator_.predict(x_train)
-        LR_test = grid.best_estimator_.predict(x_test)
-
-      print "\t Training set"
-      for i in range(2):
-        print i, t[i], len(np.where(y_train.NumType.values[:,0]==i)[0]), len(np.where(LR_train==i)[0])
-      print "\n"
-      cmat_train = confusion(y_train,LR_train,types,'training','LogReg',plot=False)
-
-      print "\t Test set"
-      for i in range(2):
-        print i, t[i], len(np.where(y_test.NumType.values[:,0]==i)[0]), len(np.where(LR_test==i)[0])
-      print "\n"
-      cmat_test = confusion(y_test,LR_test,types,'test','LogReg',plot=False)
+          plt.close()
 
       # Fill the dictionary
-      i_com = np.where((y_test.NumType.values.ravel()-LR_test)==0)[0]
-      i_lr = np.where(LR_test==0)[0]
+      i_com = np.where((y_test.NumType.values.ravel()-CLASS_test)==0)[0]
+      i_lr = np.where(CLASS_test==0)[0]
       i_ok_class = np.intersect1d(i_com,i_lr) # events classified in the class of interest by the LR and identical to the manual classification
 
       sub_dic["nb"] = len(i_lr) # total number of events classified in the class of interest
@@ -742,17 +766,15 @@ def one_by_one(opt,x_test_ref0,y_test_ref0,otimes_ref,boot=1,method='lr'):
           ii = np.intersect1d(i_lr,i_other_man)
           sub_dic["nb_other"].append((types[k],len(ii)))
           sub_dic["i_other"].append((types[k],otimes[ii]))
-      sub_dic["rate_%s"%types[n]] = (cmat_train[0,0],cmat_test[0,0])
-      sub_dic["rate_rest"] = (cmat_train[1,1],cmat_test[1,1])
+      sub_dic["rate_%s"%types[n]] = (out['rate_train'][('%s'%types[n], 0)], out['rate_test'][('%s'%types[n], 0)])
+      sub_dic["rate_rest"] = (out['rate_train'][('Rest', 1)], out['rate_test'][('Rest', 1)])
       sub_dic["nb_manuals"] = ((types[n],len(y_test[y_test.NumType==0])),('Rest',len(y_test[y_test.NumType==1])))
 
-      i_ok = np.where(LR_test!=0)[0]
-      y_test_ref = y_test_ref.reindex(index=i_ok)
-      x_test = x_test.reindex(index=i_ok)
-      otimes = otimes[i_ok]
-
-      y_test_ref.index = range(y_test_ref.shape[0])
-      x_test.index = range(x_test.shape[0])
+      i_ok_test = i_test[np.where(CLASS_test!=0)[0]]
+      i_ok_train = i_train[np.where(CLASS_train!=0)[0]]
+      i_ok = np.concatenate([i_ok_test,i_ok_train])
+      otimes = i_ok
+      y_test_ref = y_test_ref0.reindex(index=map(int,list(i_ok)))
 
       dic[types[n]] = sub_dic
 
@@ -767,7 +789,7 @@ def one_by_one(opt,x_test_ref0,y_test_ref0,otimes_ref,boot=1,method='lr'):
 
 # ================================================================
 
-def one_vs_all(opt,x_test,y_test_ref,otimes_ref,boot=1,method='lr'):
+def one_vs_all(opt,x_test_ref,y_test_ref,otimes_ref,boot=1,method='lr'):
 
   """
   Extract one class among the whole data.
@@ -780,7 +802,7 @@ def one_vs_all(opt,x_test,y_test_ref,otimes_ref,boot=1,method='lr'):
   len_numt = len(numt)
 
   DIC = {}
-  DIC['features'] = x_test.columns
+  DIC['features'] = x_test_ref.columns
   for b in range(boot):
 
     print "\n\tONE VS ALL EXTRACTION ------ iteration %d"%b
@@ -789,20 +811,33 @@ def one_vs_all(opt,x_test,y_test_ref,otimes_ref,boot=1,method='lr'):
     otimes = map(str,list(otimes_ref.values))
     otimes = np.array(otimes)
 
-    y_train_ref = create_training_set(y_test_ref,numt)
-    x_train = x_test.reindex(index=y_train_ref.index)
-    dic["i_train"] = otimes[map(int,list(y_train_ref.index))]
-    y_train_ref.index = range(y_train_ref.shape[0])
+    ### Splitting of the whole set in training, CV and test sets ###
+    y_train, y_cv, y_test = generate_datasets(opt,y_test_ref)
+    i_train = y_train.index
+    i_cv = y_cv.index
+    i_test = y_test.index
+
+    ### Defining the training set ###
+    x_train = x_test_ref.reindex(index=y_train.index)
+    y_train.index = range(y_train.shape[0])
     x_train.index = range(x_train.shape[0])
+    dic["i_train"] = otimes[map(int,list(y_train.index))]
+
+    ### Defining the test set ###
+    x_test = x_test_ref.reindex(index=y_test.index)
+    x_test.index = range(x_test.shape[0])
+    y_test.index = range(y_test.shape[0])
+    dic["i_test"] = otimes[map(int,list(y_test.index))]
+
+    y_train_tir = y_train.copy()
+    y_test_tir = y_test.copy()
 
     for n in range(len_numt):
 
-      y_train = y_train_ref.copy()
-      y_test = y_test_ref.copy()
-      y_train[y_train_ref.NumType==n] = 0
-      y_test[y_test_ref.NumType==n] = 0
-      y_train[y_train_ref.NumType!=n] = 1
-      y_test[y_test_ref.NumType!=n] = 1
+      y_train[y_train_tir.NumType==n] = 0
+      y_test[y_test_tir.NumType==n] = 0
+      y_train[y_train_tir.NumType!=n] = 1
+      y_test[y_test_tir.NumType!=n] = 1
 
       print y_train.shape[0], y_test.shape[0]
 
@@ -811,42 +846,52 @@ def one_vs_all(opt,x_test,y_test_ref,otimes_ref,boot=1,method='lr'):
 
       if method == 'lr':
         print "Logistic Regression\n"
-        LR_train,theta,LR_test,wtr = do_all_logistic_regression(x_train,y_train,x_test,y_test,output=True)
+        i_train = y_train.index
+        i_cv = y_cv.index
+        i_test = y_test.index
+        out = do_all_logistic_regression(x_test_ref,y_test_ref,i_train,i_cv,i_test)
       elif method == 'svm':
-        kern = 'nonlinear'
+        kern = 'NonLin'
         print "SVM\n"
-        from sklearn.grid_search import GridSearchCV
-        from sklearn import svm
-        C_range = 10.0 ** np.arange(-2, 5)
-        if kern == 'linear':
-          param_grid = dict(C=C_range)
-          grid = GridSearchCV(svm.LinearSVC(), param_grid=param_grid, n_jobs=-1)
+        out = implement_svm(x_train,x_test,y_train,y_test,opt.types,opt.opdict,kern=kern)
+
+      CLASS_test = out['label_test']
+      CLASS_train = out['label_train']
+
+      # TRAINING SET
+      print "\t *TRAINING SET"
+      y_train_np = y_train.NumType.values.ravel()  
+      from sklearn.metrics import confusion_matrix
+      cmat_train = confusion_matrix(y_train_np,CLASS_train)
+      p_tr = dic_percent(cmat_train,[types[n],'Rest'],verbose=True)
+      out['rate_train'] = p_tr
+      print "   Global : %.2f%%"%p_tr['global']
+      if opt.opdict['plot_confusion'] or opt.opdict['save_confusion']:
+        plot_confusion_mat(cmat_train,opt.types,'Training',opt.opdict['method'].upper())
+        if opt.opdict['save_confusion']:
+          plt.savefig('%s/training_%s.png'%(opt.opdict['fig_path'],opt.opdict['result_file'][8:]))
+
+      # TEST SET
+      print "\t *TEST SET"
+      y_test_np = y_test.NumType.values.ravel()
+      cmat_test = confusion_matrix(y_test_np,CLASS_test)
+      p_test = dic_percent(cmat_test,[types[n],'Rest'],verbose=True)
+      out['rate_test'] = p_test
+      print "   Global : %.2f%%"%p_test['global']
+      if opt.opdict['plot_confusion'] or opt.opdict['save_confusion']:
+        plot_confusion_mat(cmat_test,opt.types,'Test',opt.opdict['method'].upper())
+        if opt.opdict['save_confusion']:
+          plt.savefig('%s/test_%s.png'%(opt.opdict['fig_path'],opt.opdict['result_file'][8:]))
+        if opt.opdict['plot_confusion']:
+          plt.show()
         else:
-          gamma_range = 10.0 ** np.arange(-3,3)
-          param_grid = dict(gamma=gamma_range, C=C_range)
-          grid = GridSearchCV(svm.SVC(kernel='rbf'), param_grid=param_grid, n_jobs=-1)
-        grid.fit(x_train.values, y_train.NumType.values.ravel())
-        LR_train = grid.best_estimator_.predict(x_train)
-        LR_test = grid.best_estimator_.predict(x_test)
+          plt.close()
 
-      print "\t Training set"
-      for i in range(2):
-        print i, print_type[i], len(np.where(y_train.NumType.values[:,0]==i)[0]), len(np.where(LR_train==i)[0])
-      print "\n"
-      cmat_train = confusion(y_train,LR_train,types,'training','LogReg',plot=True)
-      plt.close()
-
-      print "\t Test set"
-      for i in range(2):
-        print i, print_type[i], len(np.where(y_test.NumType.values[:,0]==i)[0]), len(np.where(LR_test==i)[0])
-      print "\n"
-      cmat_test = confusion(y_test,LR_test,types,'test','LogReg',plot=True)
-      plt.close()
 
       # Fill the dictionary
       sub_dic={}
-      i_com = np.where((y_test.NumType.values.ravel()-LR_test)==0)[0]
-      i_lr = np.where(LR_test==0)[0]
+      i_com = np.where((y_test.NumType.values.ravel()-CLASS_test)==0)[0]
+      i_lr = np.where(CLASS_test==0)[0]
       i_ok_class = np.intersect1d(i_com,i_lr) # events classified in the class of interest by the LR and identical to the manual classification
       sub_dic["nb"] = len(i_lr) # total number of events classified in the class of interest
       sub_dic["nb_common"] = len(i_ok_class) # total number of well classified events
@@ -854,12 +899,12 @@ def one_vs_all(opt,x_test,y_test_ref,otimes_ref,boot=1,method='lr'):
       sub_dic["nb_other"],sub_dic["i_other"] = [],[]
       for k in range(len_numt):
         if k != n:
-          i_other_man = list(y_test_ref[y_test_ref.NumType==k].index)
+          i_other_man = list(y_test_tir[y_test_tir.NumType==k].index)
           ii = np.intersect1d(i_lr,i_other_man)
           sub_dic["nb_other"].append((types[k],len(ii))) # number of events belonging to another class
           sub_dic["i_other"].append((types[k],otimes[ii])) # index of events belonging to another class
-      sub_dic["rate_%s"%types[n]] = (cmat_train[0,0],cmat_test[0,0]) # % success rate of the extracted class
-      sub_dic["rate_rest"] = (cmat_train[1,1],cmat_test[1,1]) # % success rate of the rest
+      sub_dic["rate_%s"%types[n]] = (out['rate_train'][('%s'%types[n], 0)], out['rate_test'][('%s'%types[n], 0)]) # % success rate of the extracted class
+      sub_dic["rate_rest"] = (out['rate_train'][('Rest', 1)], out['rate_test'][('Rest', 1)]) # % success rate of the rest
       sub_dic["nb_manuals"] = ((types[n],len(y_test[y_test.NumType==0])),('Rest',len(y_test[y_test.NumType==1])))
       dic[types[n]] = sub_dic
 
