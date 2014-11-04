@@ -663,6 +663,7 @@ def one_by_one(opt,x_test_ref0,y_test_ref0,otimes_ref,boot=1,method='lr'):
     print "\n\tONE BY ONE EXTRACTION ------ iteration %d"%b
     dic = {}
 
+    inum = 0
     for n in range(len_numt):
 
       sub_dic={}
@@ -678,13 +679,19 @@ def one_by_one(opt,x_test_ref0,y_test_ref0,otimes_ref,boot=1,method='lr'):
       x_train = x_test_ref.reindex(index=y_train_ref.index)
       y_train_ref.index = range(y_train_ref.shape[0])
       x_train.index = range(x_train.shape[0])
-      sub_dic["i_train"] = otimes[map(int,list(y_train_ref.index))]
+      if inum == 0:
+        list_i_train = [list(otimes[map(int,list(y_train_ref.index))])]
+      else:
+        list_i_train.append(list(otimes[map(int,list(y_train_ref.index))]))
 
       ### Defining the test set ###
       x_test = x_test_ref.reindex(index=y_test_ref.index)
       x_test.index = range(x_test.shape[0])
       y_test_ref.index = range(y_test_ref.shape[0])
-      sub_dic["i_test"] = otimes[map(int,list(y_test_ref.index))]
+      if inum == 0:
+        list_i_test = [list(otimes[map(int,list(y_test_ref.index))])]
+      else:
+        list_i_test.append(list(otimes[map(int,list(y_test_ref.index))]))
 
       if x_train.shape[0] != y_train_ref.shape[0]:
         print "Training set: Incoherence in x and y dimensions"
@@ -777,7 +784,10 @@ def one_by_one(opt,x_test_ref0,y_test_ref0,otimes_ref,boot=1,method='lr'):
       y_test_ref = y_test_ref0.reindex(index=map(int,list(i_ok)))
 
       dic[types[n]] = sub_dic
+      inum = inum + 1
 
+    dic['i_train'] = list_i_train
+    dic['i_test'] = list_i_test
     DIC[b] = dic
 
   file = opt.opdict['result_path']

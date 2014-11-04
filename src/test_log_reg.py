@@ -7,13 +7,13 @@ from plot_functions import *
 def suite():
   suite = unittest.TestSuite()
   suite.addTest(unittest.makeSuite(BinaryClassTests_2f))
-  suite.addTest(unittest.makeSuite(BinaryClassTests_3f))
-  suite.addTest(unittest.makeSuite(MultiClassTests))
-  suite.addTest(unittest.makeSuite(Polynome))
-  suite.addTest(unittest.makeSuite(DataSets))
-  suite.addTest(unittest.makeSuite(DictMatrix))
-  suite.addTest(unittest.makeSuite(Compare))
-  suite.addTest(unittest.makeSuite(Synthetics))
+  #suite.addTest(unittest.makeSuite(BinaryClassTests_3f))
+  #suite.addTest(unittest.makeSuite(MultiClassTests))
+  #suite.addTest(unittest.makeSuite(Polynome))
+  #suite.addTest(unittest.makeSuite(DataSets))
+  #suite.addTest(unittest.makeSuite(DictMatrix))
+  #suite.addTest(unittest.makeSuite(Compare))
+  #suite.addTest(unittest.makeSuite(Synthetics))
   return suite
 
 
@@ -33,7 +33,8 @@ class BinaryClassTests_2f(unittest.TestCase):
     self.y = pd.DataFrame(self.y)
 
     self.theta = {}
-    self.theta[1] = np.random.rand(self.x.shape[1]+1)
+    #self.theta[1] = np.random.rand(self.x.shape[1]+1)
+    self.theta[1] = np.zeros(self.x.shape[1]+1)
 
     self.lamb = 0
 
@@ -48,6 +49,8 @@ class BinaryClassTests_2f(unittest.TestCase):
   def test_binary_classification(self):
     x_class = test_hyp(self.x_new,self.theta,verbose=self.verb)
     diff = x_class-self.exp_class
+    print self.theta
+    print x_class, self.exp_class
     self.assertFalse(diff.any())
     if self.verb:
       plt.show()

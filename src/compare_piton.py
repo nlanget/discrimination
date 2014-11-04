@@ -55,6 +55,43 @@ def compare_clement():
   opt.plot_superposed_pdfs(my_gauss,save=False)
 
 # ================================================================
+def plot_soutenance():
+  """
+  Plot des PDFs des 4 attributs définis par Clément pour le ppt 
+  de la soutenance.
+  """
+  from options import MultiOptions
+  opt = MultiOptions()
+  opt.opdict['channels'] = ['Z']
+
+  #opt.opdict['feat_train'] = 'clement_train.csv'
+  #opt.opdict['feat_test'] = 'clement_test.csv'
+  opt.opdict['feat_list'] = ['AsDec','Dur','Ene','KRapp']
+  #opt.opdict['feat_log'] = ['AsDec','Dur','Ene','KRapp']
+  opt.do_tri()
+  opt.x = opt.xs[0]
+  opt.y = opt.ys[0]
+  opt.compute_pdfs()
+
+  gauss = opt.gaussians
+
+  fig = plt.figure(figsize=(12,2.5))
+  fig.set_facecolor('white') 
+  for ifeat,feat in enumerate(sorted(gauss)):
+    ax = fig.add_subplot(1,4,ifeat+1)
+    ax.plot(gauss[feat]['vec'],gauss[feat]['VT'],ls='-',c='b',lw=2.)
+    ax.plot(gauss[feat]['vec'],gauss[feat]['EB'],ls='-',c='r',lw=2.)
+    ax.set_title(feat)
+    ax.xaxis.set_ticks_position('bottom')
+    ax.xaxis.set_ticklabels('')
+    ax.yaxis.set_ticks_position('left')
+    ax.yaxis.set_ticklabels('')
+    if ifeat == 0:
+      ax.legend(['VT','EB'],loc=1,prop={'size':10})
+  plt.savefig('/home/nadege/Dropbox/Soutenance/pdfs.png')
+  plt.show()
+
+# ================================================================
 def compare_lissage():
   """
   Comparaison des kurtosis avec deux lissages différents.
@@ -533,7 +570,8 @@ def dataset_pies():
 # ================================================================
 if __name__ == '__main__':
   #compare_clement()
-  compare_lissage()
+  plot_soutenance()
+  #compare_lissage()
   #compare_ponsets(set='test')
   #search_corr_feat()
   #compare_training()

@@ -230,15 +230,16 @@ def logistic_reg(x,y,theta,l=0,verbose=0,method='g'):
     theta[k] = np.array(theta[k],dtype=float)
     CF = CostFunction(x,y.values[:,k-1],l)
 
-    verbose = False
     if verbose:
       if n == 1:
         from plot_functions import plot_hyp_func_1f, plot_sep_1f
         syn, hyp = hypothesis(x.min(),x.max(),theta[k])
         plot_hyp_func_1f(x,y[k],syn,hyp,threshold=.5)
       if n == 2:
+        from plot_functions import plot_db
         plot_db(x,y[k],theta[k],lim=3,title='Initial decision boundary')
       if n == 3:
+        from plot_functions import plot_db_3d
         plot_db_3d(x,y[k],theta[k],lim=3,title='Initial decision boundary')
 
     method = 'bfgs'
@@ -256,7 +257,6 @@ def logistic_reg(x,y,theta,l=0,verbose=0,method='g'):
       theta[k],min_cost = gradient_descent(CF,theta[k],stop,opt=0)
       allvecs = None
 
-    verbose = False 
     if verbose:
       if allvecs: 
         min_cost = []
@@ -266,7 +266,6 @@ def logistic_reg(x,y,theta,l=0,verbose=0,method='g'):
       #plot_cost_function_iter(nb_iter,min_cost)
       #plt.show()
 
-  verbose = False
   if verbose:
     if n == 1 and K == 1:
       from plot_functions import plot_hyp_func_1f
@@ -286,7 +285,6 @@ def logistic_reg(x,y,theta,l=0,verbose=0,method='g'):
       else:
         from plot_functions import plot_db_3d
         plot_db_3d(x,y,theta[1],title='Decision boundary')
-    plt.show()
 
   return theta
 
@@ -301,7 +299,7 @@ def degree_and_regularization(xcv,ycv,xtrain,ytrain,verbose=False):
   K = ytrain.shape[1] # number of classes
   mcv = xcv.shape[0] # size of cross-validation set
   mtraining = xtrain.shape[0] # size of training set
-  
+ 
   # Polynomial degrees vector
   DEG_MAX = 1
   degrees = np.array(range(1,DEG_MAX+1),dtype=int)
@@ -321,9 +319,6 @@ def degree_and_regularization(xcv,ycv,xtrain,ytrain,verbose=False):
 
     # loop on lambda
     for l in lambdas:
-
-      #boot = 10
-      #for b in range(boot):
       # Tirage aléatoire des valeurs initiales de theta dans l'intervalle [-1,1]
       theta = {}
       for k in range(1,K+1):
@@ -350,12 +345,10 @@ def degree_and_regularization(xcv,ycv,xtrain,ytrain,verbose=False):
           best_dl[k-1,:] = [deg,l]
           min_cv[k-1] = j_cv
 
-
   theta = {}
   for k in range(1,K+1):
     theta[k] = all_theta[best_dl[k-1][0],best_dl[k-1][1]][k]
 
-  verbose = False
   if verbose:
     print best_dl
     print theta
@@ -369,13 +362,13 @@ def degree_and_regularization(xcv,ycv,xtrain,ytrain,verbose=False):
       for k in range(1,K+1):
         plot_j_cv = [list_j_cv[(deg,l)][k-1] for deg,l in sorted(list_j_cv)]
         plot_j_train = [list_j_train[(deg,l)][k-1] for deg,l in sorted(list_j_train)]
-        plot_learning_curves(k,degrees,lambdas[0],plot_j_cv,plot_j_train,'Polynomial degree')
+        plot_diagno_curves(k,degrees,lambdas[0],plot_j_cv,plot_j_train,'Polynomial degree')
       plt.show()
     elif len(degrees) == 1 and len(lambdas) > 1:
       for k in range(1,K+1):
         plot_j_cv = [list_j_cv[(deg,l)][k-1] for deg,l in sorted(list_j_cv)]
         plot_j_train = [list_j_train[(deg,l)][k-1] for deg,l in sorted(list_j_train)]
-        plot_learning_curves(k,lambdas,degrees[0],plot_j_cv,plot_j_train,'Lambda')
+        plot_diagno_curves(k,lambdas,degrees[0],plot_j_cv,plot_j_train,'Lambda')
       plt.show()
 
   return best_dl,theta

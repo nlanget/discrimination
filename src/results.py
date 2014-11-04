@@ -353,7 +353,7 @@ class AnalyseResultsExtraction(MultiOptions):
     tuniq = np.unique(self.y.Type)
     N = np.array(range(len(np.unique(tuniq))))
     width = 0.1
-    colors = [(0,0,1),(1,0,0),(0,1,0),(1,1,0),(0,0,0),(0,1,1),(1,0,1),(1,1,1),(.8,.5,0),(0,0.5,0.5)]
+    colors = [(0,0,1),(1,0,0),(0,1,0),(1,1,0),(0,0,0),(0,1,1),(1,0,1),(1,1,1),(.8,.5,0),(0,.5,.5)]
 
     self.unclass_all = np.array([])
 
@@ -361,11 +361,16 @@ class AnalyseResultsExtraction(MultiOptions):
     fig.set_facecolor('white')
     for iter in sorted(self.results):
       rest = np.array([])
-      y_tir = self.y.reindex(index=map(int,self.results[iter]['i_test']))
+      if len(self.results[iter]['i_test']) == len(self.results[iter])-2:
+        y_tir = self.y.reindex(index=map(int,self.results[iter]['i_test'][0]))
+      else:
+        y_tir = self.y.reindex(index=map(int,self.results[iter]['i_test']))
       for cl in sorted(self.results[iter]):
         if cl in ['i_train','i_test']:
           continue
         for tup in self.results[iter][cl]['i_other']:
+          print tup[1]
+          raw_input("pause")
           rest = np.hstack((rest,tup[1]))
         rest = np.append(rest,self.results[iter][cl]['index_ok'])
 
@@ -373,7 +378,7 @@ class AnalyseResultsExtraction(MultiOptions):
       rest_uniq = np.array(map(int,list(rest_uniq)))
       unclass = np.setdiff1d(np.array(y_tir.index),rest_uniq)
       self.unclass_all = np.concatenate((self.unclass_all,unclass))
-    
+
       unclass_types = self.y.reindex(index=unclass,columns=['Type']).values
       nb = [len(unclass_types[unclass_types==t]) for t in tuniq]
       rects = ax.bar(N+iter*width,nb,width,color=colors)
@@ -421,9 +426,10 @@ class AnalyseResultsExtraction(MultiOptions):
       fig.set_facecolor('white')
       grid = GridSpec(3,4)
       rest = np.array([])
-      y_tir = self.y.reindex(index=map(int,self.results[iter]['i_test']))
+      if 'i_test' in sorted(self.results[iter]):
+        y_tir = self.y.reindex(index=map(int,self.results[iter]['i_test']))
       for cl in sorted(self.results[iter]):
-        if cl == 'i_train' or cl == 'i_test':
+        if cl in ['i_train','i_test']:
           continue
         for tup in self.results[iter][cl]['i_other']:
           rest = np.hstack((rest,tup[1]))

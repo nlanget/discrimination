@@ -35,7 +35,7 @@ def run_all():
 
   elif opt.opdict['method'] in ['ova','1b1']:
     from do_classification import classifier
-    classifier(opt)
+    #classifier(opt)
 
     from results import AnalyseResultsExtraction
     res = AnalyseResultsExtraction()

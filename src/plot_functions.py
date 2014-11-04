@@ -319,7 +319,7 @@ def plot_deg_vs_lambda(k,degrees,lambdas,Jlist,best_dl,min_cv):
   ax.set_zlabel('Jcv')
   ax.set_zlim(min_cv-0.1,np.max(zplot))
 # ---------------------------------------------------
-def plot_learning_curves(k,vec,val,c1,c2,xlab):
+def plot_diagno_curves(k,vec,val,c1,c2,xlab):
   """
   Plots learning curves.
   If vec = degrees of polynomial --> diagnoses bias vs variance
