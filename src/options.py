@@ -149,7 +149,7 @@ class Options(object):
 
     ### Number of iterations ###
     # a new training set is generated at each 'iteration'
-    self.opdict['boot'] = 1
+    self.opdict['boot'] = 10
 
     ### Proportions in the dataset (decomposition in training/CV/test sets) ###
     self.opdict['proportions'] = (0.4,0.2,0.4)
@@ -162,7 +162,7 @@ class Options(object):
     # or '1b1' (1-by-1 extractor)
     # or 'lrsk' (Logistic regression from scikit.learn package)
     # or 'kmeans' (K-means from scikit.learn package)
-    self.opdict['method'] = '1b1'
+    self.opdict['method'] = 'lr'
 
     ### Also compute the probabilities for each class ###
     ### Warning !! Computation time increases ###
@@ -176,7 +176,7 @@ class Options(object):
     self.opdict['save_pdf'] = False
 
     ### Display and save the confusion matrices ###
-    self.opdict['plot_confusion'] = False
+    self.opdict['plot_confusion'] = True
     self.opdict['save_confusion'] = False
 
     ### Plot and save the decision boundaries ###
