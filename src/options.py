@@ -108,7 +108,7 @@ def piton():
   opdict['types'] = ['EB','VT']
   opdict['datadir'] = os.path.join('../data/%s/full_data'%opdict['dir'])
   ### FEATURES FILES
-  #opdict['feat_train'] = 'clement_train.csv'
+  opdict['feat_train'] = 'clement_train.csv'
   opdict['feat_test'] = 'clement_test.csv'
   #opdict['feat_train'] = 'Piton_trainset.csv'
   #opdict['feat_test'] = 'Piton_testset.csv'
@@ -116,7 +116,7 @@ def piton():
   opdict['hash_train'] = 'ClHT_Piton_trainset.csv'
   opdict['hash_test'] = 'ClHT_Piton_testset.csv'
   ### LABEL FILES
-  #opdict['label_train'] = 'class_train_set.csv'
+  opdict['label_train'] = 'class_train_set.csv'
   opdict['label_test'] = 'class_test_set.csv'
   ### DECOMPOSITION OF THE TRAINING SET
   #opdict['learn_file'] = 'learning_set'
@@ -160,7 +160,7 @@ class Options(object):
     # or '1b1' (1-by-1 extractor)
     # or 'lrsk' (Logistic regression from scikit.learn package)
     # or 'kmeans' (K-means from scikit.learn package)
-    self.opdict['method'] = 'lr'
+    self.opdict['method'] = 'svm'
 
     ### Also compute the probabilities for each class ###
     ### Computation time increases
@@ -171,13 +171,13 @@ class Options(object):
     self.opdict['save_pdf'] = False
 
     ### Display and save the confusion matrices ###
-    self.opdict['plot_confusion'] = False
+    self.opdict['plot_confusion'] = True
     self.opdict['save_confusion'] = False
 
     ### Plot and save the decision boundaries ###
     self.opdict['plot_sep'] = True
-    self.opdict['save_sep'] = False
-    self.opdict['compare'] = True # plot SVM and LR decision boundaries on the same plot
+    self.opdict['save_sep'] = True
+    self.opdict['compare'] = False # plot SVM and LR decision boundaries on the same plot
     self.opdict['compare_nl'] = False # plot SVM non-linear decision boundaries on the same plot
     self.opdict['plot_var'] = False # plot decision boundaries for different training set draws
 
@@ -231,7 +231,7 @@ class Options(object):
     if self.opdict['option'] == 'norm':
       # Features "normales"
       #self.opdict['feat_list'] = self.opdict['feat_all']
-      self.opdict['feat_list'] = ['Dur']
+      self.opdict['feat_list'] = ['AsDec','Dur','Ene','KRapp']
       #self.opdict['feat_log'] = ['Ene']
       #self.opdict['feat_log'] = self.opdict['feat_list']
       #self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Growth','Kurto','RappMaxMean','RappMaxMeanTF','Skewness','TimeMaxSpec','Width']
@@ -492,6 +492,7 @@ class Options(object):
       self.compute_pdfs()
 
     list = []
+    colors = ['r','b','g','m','c','y','k']
     for feat in sorted(self.gaussians):
       fig = plt.figure()
       fig.set_facecolor('white')
@@ -501,7 +502,7 @@ class Options(object):
         else:
           lstyle = '-'
         if feat != 'NbPeaks':
-          plt.plot(self.gaussians[feat]['vec'],self.gaussians[feat][t],ls=lstyle,lw=2.)
+          plt.plot(self.gaussians[feat]['vec'],self.gaussians[feat][t],c=colors[it],ls=lstyle,lw=2.)
         else:
           list.append(self.gaussians[feat][t])
       if feat == 'NbPeaks':

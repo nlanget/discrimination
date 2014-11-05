@@ -146,6 +146,7 @@ def classifier(opt):
       opt.y = y_test
 
       if opt.opdict['plot_pdf']:
+        opt.plot_all_pdfs(save=opt.opdict['save_pdf'])
         if 'train_x' in list_attr:
           opt.plot_superposed_pdfs(g_train,save=opt.opdict['save_pdf'])
         else:
@@ -326,6 +327,9 @@ def classifier(opt):
             name = '%s_%s'%(opt.opdict['feat_list'][0],opt.opdict['feat_list'][1])
             if opt.opdict['method'] in ['lr','svm']:
               from plot_2features import plot_2f_all
+              plot_2f_all(out,x_train,y_train,x_test,y_test,x_test_bad)
+            elif opt.opdict['method']=='lr' and opt.opdict['compare']:
+              from plot_2features import plot_2f_all
               plot_2f_all(out,x_train,y_train,x_test,y_test,x_test_bad,out_comp=out_svm,map_nl=out_nl)
             elif opt.opdict['method'] == 'svm_nl':
               from plot_2features import plot_2f_nonlinear
@@ -339,7 +343,9 @@ def classifier(opt):
             name = '%s_%s_%s'%(opt.opdict['feat_list'][0],opt.opdict['feat_list'][1],opt.opdict['feat_list'][2])
 
           if opt.opdict['save_sep']:
-            plt.savefig('%s/CL_sep_%s.png'%(save_dir,name))
+            savename = '%s/CL_sep_%s.png'%(save_dir,name)
+            print "Figure saved in %s"%savename
+            plt.savefig(savename)
           if opt.opdict['plot_sep']:
             plt.show()
           else:
