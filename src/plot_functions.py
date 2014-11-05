@@ -67,14 +67,14 @@ def plot_hyp_func_1f(x,y,theta,method,threshold=None,x_ok=None,x_bad=None,th_com
   y_pos = .95
   pas = .04
   if list(cmat_test):
-    plot_confusion_mat(cmat_test,str_t,'Test',method,ax=ax2)
+    plot_confusion_mat(cmat_test,str_t,'Test',method,ax=ax3)
     p_test = dic_percent(cmat_test,str_t)
     ax1.text(x_pos,y_pos,method.upper(),size=s,transform=ax1.transAxes,color='orange')
     ax1.text(x_pos,y_pos-pas,"Test : %.2f%%"%p_test['global'],size=s,transform=ax1.transAxes)
     ax1.text(x_pos+.2,y_pos-pas,"(%.2f%%)"%(100-p_test['global']),size=s,color='red',transform=ax1.transAxes)
     
   if list(cmat_train) and not list(cmat_svm):
-    plot_confusion_mat(cmat_train,str_t,'Training',method,ax=ax3)
+    plot_confusion_mat(cmat_train,str_t,'Training',method,ax=ax2)
     p_train = dic_percent(cmat_train,str_t)
     ax1.text(x_pos,y_pos-2*pas,"Training : %.2f%%"%p_train['global'],size=s,transform=ax1.transAxes)
 
@@ -84,13 +84,13 @@ def plot_hyp_func_1f(x,y,theta,method,threshold=None,x_ok=None,x_bad=None,th_com
     ax1.text(x_pos+.15,y_pos-2*pas,"%s %s%%"%(str_t[0],p_train[(str_t[0],0)]),color='b',size=s,transform=ax1.transAxes)
     ax1.text(x_pos+.15,y_pos-3*pas,"%s %s%%"%(str_t[1],p_train[(str_t[1],1)]),color='g',size=s,transform=ax1.transAxes)
 
-    plot_confusion_mat(cmat_svm,str_t,'Test','SVM',ax=ax3)
+    plot_confusion_mat(cmat_svm,str_t,'Test','SVM',ax=ax2)
     p_svm = dic_percent(cmat_svm,str_t)
     ax1.text(x_pos,y_pos-4*pas,"SVM",size=s,transform=ax1.transAxes,color='purple')
     ax1.text(x_pos,y_pos-5*pas,"Test : %.2f%%"%p_svm['global'],size=s,transform=ax1.transAxes)
 
   elif not list(cmat_train) and list(cmat_svm):
-    plot_confusion_mat(cmat_svm,str_t,'Test','SVM',ax=ax3)
+    plot_confusion_mat(cmat_svm,str_t,'Test','SVM',ax=ax2)
     p_svm = dic_percent(cmat_svm,str_t)
     ax1.text(x_pos,y_pos-3*pas,"SVM",size=s,transform=ax1.transAxes,color='purple')
     ax1.text(x_pos,y_pos-4*pas,"Test : %.2f%%"%p_svm['global'],size=s,transform=ax1.transAxes)
