@@ -369,8 +369,6 @@ class AnalyseResultsExtraction(MultiOptions):
         if cl in ['i_train','i_test']:
           continue
         for tup in self.results[iter][cl]['i_other']:
-          print tup[1]
-          raw_input("pause")
           rest = np.hstack((rest,tup[1]))
         rest = np.append(rest,self.results[iter][cl]['index_ok'])
 
@@ -426,7 +424,9 @@ class AnalyseResultsExtraction(MultiOptions):
       fig.set_facecolor('white')
       grid = GridSpec(3,4)
       rest = np.array([])
-      if 'i_test' in sorted(self.results[iter]):
+      if len(self.results[iter]['i_test']) == len(self.results[iter])-2:
+        y_tir = self.y.reindex(index=map(int,self.results[iter]['i_test'][0]))
+      else:
         y_tir = self.y.reindex(index=map(int,self.results[iter]['i_test']))
       for cl in sorted(self.results[iter]):
         if cl in ['i_train','i_test']:
@@ -509,7 +509,7 @@ class AnalyseResultsExtraction(MultiOptions):
       self.compute_pdfs()
       g_unclass = self.gaussians
 
-      colors = ['r','g','b']
+      colors = ['r','g','b','m','y','c','k','gray']
       for feat in sorted(g_ok):
         if feat == 'NbPeaks':
           continue
@@ -517,7 +517,8 @@ class AnalyseResultsExtraction(MultiOptions):
         fig.set_facecolor('white')
         for it,t in enumerate(self.types):
           plt.plot(g_ok[feat]['vec'],g_ok[feat][t],ls='-',c=colors[it],label=t)
-          plt.plot(g_unclass[feat]['vec'],g_unclass[feat][t],ls='--',c=colors[it])
+          if t in sorted(g_unclass[feat]):
+            plt.plot(g_unclass[feat]['vec'],g_unclass[feat][t],ls='--',c=colors[it])
         plt.title(feat)
         plt.legend()
         plt.show()
@@ -807,5 +808,4 @@ class AnalyseResultsExtraction(MultiOptions):
 
     self.x = X_ini
     self.y = Y_ini
-
 

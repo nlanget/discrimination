@@ -654,7 +654,7 @@ def one_by_one(opt,x_test_ref0,y_test_ref0,otimes_ref,boot=1,method='lr'):
 
   for b in range(boot):
 
-    otimes = map(str,list(otimes_ref.values))
+    otimes = map(int,list(otimes_ref.values))
     otimes = np.array(otimes)
 
     x_test_ref = x_test_ref0.copy()
