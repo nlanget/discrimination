@@ -299,7 +299,7 @@ def degree_and_regularization(xcv,ycv,xtrain,ytrain,verbose=False):
   K = ytrain.shape[1] # number of classes
   mcv = xcv.shape[0] # size of cross-validation set
   mtraining = xtrain.shape[0] # size of training set
- 
+
   # Polynomial degrees vector
   DEG_MAX = 1
   degrees = np.array(range(1,DEG_MAX+1),dtype=int)
@@ -597,8 +597,8 @@ def do_all_logistic_regression(x_all,y_all,i_train,i_cv,i_test,norm=True):
   If norm = True: data from the training and test sets are normalized. Default is True.
             Must be deactivated if data are already normalized (e.g. after PCA...)
   """
-  x_all.index = range(len(x_all.index))
-  y_all.index = range(len(y_all.index))
+  #x_all.index = range(len(x_all.index))
+  #y_all.index = range(len(y_all.index))
 
   # For multiclass: separation of values in y for "one-vs-all" strategy
   K = len(np.unique(y_all.NumType.values)) # Number of classes
