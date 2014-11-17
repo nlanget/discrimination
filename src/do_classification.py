@@ -105,7 +105,7 @@ def classifier(opt):
             y_test = y_ref.reindex(index=TRAIN_Y[b]['test_set'])
             y_test = y_test.dropna(how='any')
           else:
-            y_train, y_cv, y_test = generate_datasets(opt,y_ref)
+            y_train, y_cv, y_test = generate_datasets(opt.opdict['proportions'],opt.numt,y_ref)
             TRAIN_Y[b]['training_set'] = map(int,list(y_train.index))
             TRAIN_Y[b]['cv_set'] = map(int,list(y_cv.index))
             TRAIN_Y[b]['test_set'] = map(int,list(y_test.index))
@@ -113,7 +113,7 @@ def classifier(opt):
         ### multi-stations case ###
         else:
           if marker_sta == 0:
-            y_train, y_cv, y_test = generate_datasets(opt,y_ref)
+            y_train, y_cv, y_test = generate_datasets(opt.opdict['proportions'],opt.numt,y_ref)
             list_ev_train = y_train.index
             list_ev_cv = y_cv.index
             list_ev_test = y_test.index
@@ -131,7 +131,7 @@ def classifier(opt):
       else:
         x_train = x_ref_train.copy()
         y_train = y_ref_train.copy()
-        y_train, y_cv, y_test = generate_datasets(opt,y_ref,y_train=y_train)
+        y_train, y_cv, y_test = generate_datasets(opt.opdict['proportions'],opt.numt,y_ref,y_train=y_train)
 
       x_cv = x_ref.reindex(index=y_cv.index)
       x_test = x_ref.reindex(index=y_test.index)
@@ -242,7 +242,9 @@ def classifier(opt):
       if opt.opdict['plot_confusion'] or opt.opdict['save_confusion']:
         plot_confusion_mat(cmat_train,opt.types,'Training',opt.opdict['method'].upper())
         if opt.opdict['save_confusion']:
-          plt.savefig('%s/training_%s.png'%(opt.opdict['fig_path'],opt.opdict['result_file'][8:]))
+          savefig = '%s/training_%s.png'%(opt.opdict['fig_path'],opt.opdict['result_file'])
+          print "Confusion matrix saved in %s"%savefig
+          plt.savefig(savefig)
 
       # TEST SET
       print "\t *TEST SET"
@@ -254,7 +256,9 @@ def classifier(opt):
       if opt.opdict['plot_confusion'] or opt.opdict['save_confusion']:
         plot_confusion_mat(cmat_test,opt.types,'Test',opt.opdict['method'].upper())
         if opt.opdict['save_confusion']:
-          plt.savefig('%s/test_%s.png'%(opt.opdict['fig_path'],opt.opdict['result_file'][8:]))
+          savefig = '%s/test_%s.png'%(opt.opdict['fig_path'],opt.opdict['result_file'])
+          print "Confusion matrix saved in %s"%savefig
+          plt.savefig(savefig)
         if opt.opdict['plot_confusion']:
           plt.show()
         else:
@@ -442,7 +446,7 @@ def create_training_set_fix(y_ref,numt):
   return y_train
 
 # ================================================================
-def generate_datasets(opt,y_ref,y_train=None):
+def generate_datasets(proportions,numtype,y_ref,y_train=None):
   """
   Split the whole dataset into :
     * a training set
@@ -451,15 +455,15 @@ def generate_datasets(opt,y_ref,y_train=None):
   Behave differently if a training set does already exist.
   """
   y = y_ref.copy()
-  prop_train, prop_cv, prop_test = opt.opdict['proportions']
+  prop_train, prop_cv, prop_test = proportions
   if not y_train:
-    y_train = create_training_set(y,opt.numt,prop_train)
+    y_train = create_training_set(y,numtype,prop_train)
     itrain = list(y_train.index)
     ifull = list(y.index)
     new_ifull = np.setxor1d(ifull,itrain)
     y = y.reindex(index=new_ifull)
 
-    y_cv = create_training_set(y,opt.numt,prop_cv)
+    y_cv = create_training_set(y,numtype,prop_cv)
     icv = list(y_cv.index)
     ifull = list(y.index)
     new_ifull = np.setxor1d(ifull,icv)
@@ -468,7 +472,7 @@ def generate_datasets(opt,y_ref,y_train=None):
 
   else:
     prop_cv = len(y_train)*1./len(y_ref) # proportion of the training set wrt the whole set
-    y_cv = create_training_set(y,opt.numt,prop_cv)
+    y_cv = create_training_set(y,numtype,prop_cv)
     icv = list(y_cv.index)
     ifull = list(y.index)
     new_ifull = np.setxor1d(ifull,icv)
@@ -669,7 +673,7 @@ def one_by_one(opt,x_test_ref0,y_test_ref0,otimes_ref,boot=1,method='lr'):
       sub_dic={}
 
       ### Splitting of the whole set in training, CV and test sets ###
-      y_train_ref, y_cv, y_test_ref = generate_datasets(opt,y_test_ref)
+      y_train_ref, y_cv, y_test_ref = generate_datasets(opt.opdict['proportions'],opt.numt,y_test_ref)
       y_test_ref = pd.concat([y_cv,y_test_ref])
       i_train = y_train_ref.index
       i_cv = y_cv.index
@@ -740,7 +744,9 @@ def one_by_one(opt,x_test_ref0,y_test_ref0,otimes_ref,boot=1,method='lr'):
       if opt.opdict['plot_confusion'] or opt.opdict['save_confusion']:
         plot_confusion_mat(cmat_train,opt.types,'Training',opt.opdict['method'].upper())
         if opt.opdict['save_confusion']:
-          plt.savefig('%s/training_%s.png'%(opt.opdict['fig_path'],opt.opdict['result_file'][8:]))
+          savefig = '%s/training_%s.png'%(opt.opdict['fig_path'],opt.opdict['result_file'])
+          print "Confusion matrix saved in %s"%savefig
+          plt.savefig(savefig)
 
       # TEST SET
       print "\t *TEST SET"
@@ -752,7 +758,9 @@ def one_by_one(opt,x_test_ref0,y_test_ref0,otimes_ref,boot=1,method='lr'):
       if opt.opdict['plot_confusion'] or opt.opdict['save_confusion']:
         plot_confusion_mat(cmat_test,opt.types,'Test',opt.opdict['method'].upper())
         if opt.opdict['save_confusion']:
-          plt.savefig('%s/test_%s.png'%(opt.opdict['fig_path'],opt.opdict['result_file'][8:]))
+          savefig = '%s/test_%s.png'%(opt.opdict['fig_path'],opt.opdict['result_file'])
+          print "Confusion matrix saved in %s"%savefig
+          plt.savefig(savefig)
         if opt.opdict['plot_confusion']:
           plt.show()
         else:
@@ -822,7 +830,7 @@ def one_vs_all(opt,x_test_ref,y_test_ref,otimes_ref,boot=1,method='lr'):
     otimes = np.array(otimes)
 
     ### Splitting of the whole set in training, CV and test sets ###
-    y_train, y_cv, y_test = generate_datasets(opt,y_test_ref)
+    y_train, y_cv, y_test = generate_datasets(opt.opdict['proportions'],opt.numt,y_test_ref)
     i_train = y_train.index
     i_cv = y_cv.index
     i_test = y_test.index
@@ -879,7 +887,9 @@ def one_vs_all(opt,x_test_ref,y_test_ref,otimes_ref,boot=1,method='lr'):
       if opt.opdict['plot_confusion'] or opt.opdict['save_confusion']:
         plot_confusion_mat(cmat_train,opt.types,'Training',opt.opdict['method'].upper())
         if opt.opdict['save_confusion']:
-          plt.savefig('%s/training_%s.png'%(opt.opdict['fig_path'],opt.opdict['result_file'][8:]))
+          savefig = '%s/training_%s.png'%(opt.opdict['fig_path'],opt.opdict['result_file'])
+          print "Confusion matrix saved in %s"%savefig
+          plt.savefig(savefig)
 
       # TEST SET
       print "\t *TEST SET"
@@ -891,7 +901,9 @@ def one_vs_all(opt,x_test_ref,y_test_ref,otimes_ref,boot=1,method='lr'):
       if opt.opdict['plot_confusion'] or opt.opdict['save_confusion']:
         plot_confusion_mat(cmat_test,opt.types,'Test',opt.opdict['method'].upper())
         if opt.opdict['save_confusion']:
-          plt.savefig('%s/test_%s.png'%(opt.opdict['fig_path'],opt.opdict['result_file'][8:]))
+          savefig = '%s/test_%s.png'%(opt.opdict['fig_path'],opt.opdict['result_file'])
+          print "Confusion matrix saved in %s"%savefig
+          plt.savefig(savefig)
         if opt.opdict['plot_confusion']:
           plt.show()
         else:
