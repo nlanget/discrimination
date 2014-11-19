@@ -392,7 +392,6 @@ def kurto_bandpass(trace,plot=False):
     fig = plt.figure(figsize=(15, 6))
     fig.set_facecolor('white')
     plt.subplot(G[:,0])
-    save = '../results/Piton/figures/Examples/kurtogram.png'
 
   Kwav, Level_w, freq_w, c, f_lower, f_upper = Fast_Kurtogram(np.array(data,dtype=float), nlevel,Fs=1./dt,opt2=1,verbose=plot)
 
@@ -415,7 +414,6 @@ def kurto_bandpass(trace,plot=False):
     plt.xlim([t[0],t[-1]])
     plt.figtext(.84,.57,'K=%.1f'%k)
     plt.xlabel('Time (s)')
-    plt.savefig(save)
     plt.show()
 
   return f_lower, f_upper
@@ -868,7 +866,7 @@ def instant_bw(trace, env, dt, TF, ponset=0, tend=0, plot=False):
   if ponset != 0 or tend != 0:
     val, tval = window_p(ibw,time,ponset,tend,befp=10,opt='max')
   else:
-    val = []
+    val, tval = window_p(ibw,time,ponset,tend,befp=0,opt='max')
 
   if plot:
     import matplotlib.pyplot as plt
@@ -891,8 +889,9 @@ def instant_bw(trace, env, dt, TF, ponset=0, tend=0, plot=False):
     #p = np.polyfit(time,np.unwrap(phase),1)
     #val, tval = window_p(ifreq,time,ponset,tend,befp=50,opt='mean')
 
-    ax2.plot(time[10:],ifreq[10:],'g',lw=2.)
-    ax2.plot(tval,val,'r')
+    #ax2.plot(time[10:],ifreq[10:],'g',lw=2.)
+    if val:
+      ax2.plot(tval,val,'r')
     ax2.set_xlabel('Time (s)')
     #plt.legend(['Instantaneous bandwidth','Instantaneous frequency'],loc=1,prop={'size':10})
     plt.show()
@@ -960,6 +959,7 @@ def centroid_time(trace,dt,TF,ponset,tend=0,plot=False):
 
 def polarization_analysis(filenames,dur,ponset,plot=False):
   """
+  Filenames : list which contains the 3C filenames in the following order : N, E, Z
   Returns:
   - the planarity
   - the rectilinearity
