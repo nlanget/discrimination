@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 ### FUNCTIONS ###
 def read_binary_file(filename):
   """
-  Reads a binary file.
+  Reads a binary file and stores the content into a structure.
   """
   import cPickle
   with open(filename,'rb') as file:
@@ -19,7 +19,7 @@ def read_binary_file(filename):
 
 def write_binary_file(filename,dic):
   """
-  Writes in a binary file.
+  Writes any structure in a binary file.
   """
   import cPickle
   with open(filename,'w') as file:
@@ -93,7 +93,7 @@ def ijen():
   ### FEATURES FILE ###
   opdict['feat_test'] = 'ijen_3006.csv'
   ### LABEL FILE ###
-  opdict['label_test'] = 'Ijen_reclass_all.csv'
+  opdict['label_test'] = 'Ijen_class_all.csv'
   ### FEATURES LIST ###
   opdict['feat_all'] = ['AsDec','Bandwidth','CentralF','Centroid_time','Dur','Ene20-30','Ene5-10','Ene0-5','F_low','F_up','Growth','IFslope','Kurto','MeanPredF','NbPeaks','PredF','RappMaxMean','RappMaxMeanTF','Skewness','sPredF','TimeMaxSpec','Width','ibw0','ibw1','ibw2','ibw3','ibw4','ibw5','ibw6','ibw7','ibw8','ibw9','if0','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9']
   return opdict
@@ -108,14 +108,14 @@ def piton():
   opdict['datadir'] = os.path.join('../data/%s/full_data'%opdict['dir'])
   ### FEATURES FILES ###
   #opdict['feat_train'] = 'clement_train.csv'
-  opdict['feat_test'] = 'clement_test.csv'
-  #opdict['feat_train'] = 'Piton_trainset.csv'
-  #opdict['feat_test'] = 'Piton_testset.csv'
+  #opdict['feat_test'] = 'clement_test.csv'
+  opdict['feat_train'] = 'Piton_trainset.csv'
+  opdict['feat_test'] = 'Piton_testset.csv'
   ### HASH TABLE FEATURES FILES ###
   opdict['hash_train'] = 'ClHT_Piton_trainset.csv'
   opdict['hash_test'] = 'ClHT_Piton_testset.csv'
   ### LABEL FILES ###
-  #opdict['label_train'] = 'class_train_set.csv'
+  opdict['label_train'] = 'class_train_set.csv'
   opdict['label_test'] = 'class_test_set.csv'
   ### DECOMPOSITION OF THE TRAINING SET ###
   #opdict['learn_file'] = 'learning_set'
@@ -130,8 +130,8 @@ class Options(object):
   def __init__(self):
 
     self.opdict = {}
-    self.opdict = ijen()
-    #self.opdict = piton()
+    #self.opdict = ijen()
+    self.opdict = piton()
 
     ### Import classification options ###
     self.set_classi_options()
@@ -149,10 +149,13 @@ class Options(object):
 
     ### Number of iterations ###
     # a new training set is generated at each 'iteration'
-    self.opdict['boot'] = 10
+    self.opdict['boot'] = 1
 
     ### Proportions in the dataset (decomposition in training/CV/test sets) ###
     self.opdict['proportions'] = (0.4,0.2,0.4)
+    if not np.sum(self.opdict['proportions']) == 1:
+      print "Check proportions for the dataset decomposition"
+      sys.exit()
 
     ### Choice of the classification algorithm ###
     # could be 'lr' (LR = logistic regression)
@@ -162,7 +165,7 @@ class Options(object):
     # or '1b1' (1-by-1 extractor)
     # or 'lrsk' (Logistic regression from scikit.learn package)
     # or 'kmeans' (K-means from scikit.learn package)
-    self.opdict['method'] = 'lr'
+    self.opdict['method'] = 'svm'
 
     ### Also compute the probabilities for each class ###
     ### Warning !! Computation time increases ###
@@ -180,9 +183,9 @@ class Options(object):
     self.opdict['save_confusion'] = False
 
     ### Plot and save the decision boundaries ###
-    self.opdict['plot_sep'] = True
+    self.opdict['plot_sep'] = False
     self.opdict['save_sep'] = False
-    self.opdict['compare'] = True # plot SVM and LR decision boundaries on the same plot
+    self.opdict['compare'] = False # plot SVM and LR decision boundaries on the same plot
     self.opdict['compare_nl'] = False # plot SVM non-linear decision boundaries on the same plot
     self.opdict['plot_var'] = False # plot decision boundaries for different training set draws
 
@@ -226,7 +229,7 @@ class Options(object):
 
     ### DIFFERENT TRAINING SETS (CREATED FROM THE TEST SET) ###
     if not 'feat_train' in sorted(self.opdict):
-      self.opdict['train_file'] = '%s/train_AAAA'%(self.opdict['libdir'])
+      self.opdict['train_file'] = '%s/train'%(self.opdict['libdir'])
     ### DECOMPOSITION OF THE TRAINING SET (training, CV, test) ###
     if 'learn_file' in sorted(self.opdict):
       self.opdict['learn_file'] = os.path.join(self.opdict['libdir'],self.opdict['learn_file'])
@@ -235,8 +238,8 @@ class Options(object):
     date = time.localtime()
     if self.opdict['option'] == 'norm':
       ### Features "normales" ###
-      #self.opdict['feat_list'] = self.opdict['feat_all']
-      self.opdict['feat_list'] = ['Ene5-10','Dur']
+      self.opdict['feat_list'] = self.opdict['feat_all']
+      #self.opdict['feat_list'] = ['Dur']
       #self.opdict['feat_log'] = ['Ene']
       #self.opdict['feat_log'] = self.opdict['feat_list']
       #self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Growth','Kurto','RappMaxMean','RappMaxMeanTF','Skewness','TimeMaxSpec','Width']
@@ -262,10 +265,10 @@ class Options(object):
       if NB_feat == 1:
         self.opdict['result_file'] = 'results_%s_%s'%(self.opdict['method'],self.opdict['feat_list'][0])
       else:
-        self.opdict['result_file'] = '0110_results_%s_%dc_%df'%(self.opdict['method'],len(self.opdict['types']),len(self.opdict['feat_list']))
+        self.opdict['result_file'] = 'Validation2_results_%s_%dc_%df'%(self.opdict['method'],len(self.opdict['types']),len(self.opdict['feat_list']))
  
     else:
-      self.opdict['result_file'] = '1710_%s_%s_svm'%(self.opdict['method'].upper(),self.opdict['stations'][0])
+      self.opdict['result_file'] = '1311_%s_%s_svm'%(self.opdict['method'].upper(),self.opdict['stations'][0])
 
     self.opdict['result_path'] = '%s/%s'%(self.opdict['res_dir'],self.opdict['result_file'])
 

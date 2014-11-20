@@ -47,9 +47,9 @@ def classifier(opt):
 
 
     # About the training set
-    print opt.opdict['train_file']
     if len(opt.opdict['stations']) == 1 and opt.opdict['boot'] > 1 and 'train_x' not in list_attr:
       if os.path.exists(opt.opdict['train_file']):
+        print opt.opdict['train_file']
         TRAIN_Y = read_binary_file(opt.opdict['train_file'])
       else:
         TRAIN_Y = {}

@@ -170,7 +170,10 @@ class AnalyseResults(MultiOptions):
           ev_m = np.array(m.index)
           ev_a = np.array(a.index)
           common = np.intersect1d(ev_a,ev_m)
-          p[t].append(len(common)*1./len(m)*100)
+          if len(m) != 0:
+            p[t].append(len(common)*1./len(m)*100)
+          else:
+            p[t].append(0)
 
       for t in self.opdict['Types']:
         print "\t",t, np.mean(p[t]), np.std(p[t])
@@ -253,7 +256,9 @@ class AnalyseResults(MultiOptions):
     cmat = confusion_matrix(m.values[:,0],a.values[:,0])
     plot_confusion_mat(cmat,self.types,'Test',self.opdict['method'])
     if self.opdict['save_confusion']:
-      plt.savefig('%s/figures/test_%s.png'%(self.opdict['outdir'],self.opdict['result_file'][8:]))
+      savefig = '%s/figures/test_%s.png'%(self.opdict['outdir'],self.opdict['result_file'])
+      print "Confusion matrix saved in %s"%savefig
+      plt.savefig(savefig)
     plt.show()
 
 
@@ -458,6 +463,10 @@ class AnalyseResultsExtraction(MultiOptions):
         ax.text(0.2,-.02,"# events = %d"%nb_tot,transform=ax.transAxes)
       plt.figtext(.1,.91,'(a)',fontsize=18)
       plt.figtext(.5,.91,'(b)',fontsize=18)
+      if self.opdict['save_confusion']:
+        savefig = '%s/unclass_%s_tir%d'%(self.opdict['fig_path'],self.opdict['method'],iter)
+        print 'Plot saved in %s'%savefig
+        plt.savefig(savefig)
     plt.show()
 
 
@@ -495,6 +504,11 @@ class AnalyseResultsExtraction(MultiOptions):
     ax.pie(nb,labels=types,autopct='%1.1f%%',colors=colors)
     ax.set_title('(b) Unclassified events')
     ax.text(.4,0,"# events = %d"%np.sum(nb),transform=ax.transAxes)
+
+    if self.opdict['save_confusion']:
+      savefig = '%s/unclass_all.png'%(self.opdict['fig_path'])
+      print 'Save figure in %s'%savefig
+      plt.savefig(savefig)
     plt.show()
 
     self.types = types[np.argsort(nb)][-3:]
