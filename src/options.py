@@ -165,7 +165,7 @@ class Options(object):
     # or '1b1' (1-by-1 extractor)
     # or 'lrsk' (Logistic regression from scikit.learn package)
     # or 'kmeans' (K-means from scikit.learn package)
-    self.opdict['method'] = 'svm'
+    self.opdict['method'] = 'kmeans'
 
     ### Also compute the probabilities for each class ###
     ### Warning !! Computation time increases ###
@@ -301,12 +301,15 @@ class Options(object):
     self.opdict['boot'] = 1
     self.opdict['plot_pdf'] = False # display the pdfs of the features
     self.opdict['save_pdf'] = False
-    self.opdict['plot_confusion'] = False # display the confusion matrices
+    self.opdict['plot_confusion'] = True # display the confusion matrices
     self.opdict['save_confusion'] = False
     self.opdict['plot_sep'] = False # plot decision boundary
     self.opdict['save_sep'] = False
     self.opdict['plot_prec_rec'] = False # plot precision and recall
     self.opdict['compare'] = False
+    self.opdict['plot_var'] = False
+    self.opdict['plot_dataset'] = False
+    self.opdict['proportions'] = (.4,.2,.4)
 
 
   def read_csvfile(self,filename):

@@ -316,7 +316,7 @@ def extract_norm_features(list_features,date,file,dic):
       if ('F_low' in list_features) or ('F_up' in list_features):
         # Lowest and highest frequency for kurtogram analysis
         from waveform_features import kurto_bandpass
-        dic['F_low'],dic['F_up'] = kurto_bandpass(s,plot=True)
+        dic['F_low'],dic['F_up'] = kurto_bandpass(s,plot=False)
 
       if 'Centroid_time' in list_features:
         # Centroid time

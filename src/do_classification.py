@@ -105,15 +105,18 @@ def classifier(opt):
             y_test = y_ref.reindex(index=TRAIN_Y[b]['test_set'])
             y_test = y_test.dropna(how='any')
           else:
-            y_train, y_cv, y_test = generate_datasets(opt.opdict['proportions'],opt.numt,y_ref)
+            out_sets = generate_datasets(opt.opdict['proportions'],opt.numt,y_ref)
+            TRAIN_Y[b]['cv_set'] = map(int,list(out_sets['CV']))
+            TRAIN_Y[b]['test_set'] = map(int,list(out_sets['TEST']))
+            y_train = out_sets['TRAIN']
             TRAIN_Y[b]['training_set'] = map(int,list(y_train.index))
-            TRAIN_Y[b]['cv_set'] = map(int,list(y_cv.index))
-            TRAIN_Y[b]['test_set'] = map(int,list(y_test.index))
+            y_cv = y_ref.reindex(index=TRAIN_Y[b]['cv_set'])
+            y_test = y_ref.reindex(index=TRAIN_Y[b]['test_set'])
 
         ### multi-stations case ###
         else:
           if marker_sta == 0:
-            y_train, y_cv, y_test = generate_datasets(opt.opdict['proportions'],opt.numt,y_ref)
+            out_sets = generate_datasets(opt.opdict['proportions'],opt.numt,y_ref)
             list_ev_train = y_train.index
             list_ev_cv = y_cv.index
             list_ev_test = y_test.index
@@ -131,7 +134,7 @@ def classifier(opt):
       else:
         x_train = x_ref_train.copy()
         y_train = y_ref_train.copy()
-        y_train, y_cv, y_test = generate_datasets(opt.opdict['proportions'],opt.numt,y_ref,y_train=y_train)
+        out_sets = generate_datasets(opt.opdict['proportions'],opt.numt,y_ref,y_train=y_train)
 
       x_cv = x_ref.reindex(index=y_cv.index)
       x_test = x_ref.reindex(index=y_test.index)
@@ -209,6 +212,8 @@ def classifier(opt):
       elif opt.opdict['method'] == 'lrsk':
         # LOGISTIC REGRESSION (scikit learn)
         print "********* Logistic regression (sklearn) **********"
+        print len(y_train), len(y_test)
+        sys.exit()
         out = implement_lr_sklearn(x_train,x_test,y_train,y_test)
         threshold, theta = {},{}
         for it in range(len(out['thetas'])):
@@ -221,12 +226,13 @@ def classifier(opt):
         # LOGISTIC REGRESSION
         print "********* Logistic regression **********"
         from LR_functions import do_all_logistic_regression
-        out = do_all_logistic_regression(x_ref,y_ref,i_train,i_cv,i_test)
+        out = do_all_logistic_regression(x_train,x_test,y_train,y_test,i_cv,i_test)
         theta = out['thetas']
         threshold = out['threshold']
         if 'learn_file' in sorted(opt.opdict):
+          learn_filename = opt.opdict['learn_file']
           if not os.path.exists(learn_filename):
-            wtr = write_binary_file(learn_filename,out['training_set'])
+            wtr = write_binary_file(learn_filename,i_train)
 
       CLASS_test = out['label_test']
       CLASS_train = out['label_train']
@@ -249,6 +255,8 @@ def classifier(opt):
       # TEST SET
       print "\t *TEST SET"
       y_test_np = y_test.NumType.values.ravel()
+      print len(y_test_np), len(CLASS_test)
+      print y_test_np[:10], CLASS_test[:10]
       cmat_test = confusion_matrix(y_test_np,CLASS_test)
       p_test = dic_percent(cmat_test,opt.types,verbose=True)
       out['rate_test'] = p_test
@@ -454,32 +462,34 @@ def generate_datasets(proportions,numtype,y_ref,y_train=None):
     * a test set
   Behave differently if a training set does already exist.
   """
+  output = {}
   y = y_ref.copy()
   prop_train, prop_cv, prop_test = proportions
   if not y_train:
+    print "Random generation of the training, CV and test sets !!"
     y_train = create_training_set(y,numtype,prop_train)
     itrain = list(y_train.index)
     ifull = list(y.index)
     new_ifull = np.setxor1d(ifull,itrain)
     y = y.reindex(index=new_ifull)
+    output['TRAIN'] = y_train
 
     y_cv = create_training_set(y,numtype,prop_cv)
     icv = list(y_cv.index)
     ifull = list(y.index)
     new_ifull = np.setxor1d(ifull,icv)
-    y = y.reindex(index=new_ifull)
-    y_test = y.copy()
 
   else:
+    print "Random generation of the CV and test sets !! The training set already exists..."
     prop_cv = len(y_train)*1./len(y_ref) # proportion of the training set wrt the whole set
     y_cv = create_training_set(y,numtype,prop_cv)
     icv = list(y_cv.index)
     ifull = list(y.index)
     new_ifull = np.setxor1d(ifull,icv)
-    y = y.reindex(index=new_ifull)
-    y_test = y.copy()
 
-  return y_train, y_cv, y_test
+  output['CV'] = icv
+  output['TEST'] = new_ifull
+  return output
 # ================================================================
 
 def plot_confusion_mat(cmat,l,set,method,ax=None):
@@ -515,6 +525,10 @@ def plot_confusion_mat(cmat,l,set,method,ax=None):
 
 # ================================================================
 def dic_percent(cmat,types,verbose=False):
+
+  """
+  Write the success rates of each type of events in a dictionary.
+  """
 
   NB_class = cmat.shape[0]
   NB_ev = np.sum(cmat)
@@ -604,6 +618,10 @@ def implement_svm(x_train,x_test,y_train,y_test,types,opdict,kern='NonLin',proba
 def implement_lr_sklearn(x_train,x_test,y_train,y_test):
   """
   Implements logistic regression from scikit learn package.
+  Returns an output dictionary with keys :  
+  - label_test : classification predicted by LR for the test set
+  - label_train : classification predicted by LR for the training set
+  - thetas : coefficients of the decision boundary
   """
   from LR_functions import normalize
   x_train, x_test = normalize(x_train,x_test)
@@ -631,6 +649,7 @@ def implement_lr_sklearn(x_train,x_test,y_train,y_test):
 def one_by_one(opt,x_test_ref0,y_test_ref0,otimes_ref,boot=1,method='lr'):
 
   """
+  Per class extractor.
   Extract one class after each other by order of importance. The events which are 
   classified are deleted from the next extraction.
   boot = number of training sets to be generated
@@ -673,7 +692,7 @@ def one_by_one(opt,x_test_ref0,y_test_ref0,otimes_ref,boot=1,method='lr'):
       sub_dic={}
 
       ### Splitting of the whole set in training, CV and test sets ###
-      y_train_ref, y_cv, y_test_ref = generate_datasets(opt.opdict['proportions'],opt.numt,y_test_ref)
+      out_sets = generate_datasets(opt.opdict['proportions'],opt.numt,y_test_ref)
       y_test_ref = pd.concat([y_cv,y_test_ref])
       i_train = y_train_ref.index
       i_cv = y_cv.index
@@ -811,6 +830,7 @@ def one_vs_all(opt,x_test_ref,y_test_ref,otimes_ref,boot=1,method='lr'):
 
   """
   Extract one class among the whole data.
+  One vs All extractor.
   """
 
   from LR_functions import do_all_logistic_regression
@@ -830,7 +850,7 @@ def one_vs_all(opt,x_test_ref,y_test_ref,otimes_ref,boot=1,method='lr'):
     otimes = np.array(otimes)
 
     ### Splitting of the whole set in training, CV and test sets ###
-    y_train, y_cv, y_test = generate_datasets(opt.opdict['proportions'],opt.numt,y_test_ref)
+    out_sets = generate_datasets(opt.opdict['proportions'],opt.numt,y_test_ref)
     i_train = y_train.index
     i_cv = y_cv.index
     i_test = y_test.index

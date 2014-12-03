@@ -14,7 +14,7 @@ from options import read_binary_file
 
 def plot_rates(DIC):
   """
-  Plot of the correct classification rates of the test set against the training set 
+  Plot the correct classification rates of the test set against the training set 
   for each iteration and for each class.
   """
   fig = plt.figure()

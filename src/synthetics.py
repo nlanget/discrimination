@@ -244,7 +244,7 @@ def plot_sep(opt):
 
     # *** Plot ***
     plot_2f_synthetics(out_svm,x_train,x_test,y_test,y_train=y_train)
-    plt.savefig('%s/Test_%dc_%s_SVM.png'%(opt.opdict['fig_path'],len(opt.types),opt.sep))
+    #plt.savefig('%s/Test_%dc_%s_SVM.png'%(opt.opdict['fig_path'],len(opt.types),opt.sep))
     plt.show()
 
     ### LOGISTIC REGRESSION ###
@@ -262,17 +262,17 @@ def plot_sep(opt):
     if b == 0:
       print sorted(out_lr[0])
       plot_2f_synthetics(out_lr[0],x_train,x_test,y_test,y_train=y_train)
-      plt.savefig('%s/Test_%dc_%s_LR.png'%(opt.opdict['fig_path'],len(opt.types),opt.sep))
+      #plt.savefig('%s/Test_%dc_%s_LR.png'%(opt.opdict['fig_path'],len(opt.types),opt.sep))
       plt.show()
 
     else:
       plot_2f_synth_var(out_lr,x_train,x_test,y_test,opt.NB_test)
-      plt.savefig('%s/Test_%dc_LR_%s.png'%(opt.opdict['fig_path'],len(opt.types),opt.sep))
+      #plt.savefig('%s/Test_%dc_LR_%s.png'%(opt.opdict['fig_path'],len(opt.types),opt.sep))
       plt.show()
 
     if opt.opdict['plot_prec_rec']:
       plot_2f_synth_var(out_lr,x_train,x_test,y_test,opt.NB_test)
-      plt.savefig('%s/Test_%dc_bad_threshold.png'%(opt.opdict['fig_path'],len(opt.types)))
+      #plt.savefig('%s/Test_%dc_bad_threshold.png'%(opt.opdict['fig_path'],len(opt.types)))
       plt.show()
 
 
@@ -281,12 +281,12 @@ def plot_sep(opt):
     classifier(opt)
     out_svm_nl = opt.out
     plot_2f_nonlinear(out_svm_nl,x_train,x_test,y_test,y_train=y_train,synth=True)
-    plt.savefig('%s/Test_%dc_%s_SVM_NL.png'%(opt.opdict['fig_path'],len(opt.types),opt.sep))
+    #plt.savefig('%s/Test_%dc_%s_SVM_NL.png'%(opt.opdict['fig_path'],len(opt.types),opt.sep))
     plt.show()
 
     ### COMPARE ALL 3 METHODS ON THE SAME PLOT ###
     plot_2f_synthetics(out_lr[0],x_train,x_test,y_test,out_comp=out_svm,y_train=y_train,map_nl=out_svm_nl)
-    plt.savefig('%s/Test_%dc_%s.png'%(opt.opdict['fig_path'],len(opt.types),opt.sep))
+    #plt.savefig('%s/Test_%dc_%s.png'%(opt.opdict['fig_path'],len(opt.types),opt.sep))
     plt.show()
 
 

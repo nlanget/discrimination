@@ -587,7 +587,7 @@ def bad_class(x_test,list_i):
   x_bad = x_bad.reindex(index=list_i)
   return x_bad
 # ---------------------------------------------------
-def do_all_logistic_regression(x_all,y_all,i_train,i_cv,i_test,norm=True):
+def do_all_logistic_regression(x_tr,x_all,y_tr,y_all,i_cv,i_test,norm=True):
   """
   Implements the whole logistic regression process
   1) decomposition of the whole set in training, CV and test sets
@@ -597,8 +597,6 @@ def do_all_logistic_regression(x_all,y_all,i_train,i_cv,i_test,norm=True):
   If norm = True: data from the training and test sets are normalized. Default is True.
             Must be deactivated if data are already normalized (e.g. after PCA...)
   """
-  #x_all.index = range(len(x_all.index))
-  #y_all.index = range(len(y_all.index))
 
   # For multiclass: separation of values in y for "one-vs-all" strategy
   K = len(np.unique(y_all.NumType.values)) # Number of classes
@@ -607,37 +605,46 @@ def do_all_logistic_regression(x_all,y_all,i_train,i_cv,i_test,norm=True):
   print "Number of features = %d"%n
   print "Number of classes = %d"%K
   if K > 2:
+    ytrain = y_tr.reindex(columns=[])
     y = y_all.reindex(columns=[])
     for i in range(K):
       a = y_all.reindex(columns=['NumType'])
       a[y_all.NumType!=i] = 0
       a[y_all.NumType==i] = 1
       y[i] = a.values[:,0]
+      b = y_tr.reindex(columns=['NumType'])
+      b[y_tr.NumType!=i] = 0
+      b[y_tr.NumType==i] = 1
+      ytrain[i] = b.values[:,0]
   else:
     y = y_all.reindex(columns=['NumType'])
+    ytrain = y_tr.reindex(columns=['NumType'])
 
   y.columns = range(1,y.shape[1]+1) # Class numbering begins at 1 (instead of 0)
+  ytrain.columns = range(1,ytrain.shape[1]+1)
+
+
+  # Normalization
+  xtr_unnorm = x_tr.copy()
+  x_tr, x_all = normalize(xtr_unnorm,x_all)
 
   ### Separation of the whole set in: training/CV/test sets ###
   x = x_all.copy()
-
-  xtrain = x.reindex(index=i_train)
-  ytrain = y.reindex(index=i_train)
+  xtrain = x_tr.copy()
   xcv = x.reindex(index=i_cv)
+  print len(y)
   ycv = y.reindex(index=i_cv)
+  print ycv.values[:10], ycv.values[200:210]
+  raw_input('pause')
   xtest = x.reindex(index=i_test)
   ytest = y.reindex(index=i_test)
-
-  # Normalization
-  xtrain_unnorm = xtrain.copy()
-  xtrain, xcv = normalize(xtrain_unnorm,xcv)
-  xtrain, xtest = normalize(xtrain_unnorm,xtest)
 
   mtraining = xtrain.shape[0] # size of the training set
   mcv = xcv.shape[0] # size of the cross-validation set
   mtest = xtest.shape[0] # size of the test set
 
   # Determination of the best hypothesis function
+  print np.unique(ycv.values), np.unique(ytrain.values), np.unique(ytest.values)
   best_dl,theta = degree_and_regularization(xcv,ycv,xtrain,ytrain,verbose=False)
 
   ### MISCLASSIFICATION ERROR COMPUTED ON THE TEST SET ###
@@ -659,6 +666,7 @@ def do_all_logistic_regression(x_all,y_all,i_train,i_cv,i_test,norm=True):
     y_test_pred = CF_test.predict_y(theta[k])
     err[k] = misclassification_error(ytest[k].values,y_test_pred,best_threshold[k])*100
   print "MISCLASSIFICATION TEST ERROR ",err
+  print "after:", np.unique(y_test_pred)
 
   # Learning curves
   learn = False
