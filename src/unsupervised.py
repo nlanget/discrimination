@@ -62,6 +62,7 @@ def classifier(opt):
       if opt.opdict['method'] == 'kmeans':
         # K-Mean
         print "********** KMean **********"
+        K = 3
         CLASS_test = implement_kmean(x_test,K)
 
 
@@ -75,13 +76,16 @@ def classifier(opt):
 
         nbs = [len(man[man.values.ravel()==j]) for j in opt.types]
         trad[i] = np.array(opt.types)[np.argsort(nbs)]
-        for j in range(K):
+        for j in range(len(opt.types)):
           print "\tNumber of %s : %d"%(trad[i][j],np.sort(nbs)[j])
           dicocl[trad[i][j]].append(np.sort(nbs)[j])
 
-      types_trad = np.array(opt.types).copy()
-      for key in sorted(dicocl):
-        types_trad[np.argmax(dicocl[key])] = key
+      if K == len(opt.types):
+        types_trad = np.array(opt.types).copy()
+        for key in sorted(dicocl):
+          types_trad[np.argmax(dicocl[key])] = key
+      else:
+        types_trad=[]
 
       ### PLOT DIAGRAMS ###
       if opt.opdict['plot_confusion'] or opt.opdict['save_confusion']:
@@ -90,9 +94,9 @@ def classifier(opt):
           #results_histo(CLASS_test,y_test)
           results_diagrams(CLASS_test,y_test)
         else:
-          all_diagrams(CLASS_test,y_test,types_trad)
+          all_diagrams(CLASS_test,y_test,trad=types_trad)
         if opt.opdict['save_confusion']:
-          plt.savefig('%s/unsup_diagrams_%df.png'%(opt.opdict['fig_path'],len(opt.opdict['feat_list'])))
+          plt.savefig('%s/unsup_diagrams_%df_ini.png'%(opt.opdict['fig_path'],len(opt.opdict['feat_list'])))
         if opt.opdict['plot_confusion']:
           plt.show()
         else:
@@ -112,12 +116,13 @@ def classifier(opt):
         plot_and_compare_pdfs(g_test,g_unsup)
       
       subsubdic['NumClass'] = CLASS_test.values.ravel()
-      trad_CLASS_test = []
-      for i in CLASS_test.values:
-        i = int(i)
-        trad_CLASS_test.append(types_trad[i])
-      subsubdic['StrClass'] = trad_CLASS_test
-      subsubdic['Equivalence'] = types_trad
+      if list(types_trad):
+        trad_CLASS_test = []
+        for i in CLASS_test.values:
+          i = int(i)
+          trad_CLASS_test.append(types_trad[i])
+        subsubdic['StrClass'] = trad_CLASS_test
+        subsubdic['Equivalence'] = types_trad
       subdic[b] = subsubdic
 
     dic_results[opt.trad[isc]] = subdic
@@ -267,10 +272,11 @@ def results_diagrams(y_auto,y_man,save=False):
 
 def plot_and_compare_pdfs(g1,g2):
 
-  c = ['r','b','g','m','c','y','k']
+  c = ['r','b','g','m','c','y','k','orange']
   for feat in sorted(g1):
     fig = plt.figure()
     fig.set_facecolor('white')
+    print sorted(g1[feat]), sorted(g2[feat])
     for it,t in enumerate(sorted(g1[feat])):
       if t != 'vec':
         plt.plot(g1[feat]['vec'],g1[feat][t],ls='-',color=c[it],lw=2.,label=t)
@@ -279,15 +285,15 @@ def plot_and_compare_pdfs(g1,g2):
         plt.plot(g2[feat]['vec'],g2[feat][t],ls='--',color=c[-it-1],lw=2.,label='Class %d'%t)
     plt.title(feat)
     plt.legend()
-    plt.savefig('../results/Ijen/KMEANS/figures/unsup_pdf_%s.png'%feat)
+    #plt.savefig('../results/Ijen/KMEANS/figures/unsup_pdf_%s_3ini.png'%feat)
     plt.show()
 
 # ================================================================
 
-def all_diagrams(y_auto,y_man,trad):
+def all_diagrams(y_auto,y_man,trad=None):
   """
   Combines plot_diagrams and results_diagrams on the same figure 
-  when the number of classes is < 5.
+  when the number of unsupervised classes is < 5.
   """
 
   import matplotlib.pyplot as plt
@@ -297,12 +303,12 @@ def all_diagrams(y_auto,y_man,trad):
   types = np.unique(y_man.Type.values)
   len_class = len(types)
 
-  colors = ['yellowgreen', 'gold', 'lightskyblue', 'lightcoral']
+  colors = ['yellowgreen', 'gold', 'lightskyblue', 'lightcoral','lightgreen','khaki','plum','powderblue']
 
   nb_auto = [len(y_auto[y_auto.Type==it]) for it in range(nb_class)]
   nb_man = [len(y_man[y_man.Type==t]) for t in types]
 
-  nb_l, nb_c = 2, len_class*2
+  nb_l, nb_c = 2, nb_class*2
   grid = GridSpec(nb_l,nb_c)
   fig = plt.figure(figsize=(12,8))
   fig.set_facecolor('white')
@@ -335,7 +341,10 @@ def all_diagrams(y_auto,y_man,trad):
 
     ax = fig.add_subplot(grid[1,2*i:2*i+2])
     ax.pie(nbs,labels=labels,autopct='%1.1f%%',colors=colors)
-    ax.set_title(r'Class %d $\approx$ %s'%(i,trad[i]))
+    if list(trad):
+      ax.set_title(r'Class %d $\approx$ %s'%(i,trad[i]))
+    else:
+      ax.set_title(r'Class %d'%i)
     ax.text(.3,-.1,r'# events = %d'%np.sum(nbs),transform=ax.transAxes)
     #plt.axis("equal")
 
@@ -360,7 +369,7 @@ def compare_unsup_indet():
 
   m = opt.man
   a = opt.auto
-  unsup = read_binary_file('../results/Ijen/KMEANS/results_kmeans_3c_11f')
+  unsup = read_binary_file('../results/Ijen/KMEANS/results_kmeans_3c_11f_ini')
 
   nb_auto = [len(opt.auto[opt.auto.Type==t]) for t in opt.opdict['types']]
   NB_class = len(opt.opdict['types'])

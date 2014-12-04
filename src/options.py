@@ -86,9 +86,9 @@ def ijen():
   opdict['network'] = 'ID'
   opdict['stations'] = ['IJEN']
   #opdict['stations'] = ['DAM','IBLW','IGEN','IJEN','IMLB','IPAL','IPLA','IPSW','KWUI','MLLR','POS','POSI','PSG','PUN','RAUN','TRWI']
-  #opdict['types'] = ['Hembusan','Hibrid','LF','Longsoran','Tektonik','Tremor','VulkanikA','VulkanikB']
+  opdict['types'] = ['Hembusan','Hibrid','LF','Longsoran','Tektonik','Tremor','VulkanikA','VulkanikB']
   #opdict['types'] = ['Tremor','VulkanikB','?']
-  opdict['types'] = ['Tremor','VulkanikB']
+  #opdict['types'] = ['Tremor','VulkanikB']
   opdict['datadir'] = os.path.join('../data',opdict['dir'],opdict['network'])
   ### FEATURES FILE ###
   opdict['feat_test'] = 'ijen_3006.csv'
@@ -130,8 +130,8 @@ class Options(object):
   def __init__(self):
 
     self.opdict = {}
-    #self.opdict = ijen()
-    self.opdict = piton()
+    self.opdict = ijen()
+    #self.opdict = piton()
 
     ### Import classification options ###
     self.set_classi_options()
@@ -175,7 +175,7 @@ class Options(object):
     self.opdict['plot_dataset'] = False
 
     ### Display and save the PDFs of the features ###
-    self.opdict['plot_pdf'] = False
+    self.opdict['plot_pdf'] = True
     self.opdict['save_pdf'] = False
 
     ### Display and save the confusion matrices ###
@@ -238,11 +238,11 @@ class Options(object):
     date = time.localtime()
     if self.opdict['option'] == 'norm':
       ### Features "normales" ###
-      self.opdict['feat_list'] = self.opdict['feat_all']
+      #self.opdict['feat_list'] = self.opdict['feat_all']
       #self.opdict['feat_list'] = ['Dur']
       #self.opdict['feat_log'] = ['Ene']
       #self.opdict['feat_log'] = self.opdict['feat_list']
-      #self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Growth','Kurto','RappMaxMean','RappMaxMeanTF','Skewness','TimeMaxSpec','Width']
+      self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Growth','Kurto','RappMaxMean','RappMaxMeanTF','Skewness','TimeMaxSpec','Width']
       #self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Kurto','RappMaxMean','Skewness','TimeMaxSpec']
       #self.opdict['feat_list'] = ['Dur','F_up','Growth','Kurto','RappMaxMean','RappMaxMeanTF','TimeMaxSpec','Width']
       #self.opdict['feat_list'] = ['CentralF','Centroid_time','Dur','Ene0-5','F_up','Growth','IFslope','Kurto','MeanPredF','RappMaxMean','RappMaxMeanTF','Skewness','TimeMaxSpec','Width','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9']
@@ -265,7 +265,7 @@ class Options(object):
       if NB_feat == 1:
         self.opdict['result_file'] = 'results_%s_%s'%(self.opdict['method'],self.opdict['feat_list'][0])
       else:
-        self.opdict['result_file'] = 'Validation2_results_%s_%dc_%df'%(self.opdict['method'],len(self.opdict['types']),len(self.opdict['feat_list']))
+        self.opdict['result_file'] = 'results_%s_%dc_%df_cat'%(self.opdict['method'],len(self.opdict['types']),len(self.opdict['feat_list']))
  
     else:
       self.opdict['result_file'] = '1311_%s_%s_svm'%(self.opdict['method'].upper(),self.opdict['stations'][0])
