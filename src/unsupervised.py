@@ -12,6 +12,9 @@ def classifier(opt):
   """
   Classification of the different types of events.
   opt is an object of the class Options()
+  By default, the number of classes K that is searched in the dataset is equal to 
+  the number of classes in the catalog, but it can be modified directly in the 
+  code.
   """
   opt.do_tri()
 
@@ -62,7 +65,7 @@ def classifier(opt):
       if opt.opdict['method'] == 'kmeans':
         # K-Mean
         print "********** KMean **********"
-        K = 3
+        K=3
         CLASS_test = implement_kmean(x_test,K)
 
 
@@ -272,11 +275,10 @@ def results_diagrams(y_auto,y_man,save=False):
 
 def plot_and_compare_pdfs(g1,g2):
 
-  c = ['r','b','g','m','c','y','k','orange']
+  c = ['r','b','g','m','c','y','k']#,'orange']
   for feat in sorted(g1):
     fig = plt.figure()
     fig.set_facecolor('white')
-    print sorted(g1[feat]), sorted(g2[feat])
     for it,t in enumerate(sorted(g1[feat])):
       if t != 'vec':
         plt.plot(g1[feat]['vec'],g1[feat][t],ls='-',color=c[it],lw=2.,label=t)
@@ -285,7 +287,7 @@ def plot_and_compare_pdfs(g1,g2):
         plt.plot(g2[feat]['vec'],g2[feat][t],ls='--',color=c[-it-1],lw=2.,label='Class %d'%t)
     plt.title(feat)
     plt.legend()
-    #plt.savefig('../results/Ijen/KMEANS/figures/unsup_pdf_%s_3ini.png'%feat)
+    plt.savefig('../results/Ijen/KMEANS/figures/unsup_pdf_%s_ini.png'%feat)
     plt.show()
 
 # ================================================================
@@ -346,7 +348,8 @@ def all_diagrams(y_auto,y_man,trad=None):
     else:
       ax.set_title(r'Class %d'%i)
     ax.text(.3,-.1,r'# events = %d'%np.sum(nbs),transform=ax.transAxes)
-    #plt.axis("equal")
+    if nb_class == 2:
+      plt.axis("equal")
 
   plt.figtext(.1,.92,r'(a) Manual classes     (# events = %d)'%np.sum(nb_man),fontsize=16)
   plt.figtext(.55,.92, r'(b) $K$-means classes',fontsize=16)
