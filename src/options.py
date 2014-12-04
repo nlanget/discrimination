@@ -88,13 +88,13 @@ def ijen():
   opdict['stations'] = ['IJEN']
   #opdict['stations'] = ['DAM','IBLW','IGEN','IJEN','IMLB','IPAL','IPLA','IPSW','KWUI','MLLR','POS','POSI','PSG','PUN','RAUN','TRWI']
   #opdict['types'] = ['Hembusan','Hibrid','LF','Longsoran','Tektonik','Tremor','VulkanikA','VulkanikB']
-  opdict['types'] = ['Tremor','VulkanikB','?']
-  #opdict['types'] = ['Tremor','VulkanikB']
+  #opdict['types'] = ['Tremor','VulkanikB','?']
+  opdict['types'] = ['Tremor','VulkanikB']
   opdict['datadir'] = os.path.join('../data',opdict['dir'],opdict['network'])
   ### FEATURES FILE
   opdict['feat_test'] = 'ijen_3006.csv'
   ### LABEL FILE
-  opdict['label_test'] = 'Ijen_3class_all.csv'
+  opdict['label_test'] = 'Ijen_class_all.csv'
   ### FEATURES LIST
   opdict['feat_all'] = ['AsDec','Bandwidth','CentralF','Centroid_time','Dur','Ene20-30','Ene5-10','Ene0-5','F_low','F_up','Growth','IFslope','Kurto','MeanPredF','NbPeaks','PredF','RappMaxMean','RappMaxMeanTF','Skewness','sPredF','TimeMaxSpec','Width','ibw0','ibw1','ibw2','ibw3','ibw4','ibw5','ibw6','ibw7','ibw8','ibw9','if0','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9']
   return opdict
@@ -150,7 +150,7 @@ class Options(object):
 
     ### Number of iterations ###
     # a new training set is generated at each 'iteration'
-    self.opdict['boot'] = 1
+    self.opdict['boot'] = 2
 
     ### Choice of the classification algorithm ###
     # could be 'lr' (LR = logistic regression)
@@ -160,7 +160,7 @@ class Options(object):
     # or '1b1' (1-by-1 extractor)
     # or 'lrsk' (Logistic regression from scikit.learn package)
     # or 'kmeans' (K-means from scikit.learn package)
-    self.opdict['method'] = 'kmeans'
+    self.opdict['method'] = 'svm'
 
     ### Also compute the probabilities for each class ###
     ### Computation time increases
@@ -171,8 +171,8 @@ class Options(object):
     self.opdict['save_pdf'] = False
 
     ### Display and save the confusion matrices ###
-    self.opdict['plot_confusion'] = False
-    self.opdict['save_confusion'] = False
+    self.opdict['plot_confusion'] = True
+    self.opdict['save_confusion'] = True
 
     ### Plot and save the decision boundaries ###
     self.opdict['plot_sep'] = False
@@ -230,11 +230,11 @@ class Options(object):
     date = time.localtime()
     if self.opdict['option'] == 'norm':
       # Features "normales"
-      #self.opdict['feat_list'] = self.opdict['feat_all']
+      self.opdict['feat_list'] = self.opdict['feat_all']
       #self.opdict['feat_list'] = ['AsDec']
       #self.opdict['feat_log'] = ['Ene']
       #self.opdict['feat_log'] = self.opdict['feat_list']
-      self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Growth','Kurto','RappMaxMean','RappMaxMeanTF','Skewness','TimeMaxSpec','Width']
+      #self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Growth','Kurto','RappMaxMean','RappMaxMeanTF','Skewness','TimeMaxSpec','Width']
       #self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Kurto','RappMaxMean','Skewness','TimeMaxSpec']
       #self.opdict['feat_list'] = ['Dur','F_up','Growth','Kurto','RappMaxMean','RappMaxMeanTF','TimeMaxSpec','Width']
       #self.opdict['feat_list'] = ['CentralF','Centroid_time','Dur','Ene0-5','F_up','Growth','IFslope','Kurto','MeanPredF','RappMaxMean','RappMaxMeanTF','Skewness','TimeMaxSpec','Width','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9']
