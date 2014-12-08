@@ -105,18 +105,15 @@ def classifier(opt):
             y_test = y_ref.reindex(index=TRAIN_Y[b]['test_set'])
             y_test = y_test.dropna(how='any')
           else:
-            out_sets = generate_datasets(opt.opdict['proportions'],opt.numt,y_ref)
-            TRAIN_Y[b]['cv_set'] = map(int,list(out_sets['CV']))
-            TRAIN_Y[b]['test_set'] = map(int,list(out_sets['TEST']))
-            y_train = out_sets['TRAIN']
+            y_train, y_cv, y_test = generate_datasets(opt.opdict['proportions'],opt.numt,y_ref)
             TRAIN_Y[b]['training_set'] = map(int,list(y_train.index))
-            y_cv = y_ref.reindex(index=TRAIN_Y[b]['cv_set'])
-            y_test = y_ref.reindex(index=TRAIN_Y[b]['test_set'])
+            TRAIN_Y[b]['cv_set'] = map(int,list(y_cv.index))
+            TRAIN_Y[b]['test_set'] = map(int,list(y_test.index))
 
         ### multi-stations case ###
         else:
           if marker_sta == 0:
-            out_sets = generate_datasets(opt.opdict['proportions'],opt.numt,y_ref)
+            y_train, y_cv, y_test = generate_datasets(opt.opdict['proportions'],opt.numt,y_ref)
             list_ev_train = y_train.index
             list_ev_cv = y_cv.index
             list_ev_test = y_test.index
@@ -134,7 +131,7 @@ def classifier(opt):
       else:
         x_train = x_ref_train.copy()
         y_train = y_ref_train.copy()
-        out_sets = generate_datasets(opt.opdict['proportions'],opt.numt,y_ref,y_train=y_train)
+        y_train, y_cv, y_test = generate_datasets(opt.opdict['proportions'],opt.numt,y_ref,y_train=y_train)
 
       x_cv = x_ref.reindex(index=y_cv.index)
       x_test = x_ref.reindex(index=y_test.index)
@@ -212,8 +209,6 @@ def classifier(opt):
       elif opt.opdict['method'] == 'lrsk':
         # LOGISTIC REGRESSION (scikit learn)
         print "********* Logistic regression (sklearn) **********"
-        print len(y_train), len(y_test)
-        sys.exit()
         out = implement_lr_sklearn(x_train,x_test,y_train,y_test)
         threshold, theta = {},{}
         for it in range(len(out['thetas'])):
@@ -226,7 +221,7 @@ def classifier(opt):
         # LOGISTIC REGRESSION
         print "********* Logistic regression **********"
         from LR_functions import do_all_logistic_regression
-        out = do_all_logistic_regression(x_train,x_test,y_train,y_test,i_cv,i_test)
+        out = do_all_logistic_regression(x_train,x_test,x_cv,y_train,y_test,y_cv)
         theta = out['thetas']
         threshold = out['threshold']
         if 'learn_file' in sorted(opt.opdict):
@@ -255,8 +250,6 @@ def classifier(opt):
       # TEST SET
       print "\t *TEST SET"
       y_test_np = y_test.NumType.values.ravel()
-      print len(y_test_np), len(CLASS_test)
-      print y_test_np[:10], CLASS_test[:10]
       cmat_test = confusion_matrix(y_test_np,CLASS_test)
       p_test = dic_percent(cmat_test,opt.types,verbose=True)
       out['rate_test'] = p_test
@@ -363,7 +356,9 @@ def classifier(opt):
             name = '%s_%s_%s'%(opt.opdict['feat_list'][0],opt.opdict['feat_list'][1],opt.opdict['feat_list'][2])
 
           if opt.opdict['save_sep']:
-            plt.savefig('%s/CL_sep_%s.png'%(save_dir,name))
+            savefig = '%s/CL_sep_%s.png'%(save_dir,name)
+            plt.savefig(savefig)
+            print "Plot saved in %s"%savefig
           if opt.opdict['plot_sep']:
             plt.show()
           else:
@@ -462,7 +457,6 @@ def generate_datasets(proportions,numtype,y_ref,y_train=None):
     * a test set
   Behave differently if a training set does already exist.
   """
-  output = {}
   y = y_ref.copy()
   prop_train, prop_cv, prop_test = proportions
   if not y_train:
@@ -472,12 +466,13 @@ def generate_datasets(proportions,numtype,y_ref,y_train=None):
     ifull = list(y.index)
     new_ifull = np.setxor1d(ifull,itrain)
     y = y.reindex(index=new_ifull)
-    output['TRAIN'] = y_train
 
     y_cv = create_training_set(y,numtype,prop_cv)
     icv = list(y_cv.index)
     ifull = list(y.index)
     new_ifull = np.setxor1d(ifull,icv)
+    y = y.reindex(index=new_ifull)
+    y_test = y.copy()
 
   else:
     print "Random generation of the CV and test sets !! The training set already exists..."
@@ -486,10 +481,10 @@ def generate_datasets(proportions,numtype,y_ref,y_train=None):
     icv = list(y_cv.index)
     ifull = list(y.index)
     new_ifull = np.setxor1d(ifull,icv)
-
-  output['CV'] = icv
-  output['TEST'] = new_ifull
-  return output
+    y = y.reindex(index=new_ifull)
+    y_test = y.copy()
+		
+  return y_train, y_cv, y_test
 # ================================================================
 
 def plot_confusion_mat(cmat,l,set,method,ax=None):
@@ -692,7 +687,7 @@ def one_by_one(opt,x_test_ref0,y_test_ref0,otimes_ref,boot=1,method='lr'):
       sub_dic={}
 
       ### Splitting of the whole set in training, CV and test sets ###
-      out_sets = generate_datasets(opt.opdict['proportions'],opt.numt,y_test_ref)
+      y_train, y_cv, y_test_ref = generate_datasets(opt.opdict['proportions'],opt.numt,y_test_ref)
       y_test_ref = pd.concat([y_cv,y_test_ref])
       i_train = y_train_ref.index
       i_cv = y_cv.index
@@ -850,7 +845,7 @@ def one_vs_all(opt,x_test_ref,y_test_ref,otimes_ref,boot=1,method='lr'):
     otimes = np.array(otimes)
 
     ### Splitting of the whole set in training, CV and test sets ###
-    out_sets = generate_datasets(opt.opdict['proportions'],opt.numt,y_test_ref)
+    y_train, y_cv, y_test = generate_datasets(opt.opdict['proportions'],opt.numt,y_test_ref)
     i_train = y_train.index
     i_cv = y_cv.index
     i_test = y_test.index

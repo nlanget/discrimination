@@ -27,7 +27,7 @@ def features_mat(x):
 
 # ---------------------------------------------------
 
-def normalize(x,x_data):
+def normalize(x,x_data,x_add=None):
   """
   Normalizes x and x_data
   x and x_data are pandas DataFrame
@@ -36,7 +36,11 @@ def normalize(x,x_data):
   r = x.max() - x.min()
   x = (x - av) / r
   x_data = (x_data - av) / r
-  return x, x_data
+  if x_add:
+    x_add = (x_add - av) / r
+    return x, x_data, x_add
+  else:
+    return x, x_data
 
 # ---------------------------------------------------
 def plot_cost_function(thetas):
@@ -587,7 +591,7 @@ def bad_class(x_test,list_i):
   x_bad = x_bad.reindex(index=list_i)
   return x_bad
 # ---------------------------------------------------
-def do_all_logistic_regression(x_tr,x_all,y_tr,y_all,i_cv,i_test,norm=True):
+def do_all_logistic_regression(x_tr,x_all,x_cv,y_tr,y_all,y_cv,norm=True):
   """
   Implements the whole logistic regression process
   1) decomposition of the whole set in training, CV and test sets
@@ -607,6 +611,7 @@ def do_all_logistic_regression(x_tr,x_all,y_tr,y_all,i_cv,i_test,norm=True):
   if K > 2:
     ytrain = y_tr.reindex(columns=[])
     y = y_all.reindex(columns=[])
+    ycv = y_cv.reindex(columns=[])
     for i in range(K):
       a = y_all.reindex(columns=['NumType'])
       a[y_all.NumType!=i] = 0
@@ -616,35 +621,34 @@ def do_all_logistic_regression(x_tr,x_all,y_tr,y_all,i_cv,i_test,norm=True):
       b[y_tr.NumType!=i] = 0
       b[y_tr.NumType==i] = 1
       ytrain[i] = b.values[:,0]
+      c = y_cv.reindex(columns=['NumType'])
+      c[y_cv.NumType!=i] = 0
+      c[y_cv.NumType==i] = 1
+      ycv[i] = c.values[:,0]
   else:
     y = y_all.reindex(columns=['NumType'])
     ytrain = y_tr.reindex(columns=['NumType'])
+    ycv = y_cv.reindex(columns=['NumType'])
 
   y.columns = range(1,y.shape[1]+1) # Class numbering begins at 1 (instead of 0)
   ytrain.columns = range(1,ytrain.shape[1]+1)
-
+  ycv.columns = range(1,ycv.shape[1]+1)
 
   # Normalization
   xtr_unnorm = x_tr.copy()
-  x_tr, x_all = normalize(xtr_unnorm,x_all)
+  x_tr, x_all, x_cv = normalize(xtr_unnorm,x_all, x_add=x_cv)
 
   ### Separation of the whole set in: training/CV/test sets ###
-  x = x_all.copy()
+  xtest = x_all.copy()
+  xcv = x_cv.copy()
   xtrain = x_tr.copy()
-  xcv = x.reindex(index=i_cv)
-  print len(y)
-  ycv = y.reindex(index=i_cv)
-  print ycv.values[:10], ycv.values[200:210]
-  raw_input('pause')
-  xtest = x.reindex(index=i_test)
-  ytest = y.reindex(index=i_test)
+  ytest = y.copy()
 
   mtraining = xtrain.shape[0] # size of the training set
   mcv = xcv.shape[0] # size of the cross-validation set
   mtest = xtest.shape[0] # size of the test set
 
   # Determination of the best hypothesis function
-  print np.unique(ycv.values), np.unique(ytrain.values), np.unique(ytest.values)
   best_dl,theta = degree_and_regularization(xcv,ycv,xtrain,ytrain,verbose=False)
 
   ### MISCLASSIFICATION ERROR COMPUTED ON THE TEST SET ###
@@ -666,7 +670,6 @@ def do_all_logistic_regression(x_tr,x_all,y_tr,y_all,i_cv,i_test,norm=True):
     y_test_pred = CF_test.predict_y(theta[k])
     err[k] = misclassification_error(ytest[k].values,y_test_pred,best_threshold[k])*100
   print "MISCLASSIFICATION TEST ERROR ",err
-  print "after:", np.unique(y_test_pred)
 
   # Learning curves
   learn = False
