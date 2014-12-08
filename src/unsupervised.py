@@ -65,7 +65,7 @@ def classifier(opt):
       if opt.opdict['method'] == 'kmeans':
         # K-Mean
         print "********** KMean **********"
-        K=3
+        K=2
         CLASS_test = implement_kmean(x_test,K)
 
 
@@ -99,7 +99,9 @@ def classifier(opt):
         else:
           all_diagrams(CLASS_test,y_test,trad=types_trad)
         if opt.opdict['save_confusion']:
-          plt.savefig('%s/unsup_diagrams_%df_ini.png'%(opt.opdict['fig_path'],len(opt.opdict['feat_list'])))
+          savefig = '%s/unsup_diagrams_%df_ini.png'%(opt.opdict['fig_path'],len(opt.opdict['feat_list']))
+          plt.savefig(savefig)
+          print "Figure saved in %s"%savefig
         if opt.opdict['plot_confusion']:
           plt.show()
         else:
