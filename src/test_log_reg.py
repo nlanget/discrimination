@@ -7,13 +7,13 @@ from do_classification import generate_datasets
 
 def suite():
   suite = unittest.TestSuite()
-  #suite.addTest(unittest.makeSuite(BinaryClassTests_2f))
-  #suite.addTest(unittest.makeSuite(BinaryClassTests_3f))
-  #suite.addTest(unittest.makeSuite(MultiClassTests))
-  #suite.addTest(unittest.makeSuite(Polynome))
-  #suite.addTest(unittest.makeSuite(DictMatrix))
-  #suite.addTest(unittest.makeSuite(Compare))
-  suite.addTest(unittest.makeSuite(Synthetics))
+  suite.addTest(unittest.makeSuite(BinaryClassTests_2f))
+  suite.addTest(unittest.makeSuite(BinaryClassTests_3f))
+  suite.addTest(unittest.makeSuite(MultiClassTests))
+  suite.addTest(unittest.makeSuite(Polynome))
+  suite.addTest(unittest.makeSuite(DictMatrix))
+  suite.addTest(unittest.makeSuite(Compare))
+  #suite.addTest(unittest.makeSuite(Synthetics))
   return suite
 
 
@@ -217,7 +217,10 @@ class Synthetics(unittest.TestCase):
     y_data = self.data.reindex(columns=['target'])
     y_data.columns = ['NumType']
     y_train, y_cv, y_test = generate_datasets((0.6,0.2,0.2),np.unique(y_data.values),y_data)
-    do_all_logistic_regression(x_data,y_data,list(y_train.index),list(y_cv.index),list(y_test.index))
+    x_train = x_data.reindex(index=y_train.index)
+    x_cv = x_data.reindex(index=y_cv.index)
+    x_test = x_data.reindex(index=y_test.index)
+    do_all_logistic_regression(x_train,x_test,x_cv,y_train,y_test,y_cv)
 
   def test_extended_dataset(self):
 
@@ -226,7 +229,10 @@ class Synthetics(unittest.TestCase):
     y_data = self.new_data.reindex(columns=['target'])
     y_data.columns = ['NumType']
     y_train, y_cv, y_test = generate_datasets((0.6,0.2,0.2),np.unique(y_data.values),y_data)
-    do_all_logistic_regression(x_data,y_data,list(y_train.index),list(y_cv.index),list(y_test.index))
+    x_train = x_data.reindex(index=y_train.index)
+    x_cv = x_data.reindex(index=y_cv.index)
+    x_test = x_data.reindex(index=y_test.index)
+    do_all_logistic_regression(x_train,x_test,x_cv,y_train,y_test,y_cv)
 
   def plot_features(self):
 
