@@ -240,7 +240,9 @@ def ihaar_2d(coeffs):
 
 
 def TopWavelets(mat,plot=False):
-  # Selection of the top wavelet coefficients (wrt their magnitude)
+  """
+  Selection of the top wavelet coefficients (with respect to their magnitude)
+  """
   e = [0]
   mat_abs = np.abs(mat).ravel()
   e_all = np.cumsum(mat_abs)[-1]
@@ -268,6 +270,11 @@ def TopWavelets(mat,plot=False):
 
 
 def FuncFingerprint(mat,time,tr,f,end,plot=False,error=False):
+
+  """
+  Computes and returns the fingerprint.
+  Plot is optional. 
+  """
 
   haar = StandardDecomposition(mat)
 

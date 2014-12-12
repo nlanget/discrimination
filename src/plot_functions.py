@@ -33,6 +33,7 @@ def plot_hyp_func_1f(x,y,theta,method,threshold=None,x_ok=None,x_bad=None,th_com
   nn,b,p = ax1.hist([x1,x2],25,normed=True,histtype='stepfilled',alpha=.2,color=('b','g'),label=str_t)
 
   from LR_functions import g
+  # Plot the hypothesis function
   syn = np.arange(-1,1,0.01)
   hyp = g(theta[1][0]+theta[1][1]*syn)
   norm = np.mean([np.max(nn[0]),np.max(nn[1])])
@@ -54,6 +55,9 @@ def plot_hyp_func_1f(x,y,theta,method,threshold=None,x_ok=None,x_bad=None,th_com
     ax1.plot([t,t],[0,np.max(nn)],'purple',lw=3.)
 
   if x_ok and x_bad:
+    # plot well-classified events of the test set
+    #nn, b, p = ax1.hist([x_ok],25,normed=True,color=('k'),histtype='step',fill=False,ls='dashed',lw=2,label=['Test Set'])
+    # plot both well and badly-classified events of the test set
     nn, b, p = ax1.hist([x_ok,x_bad],25,normed=True,color=('k','r'),histtype='step',fill=False,ls='dashed',lw=2,label=['Test Set'])
 
   ax1.set_xlim([-1,1])
@@ -319,7 +323,7 @@ def plot_deg_vs_lambda(k,degrees,lambdas,Jlist,best_dl,min_cv):
   ax.set_zlabel('Jcv')
   ax.set_zlim(min_cv-0.1,np.max(zplot))
 # ---------------------------------------------------
-def plot_learning_curves(k,vec,val,c1,c2,xlab):
+def plot_diagno_curves(k,vec,val,c1,c2,xlab):
   """
   Plots learning curves.
   If vec = degrees of polynomial --> diagnoses bias vs variance

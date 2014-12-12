@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 from LR_functions import *
 from plot_functions import *
+from do_classification import generate_datasets
 
 def suite():
   suite = unittest.TestSuite()
@@ -10,10 +11,9 @@ def suite():
   suite.addTest(unittest.makeSuite(BinaryClassTests_3f))
   suite.addTest(unittest.makeSuite(MultiClassTests))
   suite.addTest(unittest.makeSuite(Polynome))
-  suite.addTest(unittest.makeSuite(DataSets))
   suite.addTest(unittest.makeSuite(DictMatrix))
   suite.addTest(unittest.makeSuite(Compare))
-  suite.addTest(unittest.makeSuite(Synthetics))
+  #suite.addTest(unittest.makeSuite(Synthetics))
   return suite
 
 
@@ -21,7 +21,7 @@ class BinaryClassTests_2f(unittest.TestCase):
   
   def setUp(self):
 
-    self.verb = True
+    self.verb = False
 
     self.x = {}
     self.x['x1'] = np.array([1,0.5,2,1.6,2.3,5,6,7,6.2,5.6])
@@ -33,7 +33,8 @@ class BinaryClassTests_2f(unittest.TestCase):
     self.y = pd.DataFrame(self.y)
 
     self.theta = {}
-    self.theta[1] = np.random.rand(self.x.shape[1]+1)
+    #self.theta[1] = np.random.rand(self.x.shape[1]+1)
+    self.theta[1] = np.zeros(self.x.shape[1]+1)
 
     self.lamb = 0
 
@@ -41,13 +42,15 @@ class BinaryClassTests_2f(unittest.TestCase):
 
     self.x_new = {}
     self.x_new['x1'] = np.array([2,5])
-    self.x_new['x2'] = np.array([2,6])
+    self.x_new['x2'] = np.array([2,4])
     self.x_new = pd.DataFrame(self.x_new)
     self.exp_class = np.array([0,1])
 
   def test_binary_classification(self):
     x_class = test_hyp(self.x_new,self.theta,verbose=self.verb)
     diff = x_class-self.exp_class
+    print self.theta
+    print x_class, self.exp_class
     self.assertFalse(diff.any())
     if self.verb:
       plt.show()
@@ -149,33 +152,6 @@ class Polynome(unittest.TestCase):
     self.assertEqual(x_deg.shape[1],nb_feat_exp-1)
 
 
-class DataSets(unittest.TestCase):
-
-  def setUp(self):
-
-    self.nbpts = 20
-
-    self.x = {}
-    self.x[1] = np.random.rand(self.nbpts)
-    self.x = pd.DataFrame(self.x)
-
-    self.y = {}
-    self.y[1] = np.floor(2*np.random.rand(self.nbpts))
-    self.y = pd.DataFrame(self.y)
-
-  def test_len_sets(self):
-
-    xcv,ycv,xtest,ytest,xtrain,ytrain,w = data_sets(self.x,self.y)
-    self.assertEqual(0.6*self.nbpts,xtrain.shape[0])
-    self.assertEqual(0.6*self.nbpts,ytrain.shape[0])
-    self.assertEqual(0.2*self.nbpts,xcv.shape[0])
-    self.assertEqual(0.2*self.nbpts,ycv.shape[0])
-    self.assertEqual(0.2*self.nbpts,xtest.shape[0])
-    self.assertEqual(0.2*self.nbpts,ytest.shape[0])
-    self.assertEqual(self.nbpts,self.x.shape[0])
-    self.assertEqual(self.nbpts,self.y.shape[0])
-
-
 class DictMatrix(unittest.TestCase):
 
   def setUp(self):
@@ -239,16 +215,24 @@ class Synthetics(unittest.TestCase):
     print "\n-------------------Original data set-------------------"
     x_data = self.data.reindex(columns=self.iris['feature_names'])
     y_data = self.data.reindex(columns=['target'])
-    x_data_test = x_data.copy()
-    do_all_logistic_regression(x_data,y_data,x_data_test)
+    y_data.columns = ['NumType']
+    y_train, y_cv, y_test = generate_datasets((0.6,0.2,0.2),np.unique(y_data.values),y_data)
+    x_train = x_data.reindex(index=y_train.index)
+    x_cv = x_data.reindex(index=y_cv.index)
+    x_test = x_data.reindex(index=y_test.index)
+    do_all_logistic_regression(x_train,x_test,x_cv,y_train,y_test,y_cv)
 
   def test_extended_dataset(self):
 
     print "\n-------------------Extended data set-------------------"
     x_data = self.new_data.reindex(columns=self.iris['feature_names'])
     y_data = self.new_data.reindex(columns=['target'])
-    x_data_test = x_data.copy()
-    do_all_logistic_regression(x_data,y_data,x_data_test)
+    y_data.columns = ['NumType']
+    y_train, y_cv, y_test = generate_datasets((0.6,0.2,0.2),np.unique(y_data.values),y_data)
+    x_train = x_data.reindex(index=y_train.index)
+    x_cv = x_data.reindex(index=y_cv.index)
+    x_test = x_data.reindex(index=y_test.index)
+    do_all_logistic_regression(x_train,x_test,x_cv,y_train,y_test,y_cv)
 
   def plot_features(self):
 

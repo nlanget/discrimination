@@ -7,10 +7,10 @@ from random import gauss
 
 def suite():
   suite = unittest.TestSuite()
-  #suite.addTest(FeatureTests('test_energy_between_10Hz_and_30Hz'))
+  suite.addTest(FeatureTests('test_energy_between_10Hz_and_30Hz'))
   #suite.addTest(FeatureTests('test_gaussian_kurtosis'))
   #suite.addTest(FeatureTests('test_max_over_mean'))
-  suite.addTest(FeatureTests('test_signal_duration_and_growth_over_decay'))
+  #suite.addTest(FeatureTests('test_signal_duration_and_growth_over_decay'))
   #suite.addTest(FeatureTests('test_spectral_features'))
   #suite.addTest(FeatureTests('test_cepstrum'))
   #suite.addTest(FeatureTests('test_instantaneous_bandwidth'))
@@ -147,7 +147,7 @@ class FeatureTests(unittest.TestCase):
     #data = tr.data[1500:2500]
 
     TF = np.fft.fft(data)
-    ibw,normEnv = instant_bw(data,self.dt,TF,plot=False)
+    ibw,normEnv = instant_bw(data,[],self.dt,TF,plot=False)
     self.assertAlmostEquals(np.mean(ibw),0,places=1)
 
 
@@ -160,40 +160,39 @@ class FeatureTests(unittest.TestCase):
 
 
   def test_polarization(self):
-    self.mat = np.array([[1,0,0],[0,-1,1],[1,1,1]])
-    l1, l2, l3 = np.sqrt(2), 1, -np.sqrt(2)
-    expRect = 1 - (l2+l3)/(2*l1)
-    expPlan = 1 - (2*l3)/(l1+l2)
+    #self.mat = np.array([[1,0,0],[0,-1,1],[1,1,1]])
+    #l1, l2, l3 = np.sqrt(2), 1, -np.sqrt(2)
+    #expRect = 1 - (l2+l3)/(2*l1)
+    #expPlan = 1 - (2*l3)/(l1+l2)
 
-    rect, plan, lambda_max = polarization_analysis(self.mat,plot=False)
-    self.assertAlmostEquals(lambda_max,l1,places=6)
-    self.assertAlmostEquals(rect,expRect,places=6)
-    self.assertAlmostEquals(plan,expPlan,places=6)
+    #rect, plan, lambda_max = polarization_analysis(self.mat,plot=False)
+    #self.assertAlmostEquals(lambda_max,l1,places=6)
+    #self.assertAlmostEquals(rect,expRect,places=6)
+    #self.assertAlmostEquals(plan,expPlan,places=6)
 
+    t_before = 115
+    t_after = 135
     file = "/home/nadege/waveloc/data/Piton/2011-02-02/2011-02-02T00:00:00.YA.UV15.HHZ.filt.mseed"
-    cmin = utcdatetime.UTCDateTime("2011-02-02T00:58:47.720000Z")-15
-    cmax = utcdatetime.UTCDateTime("2011-02-02T00:58:47.720000Z")+135
+    file_n = "%s/HHN/*UV15*HHN*.filt.*"%(os.path.dirname(file))
+    file_e = "%s/HHE/*UV15*HHE*.filt.*"%(os.path.dirname(file))
+    filenames = [file_n, file_e, file]
+
+    cmin = utcdatetime.UTCDateTime("2011-02-02T00:58:47.720000Z")-t_before
+    cmax = utcdatetime.UTCDateTime("2011-02-02T00:58:47.720000Z")+t_after
 
     ponset = 1400 
-    st_z = read(file,starttime=cmin,endtime=cmax)
-    tr_z = st_z[0].data[ponset-10:ponset+30]
- 
-    file_n = "%s/HHN/*%s*HHN*.filt.*"%(os.path.dirname(file),st_z[0].stats.station)
-    file_e = "%s/HHE/*%s*HHE*.filt.*"%(os.path.dirname(file),st_z[0].stats.station)
-    st_n = read(file_n,starttime=cmin,endtime=cmax)
-    st_e = read(file_e,starttime=cmin,endtime=cmax)
-    tr_n = st_n[0].data[ponset-10:ponset+30]
-    tr_e = st_e[0].data[ponset-10:ponset+30]
 
-    x=np.array([tr_z,tr_n,tr_e])
-    print tr_e.shape
-    mat = np.cov(x)
-    rect, plan, lambda_max = polarization_analysis(mat,plot=True)
-    from obspy.signal.polarization import eigval
-    leigenv1, leigenv2, leigenv3, rect, plan, dleigenv, drect, dplan = eigval(tr_e,tr_n,tr_z,[1,1,1,1,1])
-    print lambda_max
-    print leigenv1, leigenv2, leigenv3
+    rect, plan, azimuth, iangle = polarization_analysis(filenames,t_before+t_after,ponset)
 
+    expRect = 0.715057485804
+    expPlan = 0.629470186394
+    expAz = -0.328873516012
+    expIAn = 2.30349693071
+
+    self.assertAlmostEquals(rect,expRect,places=6)
+    self.assertAlmostEquals(plan,expPlan,places=6)
+    self.assertAlmostEquals(azimuth,expAz,places=6)
+    self.assertAlmostEquals(iangle,expIAn,places=6)
 
 
 class TestAnalyticFeatures(unittest.TestCase):
@@ -207,7 +206,7 @@ class TestAnalyticFeatures(unittest.TestCase):
     sin_func = np.sin(2*pi*F*t)
 
     TF = np.fft.fft(sin_func)
-    vals = instant_freq(sin_func,dt,TF,plot=False)
+    vals,p = instant_freq(sin_func,dt,TF,0,len(sin_func),plot=False)
 
     for i in range(len(vals)):
       self.assertAlmostEquals(vals[i],F,places=1)
@@ -222,11 +221,8 @@ class TestAnalyticFeatures(unittest.TestCase):
     data = np.sin(2*pi*(A+B/2*t)*t)
 
     TF = np.fft.fft(data)
-    vals = instant_freq(data,dt,TF,plot=True)
+    vals,pf = instant_freq(data,dt,TF,0,len(data),plot=False)
 
-    print vals
-
-    #iphase, pf = instant_freq(data,dt,TF,plot=False)
     #self.assertAlmostEquals(A,pf[1],places=1)
     #self.assertAlmostEquals(B,pf[0],places=1)
 
@@ -240,7 +236,7 @@ class TestAnalyticFeatures(unittest.TestCase):
     data = np.sin(2*pi*f1*t) + np.sin(2*pi*f2*t)
 
     TF = np.fft.fft(data)
-    iphase, pf = instant_freq(data,dt,TF,plot=False)
+    iphase, pf = instant_freq(data,dt,TF,0,len(data),plot=True)
     #self.assertAlmostEquals(iphase,F,places=1)
 
 
@@ -281,8 +277,8 @@ class TestRicker(unittest.TestCase):
     env = filter.envelope(self.ricker)
 
     tf = np.fft.fft(self.ricker)
-    ifreq = instant_freq(self.ricker, self.dt, tf, 50, 150, plot=True)
-    ibw = instant_bw(self.ricker, env, self.dt, tf, plot=True)
+    ifreq = instant_freq(self.ricker, self.dt, tf, 50, 150, plot=False)
+    ibw = instant_bw(self.ricker, env, self.dt, tf, plot=False)
 
 
   def test_trace(self):
@@ -309,8 +305,8 @@ class TestRicker(unittest.TestCase):
 
     from obspy.signal import filter
     env = filter.envelope(trace)
-    ifreq = instant_freq(trace, self.dt, np.fft.fft(trace), 0, len(trace)-1, plot=True)
-    ibw = instant_bw(trace, env, self.dt, np.fft.fft(trace), ponset = 0, tend=len(trace), plot=True)
+    ifreq = instant_freq(trace, self.dt, np.fft.fft(trace), 0, len(trace)-1, plot=False)
+    ibw = instant_bw(trace, env, self.dt, np.fft.fft(trace), ponset = 0, tend=len(trace), plot=False)
 
 
 if __name__ == '__main__':

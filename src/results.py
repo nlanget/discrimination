@@ -170,7 +170,10 @@ class AnalyseResults(MultiOptions):
           ev_m = np.array(m.index)
           ev_a = np.array(a.index)
           common = np.intersect1d(ev_a,ev_m)
-          p[t].append(len(common)*1./len(m)*100)
+          if len(m) != 0:
+            p[t].append(len(common)*1./len(m)*100)
+          else:
+            p[t].append(0)
 
       for t in self.opdict['Types']:
         print "\t",t, np.mean(p[t]), np.std(p[t])
@@ -253,7 +256,9 @@ class AnalyseResults(MultiOptions):
     cmat = confusion_matrix(m.values[:,0],a.values[:,0])
     plot_confusion_mat(cmat,self.types,'Test',self.opdict['method'])
     if self.opdict['save_confusion']:
-      plt.savefig('%s/figures/test_%s.png'%(self.opdict['outdir'],self.opdict['result_file'][8:]))
+      savefig = '%s/figures/test_%s.png'%(self.opdict['outdir'],self.opdict['result_file'])
+      print "Confusion matrix saved in %s"%savefig
+      plt.savefig(savefig)
     plt.show()
 
 
@@ -280,12 +285,12 @@ class AnalyseResultsExtraction(MultiOptions):
           continue
 
         self.composition_dataset()
-        self.repartition_extraction()
+        #self.repartition_extraction()
 
-        self.plot_all_diagrams()
-        self.plot_diagrams_one_draw()
+        #self.plot_all_diagrams()
+        #self.plot_diagrams_one_draw()
         #self.plot_pdf_extract()
-        #self.unclass_histo()
+        self.unclass_histo()
         self.unclass_diagram()
         if 'unclass_all' in self.__dict__.keys():
           self.analyse_unclass()
@@ -299,11 +304,12 @@ class AnalyseResultsExtraction(MultiOptions):
     Affiche le diagramme de répartition des classes extraites par l'extracteur.
     A comparer entre extracteurs, et avec le diagramme de répartition manuel.
     """
-    N = len(self.x)
     colors = ['yellowgreen', 'gold', 'lightskyblue', 'lightcoral','lightgreen','khaki','plum','powderblue']
 
     if self.opdict['method'] == '1b1':
       for tir in sorted(self.results):
+        Ns = [len(self.results[tir][cl]['i_test']) for cl in sorted(self.results[tir])]
+        N = np.max(Ns)
         nbs = [self.results[tir][cl]['nb'] for cl in sorted(self.results[tir])]
         labels = sorted(self.results[tir])
         nbs.append(N-np.sum(nbs))
@@ -312,17 +318,18 @@ class AnalyseResultsExtraction(MultiOptions):
         fig = plt.figure(figsize=(6,6))
         fig.set_facecolor('white')
         plt.pie(nbs,labels=labels,autopct='%1.1f',colors=colors)
+        plt.figtext(0.4,0.1,'# events = %d'%np.sum(nbs))
         plt.title('Repartition after the extraction')
-        #plt.savefig('%s/OBO_repartition_tir%d.png'%(self.opdict['fig_path'],tir))
       plt.show()
 
     elif self.opdict['method'] == 'ova':
       self.search_repetition()
       self.repeat = map(int,list(self.repeat))
       for tir in sorted(self.results):
-        nbs, labels = [],[] 
+        nbs, labels = [],[]
+        N = len(self.results[tir]['i_test'])
         for cl in sorted(self.results[tir]):
-          if cl == 'i_train':
+          if cl in ['i_train','i_test']:
             continue
           labels.append(cl)
           nb_ini = self.results[tir][cl]['nb']
@@ -337,8 +344,8 @@ class AnalyseResultsExtraction(MultiOptions):
         fig = plt.figure(figsize=(6,6))
         fig.set_facecolor('white')
         plt.pie(nbs,labels=labels,autopct='%1.1f',colors=colors)
+        plt.figtext(0.4,0.1,'# events = %d'%np.sum(nbs))
         plt.title('Repartition after the extraction')
-        plt.savefig('%s/OVA_repartition_tir%d.png'%(self.opdict['fig_path'],tir))
       plt.show()
 
 
@@ -351,7 +358,7 @@ class AnalyseResultsExtraction(MultiOptions):
     tuniq = np.unique(self.y.Type)
     N = np.array(range(len(np.unique(tuniq))))
     width = 0.1
-    colors = [(0,0,1),(1,0,0),(0,1,0),(1,1,0),(0,0,0),(0,1,1),(1,0,1),(1,1,1),(.8,.5,0),(0,0.5,0.5)]
+    colors = [(0,0,1),(1,0,0),(0,1,0),(1,1,0),(0,0,0),(0,1,1),(1,0,1),(1,1,1),(.8,.5,0),(0,.5,.5)]
 
     self.unclass_all = np.array([])
 
@@ -359,8 +366,12 @@ class AnalyseResultsExtraction(MultiOptions):
     fig.set_facecolor('white')
     for iter in sorted(self.results):
       rest = np.array([])
+      if len(self.results[iter]['i_test']) == len(self.results[iter])-2:
+        y_tir = self.y.reindex(index=map(int,self.results[iter]['i_test'][0]))
+      else:
+        y_tir = self.y.reindex(index=map(int,self.results[iter]['i_test']))
       for cl in sorted(self.results[iter]):
-        if cl == 'i_train':
+        if cl in ['i_train','i_test']:
           continue
         for tup in self.results[iter][cl]['i_other']:
           rest = np.hstack((rest,tup[1]))
@@ -368,16 +379,16 @@ class AnalyseResultsExtraction(MultiOptions):
 
       rest_uniq = np.unique(rest)
       rest_uniq = np.array(map(int,list(rest_uniq)))
-      unclass = np.setdiff1d(np.array(self.x.index),rest_uniq)
+      unclass = np.setdiff1d(np.array(y_tir.index),rest_uniq)
       self.unclass_all = np.concatenate((self.unclass_all,unclass))
-    
+
       unclass_types = self.y.reindex(index=unclass,columns=['Type']).values
       nb = [len(unclass_types[unclass_types==t]) for t in tuniq]
       rects = ax.bar(N+iter*width,nb,width,color=colors)
 
     ax2 = ax.twinx()
     ylab = []
-    for yt in ax.get_yticks()*100./len(self.x):
+    for yt in ax.get_yticks()*100./len(y_tir):
       ylab.append("%.1f"%yt)
     ax2.set_yticks(range(len(ax.get_yticks())))
     ax2.set_yticklabels(ylab)
@@ -418,8 +429,12 @@ class AnalyseResultsExtraction(MultiOptions):
       fig.set_facecolor('white')
       grid = GridSpec(3,4)
       rest = np.array([])
+      if len(self.results[iter]['i_test']) == len(self.results[iter])-2:
+        y_tir = self.y.reindex(index=map(int,self.results[iter]['i_test'][0]))
+      else:
+        y_tir = self.y.reindex(index=map(int,self.results[iter]['i_test']))
       for cl in sorted(self.results[iter]):
-        if cl == 'i_train':
+        if cl in ['i_train','i_test']:
           continue
         for tup in self.results[iter][cl]['i_other']:
           rest = np.hstack((rest,tup[1]))
@@ -427,26 +442,31 @@ class AnalyseResultsExtraction(MultiOptions):
 
       rest_uniq = np.unique(rest)
       rest_uniq = np.array(map(int,list(rest_uniq)))
-      unclass = np.setdiff1d(np.array(self.x.index),rest_uniq)
+      unclass = np.setdiff1d(np.array(y_tir.index),rest_uniq)
       self.unclass_all = np.concatenate((self.unclass_all,unclass))      
 
       unclass_types = self.y.reindex(index=unclass,columns=['Type']).values
       nb = [len(unclass_types[unclass_types==t]) for t in types]
 
-      plt.subplot(grid[:2,:2],aspect=1,title='Unclassified events')
-      plt.pie(nb,labels=types,autopct='%1.1f%%',colors=colors)
+      ax = fig.add_subplot(grid[:2,:2],aspect=1,title='Unclassified events')
+      ax.pie(nb,labels=types,autopct='%1.1f%%',colors=colors)
+      ax.text(.35,0,"# events = %d"%np.sum(nb),transform=ax.transAxes)
 
       orga = [(0,2),(0,3),(1,2),(1,3),(2,0),(2,1),(2,2),(2,3)]
       for it,t in enumerate(types):
         nb = len(unclass_types[unclass_types==t])
-        nb_tot = len(self.y[self.y.Type==t])
+        nb_tot = len(y_tir[y_tir.Type==t])
         il = orga[it][0]
         icol = orga[it][1]
-        plt.subplot(grid[il,icol],aspect=1,title=t)
-        plt.pie([nb,nb_tot-nb],explode=(.05,0),labels=['unclass',''],autopct='%1.1f%%',colors=((.5,.5,.5),'w'))
+        ax = fig.add_subplot(grid[il,icol],aspect=1,title=t)
+        ax.pie([nb,nb_tot-nb],explode=(.05,0),labels=['unclass',''],autopct='%1.1f%%',colors=((.5,.5,.5),'w'))
+        ax.text(0.2,-.02,"# events = %d"%nb_tot,transform=ax.transAxes)
       plt.figtext(.1,.91,'(a)',fontsize=18)
       plt.figtext(.5,.91,'(b)',fontsize=18)
-    #plt.savefig('../results/Ijen/figures/unclass_OBO.png')
+      if self.opdict['save_confusion']:
+        savefig = '%s/unclass_%s_tir%d'%(self.opdict['fig_path'],self.opdict['method'],iter)
+        print 'Plot saved in %s'%savefig
+        plt.savefig(savefig)
     plt.show()
 
 
@@ -475,13 +495,20 @@ class AnalyseResultsExtraction(MultiOptions):
     grid = GridSpec(1,2)
     fig = plt.figure(figsize=(12,5))
     fig.set_facecolor('white')
-    plt.subplot(grid[0,0])
-    plt.pie(nb_dataset,labels=types,autopct='%1.1f%%',colors=colors)
-    plt.title('(a) Whole dataset')
-    plt.subplot(grid[0,1])
-    plt.pie(nb,labels=types,autopct='%1.1f%%',colors=colors)
-    plt.title('(b) Unclassified events')
-    #plt.savefig('../results/Ijen/figures/unclass_all_OBO.png')
+    ax = fig.add_subplot(grid[0,0])
+    ax.pie(nb_dataset,labels=types,autopct='%1.1f%%',colors=colors)
+    ax.set_title('(a) Whole dataset')
+    ax.text(.4,0,"# events = %d"%np.sum(nb_dataset),transform=ax.transAxes)
+
+    ax = fig.add_subplot(grid[0,1])
+    ax.pie(nb,labels=types,autopct='%1.1f%%',colors=colors)
+    ax.set_title('(b) Unclassified events')
+    ax.text(.4,0,"# events = %d"%np.sum(nb),transform=ax.transAxes)
+
+    if self.opdict['save_confusion']:
+      savefig = '%s/unclass_all.png'%(self.opdict['fig_path'])
+      print 'Save figure in %s'%savefig
+      plt.savefig(savefig)
     plt.show()
 
     self.types = types[np.argsort(nb)][-3:]
@@ -496,7 +523,7 @@ class AnalyseResultsExtraction(MultiOptions):
       self.compute_pdfs()
       g_unclass = self.gaussians
 
-      colors = ['r','g','b']
+      colors = ['r','g','b','m','y','c','k','gray']
       for feat in sorted(g_ok):
         if feat == 'NbPeaks':
           continue
@@ -504,7 +531,8 @@ class AnalyseResultsExtraction(MultiOptions):
         fig.set_facecolor('white')
         for it,t in enumerate(self.types):
           plt.plot(g_ok[feat]['vec'],g_ok[feat][t],ls='-',c=colors[it],label=t)
-          plt.plot(g_unclass[feat]['vec'],g_unclass[feat][t],ls='--',c=colors[it])
+          if t in sorted(g_unclass[feat]):
+            plt.plot(g_unclass[feat]['vec'],g_unclass[feat][t],ls='--',c=colors[it])
         plt.title(feat)
         plt.legend()
         plt.show()
@@ -532,7 +560,7 @@ class AnalyseResultsExtraction(MultiOptions):
     for iter in sorted(self.results):
       rest = np.array([])
       for cl in sorted(self.results[iter]):
-        if cl == 'i_train':
+        if cl == 'i_train' or cl == 'i_test':
           continue
         for tup in self.results[iter][cl]['i_other']:
           rest = np.hstack((rest,tup[1]))
@@ -610,6 +638,8 @@ class AnalyseResultsExtraction(MultiOptions):
     types = sorted(self.results[0])
     if 'i_train' in types:
       types.remove('i_train')
+    if 'i_test' in types:
+      types.remove('i_test')
     print types
     N = np.array(range(len(types)-1))
 
@@ -632,13 +662,14 @@ class AnalyseResultsExtraction(MultiOptions):
         col = iter%nbc * 2
 
         valok = dic['rate_%s'%cl][1]
-        plt.subplot(grid[row,col],aspect=1)
+        ax = fig.add_subplot(grid[row,col],aspect=1)
         classname = cl
         if classname == 'VulkanikB':
           classname = 'VB'
         if classname == 'VulkanikA':
           classname = 'VA'
-        plt.pie([valok,100-valok],explode=(.05,0),labels=(classname,'R'),autopct='%1.1f%%',colors=('w',(.5,.5,.5)))
+        ax.pie([valok,100-valok],explode=(.05,0),labels=(classname,'R'),autopct='%1.1f%%',colors=('w',(.5,.5,.5)))
+        ax.text(0.2,0,'# events = %d'%dic['nb'],transform=ax.transAxes)
 
         fracs = [tup[1]*1./(dic['nb']-dic['nb_common']) for tup in dic['nb_other'] if tup[1]!=0]
         labels = np.array([tup[0] for tup in dic['nb_other'] if tup[1]!=0])
@@ -659,7 +690,6 @@ class AnalyseResultsExtraction(MultiOptions):
         plt.subplot(grid[row,col+1],aspect=1)
         plt.pie(fracs,labels=labels,autopct='%1.1f%%',colors=colors)
       plt.suptitle('Extraction of %s'%cl)
-      #plt.savefig('../results/Ijen/figures/OBO_%s_svm.png'%cl)
 
     plt.show()
 
@@ -676,12 +706,15 @@ class AnalyseResultsExtraction(MultiOptions):
     types = sorted(self.results[0])
     if 'i_train' in types:
       types.remove('i_train')
+    if 'i_test' in types:
+      types.remove('i_test')
     if len(types) > 4:
       types = ['Tektonik','Tremor','VulkanikB','VulkanikA']
     N = np.array(range(len(types)-1))
 
     colors = ['yellowgreen', 'gold', 'lightskyblue', 'lightcoral','lightgreen','khaki','plum','powderblue']
     width = 0.1
+
     for tir in sorted(self.results):
       fig = plt.figure(figsize=(12,7))
       fig.set_facecolor('white')
@@ -699,13 +732,14 @@ class AnalyseResultsExtraction(MultiOptions):
         col = icl%nbc * 2
 
         valok = dic['rate_%s'%cl][1]
-        plt.subplot(grid[row,col],aspect=1)
+        ax = fig.add_subplot(grid[row,col],aspect=1)
         classname = cl
         if classname == 'VulkanikB':
           classname = 'VB'
         if classname == 'VulkanikA':
           classname = 'VA'
-        plt.pie([valok,100-valok],explode=(.05,0),labels=(classname,'R'),autopct='%1.1f%%',colors=('w',(.5,.5,.5)))
+        ax.pie([valok,100-valok],explode=(.05,0),labels=(classname,'R'),autopct='%1.1f%%',colors=('w',(.5,.5,.5)))
+        ax.text(0.2,-.1,"# events = %d"%dic['nb'],transform=ax.transAxes)
 
         fracs = [tup[1]*1./(dic['nb']-dic['nb_common']) for tup in dic['nb_other'] if tup[1]!=0]
         labels = np.array([tup[0] for tup in dic['nb_other'] if tup[1]!=0])
@@ -734,7 +768,6 @@ class AnalyseResultsExtraction(MultiOptions):
           plt.figtext(.1,.43,'(c) Extraction of %s'%types[icl])
         elif icl == 3:
           plt.figtext(.55,.43,'(d) Extraction of %s'%types[icl])
-      #plt.savefig('../results/Ijen/figures/OBO_SVM_tir%d.png'%tir)
 
     plt.show()
 
@@ -750,7 +783,7 @@ class AnalyseResultsExtraction(MultiOptions):
     for tir in sorted(self.results):
       print "TIRAGE",tir
       for cl in sorted(self.results[tir]):
-        if cl == 'i_train':
+        if cl == 'i_train' or cl == 'i_test':
           continue
         if self.results[tir][cl]['nb'] == 0:
           continue
@@ -789,5 +822,4 @@ class AnalyseResultsExtraction(MultiOptions):
 
     self.x = X_ini
     self.y = Y_ini
-
 

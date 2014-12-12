@@ -3,12 +3,11 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-
 ### ====================================================
 ### FUNCTIONS ###
 def read_binary_file(filename):
   """
-  Reads a binary file.
+  Reads a binary file and stores the content into a structure.
   """
   import cPickle
   with open(filename,'rb') as file:
@@ -20,7 +19,7 @@ def read_binary_file(filename):
 
 def write_binary_file(filename,dic):
   """
-  Writes in a binary file.
+  Writes any structure in a binary file.
   """
   import cPickle
   with open(filename,'w') as file:
@@ -89,13 +88,13 @@ def ijen():
   #opdict['stations'] = ['DAM','IBLW','IGEN','IJEN','IMLB','IPAL','IPLA','IPSW','KWUI','MLLR','POS','POSI','PSG','PUN','RAUN','TRWI']
   #opdict['types'] = ['Hembusan','Hibrid','LF','Longsoran','Tektonik','Tremor','VulkanikA','VulkanikB']
   #opdict['types'] = ['Tremor','VulkanikB','?']
-  opdict['types'] = ['Tremor','VulkanikB']
+  opdict['types'] = ['VulkanikB','?']
   opdict['datadir'] = os.path.join('../data',opdict['dir'],opdict['network'])
-  ### FEATURES FILE
+  ### FEATURES FILE ###
   opdict['feat_test'] = 'ijen_3006.csv'
-  ### LABEL FILE
-  opdict['label_test'] = 'Ijen_class_all.csv'
-  ### FEATURES LIST
+  ### LABEL FILE ###
+  opdict['label_test'] = 'Ijen_3class_all.csv'
+  ### FEATURES LIST ###
   opdict['feat_all'] = ['AsDec','Bandwidth','CentralF','Centroid_time','Dur','Ene20-30','Ene5-10','Ene0-5','F_low','F_up','Growth','IFslope','Kurto','MeanPredF','NbPeaks','PredF','RappMaxMean','RappMaxMeanTF','Skewness','sPredF','TimeMaxSpec','Width','ibw0','ibw1','ibw2','ibw3','ibw4','ibw5','ibw6','ibw7','ibw8','ibw9','if0','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9']
   return opdict
 
@@ -107,32 +106,32 @@ def piton():
   opdict['stations'] = ['BOR']
   opdict['types'] = ['EB','VT']
   opdict['datadir'] = os.path.join('../data/%s/full_data'%opdict['dir'])
-  ### FEATURES FILES
+  ### FEATURES FILES ###
   opdict['feat_train'] = 'clement_train.csv'
   opdict['feat_test'] = 'clement_test.csv'
   #opdict['feat_train'] = 'Piton_trainset.csv'
   #opdict['feat_test'] = 'Piton_testset.csv'
-  ### HASH TABLE FEATURES FILES
+  ### HASH TABLE FEATURES FILES ###
   opdict['hash_train'] = 'ClHT_Piton_trainset.csv'
   opdict['hash_test'] = 'ClHT_Piton_testset.csv'
-  ### LABEL FILES
+  ### LABEL FILES ###
   opdict['label_train'] = 'class_train_set.csv'
   opdict['label_test'] = 'class_test_set.csv'
-  ### DECOMPOSITION OF THE TRAINING SET
+  ### DECOMPOSITION OF THE TRAINING SET ###
   #opdict['learn_file'] = 'learning_set'
-  ### FEATURES LIST
+  ### FEATURES LIST ###
   opdict['feat_all'] = ['AsDec','Bandwidth','CentralF','Centroid_time','Dur','Ene','Ene5-10','Ene0-5','F_low','F_up','Growth','IFslope','Kurto','MeanPredF','NbPeaks','PredF','RappMaxMean','RappMaxMeanTF','Skewness','sPredF','TimeMaxSpec','Width','ibw0','ibw1','ibw2','ibw3','ibw4','ibw5','ibw6','ibw7','ibw8','ibw9','if0','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9','Rectilinearity','Planarity','Azimuth','Incidence','KRapp'] 
   return opdict
 
-### ====================================================
+### ==================================================== ###
 ### CLASS Options() ###
 class Options(object):
 
   def __init__(self):
 
     self.opdict = {}
-    self.opdict = ijen()
-    #self.opdict = piton()
+    #self.opdict = ijen()
+    self.opdict = piton()
 
     ### Import classification options ###
     self.set_classi_options()
@@ -152,6 +151,12 @@ class Options(object):
     # a new training set is generated at each 'iteration'
     self.opdict['boot'] = 2
 
+    ### Proportions in the dataset (decomposition in training/CV/test sets) ###
+    self.opdict['proportions'] = (0.4,0.2,0.4)
+    if not np.sum(self.opdict['proportions']) == 1:
+      print "Check proportions for the dataset decomposition"
+      sys.exit()
+
     ### Choice of the classification algorithm ###
     # could be 'lr' (LR = logistic regression)
     # or 'svm' (SVM = Support Vector Machine from scikit.learn package ; default is linear)
@@ -160,29 +165,32 @@ class Options(object):
     # or '1b1' (1-by-1 extractor)
     # or 'lrsk' (Logistic regression from scikit.learn package)
     # or 'kmeans' (K-means from scikit.learn package)
-    self.opdict['method'] = 'svm'
+    self.opdict['method'] = 'lr'
 
     ### Also compute the probabilities for each class ###
-    ### Computation time increases
+    ### Warning !! Computation time increases ###
     self.opdict['probas'] = False
+
+    ### Display the dataset composition diagram ###
+    self.opdict['plot_dataset'] = False
 
     ### Display and save the PDFs of the features ###
     self.opdict['plot_pdf'] = False
     self.opdict['save_pdf'] = False
 
     ### Display and save the confusion matrices ###
-    self.opdict['plot_confusion'] = True
-    self.opdict['save_confusion'] = True
+    self.opdict['plot_confusion'] = False
+    self.opdict['save_confusion'] = False
 
     ### Plot and save the decision boundaries ###
-    self.opdict['plot_sep'] = False
-    self.opdict['save_sep'] = False
+    self.opdict['plot_sep'] = True
+    self.opdict['save_sep'] = True
     self.opdict['compare'] = False # plot SVM and LR decision boundaries on the same plot
     self.opdict['compare_nl'] = False # plot SVM non-linear decision boundaries on the same plot
     self.opdict['plot_var'] = False # plot decision boundaries for different training set draws
 
     ### Plot precision and recall ###
-    self.opdict['plot_prec_rec'] = False # plot precision and recall
+    self.opdict['plot_prec_rec'] = False 
 
 
   def fill_opdict(self):
@@ -190,48 +198,48 @@ class Options(object):
     Check and create directories/files paths.
     """
     ### Check the existence of directories and create if necessary ###
-    ### Data directory
+    ### Data directory ###
     self.verify_dir(self.opdict['datadir'])
-    ### Library directory
+    ### Library directory ###
     self.opdict['libdir'] = os.path.join('../lib',self.opdict['dir'])
     self.verify_dir(self.opdict['libdir'])
-    ### Output directory
+    ### Output directory ###
     self.opdict['outdir'] = os.path.join('../results',self.opdict['dir'])
     self.verify_and_create(self.opdict['outdir'])
-    ### Result directory
+    ### Result directory ###
     self.opdict['res_dir'] = '%s/%s'%(self.opdict['outdir'],self.opdict['method'].upper())
     self.verify_and_create(self.opdict['res_dir'])
-    ### Figures directory
+    ### Figures directory ###
     self.opdict['fig_path'] = '%s/figures'%self.opdict['res_dir']
     self.verify_and_create(self.opdict['fig_path'])
 
-    ### if there is an independent training set
+    ### if there is an independent training set ###
     if 'feat_train' in sorted(self.opdict):
       if not 'label_train' in sorted(self.opdict):
         print "WARNING !!! check training set features and label files...."
  
     ### Check the existence of files ###
-    ### Features file
+    ### Features file ###
     self.opdict['feat_filename'] = '%s/features/%s'%(self.opdict['outdir'],self.opdict['feat_test'])
     #self.verify_file(self.opdict['feat_filename'])
-    ### Label file
+    ### Label file ###
     self.opdict['label_filename'] = '%s/%s'%(self.opdict['libdir'],self.opdict['label_test'])
     self.verify_file(self.opdict['label_filename'])
 
 
-    ### DIFFERENT TRAINING SETS (CREATED FROM THE TEST SET)
+    ### DIFFERENT TRAINING SETS (CREATED FROM THE TEST SET) ###
     if not 'feat_train' in sorted(self.opdict):
-      self.opdict['train_file'] = '%s/train_%d'%(self.opdict['libdir'],self.opdict['boot'])
-    ### DECOMPOSITION OF THE TRAINING SET (training, CV, test)
+      self.opdict['train_file'] = '%s/train'%(self.opdict['libdir'])
+    ### DECOMPOSITION OF THE TRAINING SET (training, CV, test) ###
     if 'learn_file' in sorted(self.opdict):
       self.opdict['learn_file'] = os.path.join(self.opdict['libdir'],self.opdict['learn_file'])
 
     import time
     date = time.localtime()
     if self.opdict['option'] == 'norm':
-      # Features "normales"
-      self.opdict['feat_list'] = self.opdict['feat_all']
-      #self.opdict['feat_list'] = ['AsDec']
+      ### Features "normales" ###
+      #self.opdict['feat_list'] = self.opdict['feat_all']
+      self.opdict['feat_list'] = ['AsDec']
       #self.opdict['feat_log'] = ['Ene']
       #self.opdict['feat_log'] = self.opdict['feat_list']
       #self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Growth','Kurto','RappMaxMean','RappMaxMeanTF','Skewness','TimeMaxSpec','Width']
@@ -241,7 +249,7 @@ class Options(object):
       #self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_low','F_up','IFslope','Kurto','MeanPredF','RappMaxMean','Skewness','ibw0','if6','if7','if8','v8']
 
     if self.opdict['option'] == 'hash':
-      # Hashing
+      ### Hashing ###
       #self.opdict['feat_test'] = 'HT_%02d%02d.csv'%(date.tm_mday,date.tm_mon)
       self.opdict['feat_test'] = self.opdict['hash_test']
       if 'hash_train' in sorted(self.opdict):
@@ -257,10 +265,10 @@ class Options(object):
       if NB_feat == 1:
         self.opdict['result_file'] = 'results_%s_%s'%(self.opdict['method'],self.opdict['feat_list'][0])
       else:
-        self.opdict['result_file'] = 'results_%s_%dc_%df'%(self.opdict['method'],len(self.opdict['types']),len(self.opdict['feat_list']))
+        self.opdict['result_file'] = 'results_%s_%dc_%df_cat'%(self.opdict['method'],len(self.opdict['types']),len(self.opdict['feat_list']))
  
     else:
-      self.opdict['result_file'] = '%s_%s_svm'%(self.opdict['method'].upper(),self.opdict['stations'][0])
+      self.opdict['result_file'] = '1311_%s_%s_svm'%(self.opdict['method'].upper(),self.opdict['stations'][0])
 
     self.opdict['result_path'] = '%s/%s'%(self.opdict['res_dir'],self.opdict['result_file'])
 
@@ -293,12 +301,15 @@ class Options(object):
     self.opdict['boot'] = 1
     self.opdict['plot_pdf'] = False # display the pdfs of the features
     self.opdict['save_pdf'] = False
-    self.opdict['plot_confusion'] = False # display the confusion matrices
+    self.opdict['plot_confusion'] = True # display the confusion matrices
     self.opdict['save_confusion'] = False
     self.opdict['plot_sep'] = False # plot decision boundary
     self.opdict['save_sep'] = False
     self.opdict['plot_prec_rec'] = False # plot precision and recall
     self.opdict['compare'] = False
+    self.opdict['plot_var'] = False
+    self.opdict['plot_dataset'] = False
+    self.opdict['proportions'] = (.4,.2,.4)
 
 
   def read_csvfile(self,filename):
@@ -446,6 +457,7 @@ class Options(object):
     fig = plt.figure(figsize=(6,6))
     fig.set_facecolor('white')
     plt.pie(nb,labels=self.types,autopct='%1.1f%%',colors=colors)
+    plt.figtext(.4,.1,"# events = %s"%len(self.y))
     plt.title('Dataset')
     plt.show()
 
@@ -492,7 +504,6 @@ class Options(object):
       self.compute_pdfs()
 
     list = []
-    colors = ['r','b','g','m','c','y','k']
     for feat in sorted(self.gaussians):
       fig = plt.figure()
       fig.set_facecolor('white')
@@ -502,7 +513,7 @@ class Options(object):
         else:
           lstyle = '-'
         if feat != 'NbPeaks':
-          plt.plot(self.gaussians[feat]['vec'],self.gaussians[feat][t],c=colors[it],ls=lstyle,lw=2.)
+          plt.plot(self.gaussians[feat]['vec'],self.gaussians[feat][t],ls=lstyle,lw=2.)
         else:
           list.append(self.gaussians[feat][t])
       if feat == 'NbPeaks':
