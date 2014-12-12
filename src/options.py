@@ -87,8 +87,8 @@ def ijen():
   opdict['stations'] = ['IJEN']
   #opdict['stations'] = ['DAM','IBLW','IGEN','IJEN','IMLB','IPAL','IPLA','IPSW','KWUI','MLLR','POS','POSI','PSG','PUN','RAUN','TRWI']
   #opdict['types'] = ['Hembusan','Hibrid','LF','Longsoran','Tektonik','Tremor','VulkanikA','VulkanikB']
-  opdict['types'] = ['Tremor','VulkanikB','?']
-  #opdict['types'] = ['Tremor','VulkanikB']
+  #opdict['types'] = ['Tremor','VulkanikB','?']
+  opdict['types'] = ['VulkanikB','?']
   opdict['datadir'] = os.path.join('../data',opdict['dir'],opdict['network'])
   ### FEATURES FILE ###
   opdict['feat_test'] = 'ijen_3006.csv'
@@ -107,10 +107,10 @@ def piton():
   opdict['types'] = ['EB','VT']
   opdict['datadir'] = os.path.join('../data/%s/full_data'%opdict['dir'])
   ### FEATURES FILES ###
-  #opdict['feat_train'] = 'clement_train.csv'
-  #opdict['feat_test'] = 'clement_test.csv'
-  opdict['feat_train'] = 'Piton_trainset.csv'
-  opdict['feat_test'] = 'Piton_testset.csv'
+  opdict['feat_train'] = 'clement_train.csv'
+  opdict['feat_test'] = 'clement_test.csv'
+  #opdict['feat_train'] = 'Piton_trainset.csv'
+  #opdict['feat_test'] = 'Piton_testset.csv'
   ### HASH TABLE FEATURES FILES ###
   opdict['hash_train'] = 'ClHT_Piton_trainset.csv'
   opdict['hash_test'] = 'ClHT_Piton_testset.csv'
@@ -130,8 +130,8 @@ class Options(object):
   def __init__(self):
 
     self.opdict = {}
-    self.opdict = ijen()
-    #self.opdict = piton()
+    #self.opdict = ijen()
+    self.opdict = piton()
 
     ### Import classification options ###
     self.set_classi_options()
@@ -149,7 +149,7 @@ class Options(object):
 
     ### Number of iterations ###
     # a new training set is generated at each 'iteration'
-    self.opdict['boot'] = 1
+    self.opdict['boot'] = 2
 
     ### Proportions in the dataset (decomposition in training/CV/test sets) ###
     self.opdict['proportions'] = (0.4,0.2,0.4)
@@ -165,7 +165,7 @@ class Options(object):
     # or '1b1' (1-by-1 extractor)
     # or 'lrsk' (Logistic regression from scikit.learn package)
     # or 'kmeans' (K-means from scikit.learn package)
-    self.opdict['method'] = 'kmeans'
+    self.opdict['method'] = 'lr'
 
     ### Also compute the probabilities for each class ###
     ### Warning !! Computation time increases ###
@@ -175,16 +175,16 @@ class Options(object):
     self.opdict['plot_dataset'] = False
 
     ### Display and save the PDFs of the features ###
-    self.opdict['plot_pdf'] = True
-    self.opdict['save_pdf'] = True
+    self.opdict['plot_pdf'] = False
+    self.opdict['save_pdf'] = False
 
     ### Display and save the confusion matrices ###
-    self.opdict['plot_confusion'] = True
+    self.opdict['plot_confusion'] = False
     self.opdict['save_confusion'] = False
 
     ### Plot and save the decision boundaries ###
-    self.opdict['plot_sep'] = False
-    self.opdict['save_sep'] = False
+    self.opdict['plot_sep'] = True
+    self.opdict['save_sep'] = True
     self.opdict['compare'] = False # plot SVM and LR decision boundaries on the same plot
     self.opdict['compare_nl'] = False # plot SVM non-linear decision boundaries on the same plot
     self.opdict['plot_var'] = False # plot decision boundaries for different training set draws
@@ -239,10 +239,10 @@ class Options(object):
     if self.opdict['option'] == 'norm':
       ### Features "normales" ###
       #self.opdict['feat_list'] = self.opdict['feat_all']
-      #self.opdict['feat_list'] = ['Dur']
+      self.opdict['feat_list'] = ['AsDec']
       #self.opdict['feat_log'] = ['Ene']
       #self.opdict['feat_log'] = self.opdict['feat_list']
-      self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Growth','Kurto','RappMaxMean','RappMaxMeanTF','Skewness','TimeMaxSpec','Width']
+      #self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Growth','Kurto','RappMaxMean','RappMaxMeanTF','Skewness','TimeMaxSpec','Width']
       #self.opdict['feat_list'] = ['Centroid_time','Dur','Ene0-5','F_up','Kurto','RappMaxMean','Skewness','TimeMaxSpec']
       #self.opdict['feat_list'] = ['Dur','F_up','Growth','Kurto','RappMaxMean','RappMaxMeanTF','TimeMaxSpec','Width']
       #self.opdict['feat_list'] = ['CentralF','Centroid_time','Dur','Ene0-5','F_up','Growth','IFslope','Kurto','MeanPredF','RappMaxMean','RappMaxMeanTF','Skewness','TimeMaxSpec','Width','if1','if2','if3','if4','if5','if6','if7','if8','if9','v0','v1','v2','v3','v4','v5','v6','v7','v8','v9']
