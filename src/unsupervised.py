@@ -437,5 +437,60 @@ def compare_unsup_indet():
 
   plt.show()
 
+
+
+def plot_waveforms():
+
+  """
+  Plot the waveforms of unsupervised classes.
+  """
+
+  from matplotlib.gridspec import GridSpec
+  from options import read_binary_file, Options
+  from obspy.core import read
+  opt = Options()
+  DIC = read_binary_file(opt.opdict['result_path'])
+
+  for stac in sorted(DIC):
+    if stac == 'header':
+      continue
+    station = stac[0]
+    comp = stac[1]
+    datapath = glob.glob(os.path.join(opt.opdict['datadir'],station,'*%s*'%comp))[0]
+    for tir in sorted(DIC[stac]):
+      list_ev = DIC[stac][tir]['list_ev']
+      nclass = DIC[stac][tir]['NumClass']
+      K = len(np.unique(nclass))
+      fig = plt.figure()
+      fig.set_facecolor('white')
+      grid = GridSpec(2*K,3)
+      for j,N in enumerate(np.unique(nclass)):
+        index = list(np.where(nclass==N)[0])
+        ev = list_ev[index]
+        permut = np.random.permutation(ev)
+        for i in range(3):
+          E = permut[i]
+          file = glob.glob(os.path.join(datapath,'*%s_%s*'%(str(E)[:8],str(E)[8:])))[0]
+          st = read(file)
+          st.filter('bandpass',freqmin=1,freqmax=10)
+          if i in [0,1]:
+            ax = fig.add_subplot(grid[2*j,i+1])
+          else:
+            ax = fig.add_subplot(grid[2*j+1,:])
+          ax.plot(st[0],'k')
+          ax.set_axis_off()
+        ax = fig.add_subplot(grid[2*j,0])
+        ax.text(.2,.5,N,transform=ax.transAxes)
+        ax.set_axis_off()
+
+  save = True
+  if save:
+  savename = '%s/WF_K%dclass.png'%(opt.opdict['fig_path'],K)
+  print "Saved in %s"%savename
+  plt.savefig(savename)
+  plt.show()
+
+
 if __name__ == '__main__':
   compare_unsup_indet()
+  plot_waveforms()
