@@ -22,7 +22,6 @@ class AnalyseResults(MultiOptions):
 
     self.bootstrap_overall()
     self.bootstrap_per_class()
-    #sys.exit()
     self.concatenate_results()
     self.display_results()
 
@@ -289,7 +288,7 @@ class AnalyseResultsExtraction(MultiOptions):
 
         #self.plot_all_diagrams()
         #self.plot_diagrams_one_draw()
-        #self.plot_pdf_extract()
+        self.plot_pdf_extract()
         self.unclass_histo()
         self.unclass_diagram()
         if 'unclass_all' in self.__dict__.keys():
@@ -303,6 +302,7 @@ class AnalyseResultsExtraction(MultiOptions):
     """
     Affiche le diagramme de répartition des classes extraites par l'extracteur.
     A comparer entre extracteurs, et avec le diagramme de répartition manuel.
+    1 diagramme par tirage.
     """
     colors = ['yellowgreen', 'gold', 'lightskyblue', 'lightcoral','lightgreen','khaki','plum','powderblue']
 
@@ -599,10 +599,10 @@ class AnalyseResultsExtraction(MultiOptions):
     Affiche le diagramme de répartition des classes manuelles.
     """
     from collections import Counter
-    dic = Counter(list(self.repeat))
+    dic = Counter(map(int,list(self.repeat)))
     ld = []
     for d in dic.keys():
-      if dic[d] == 10:
+      if dic[d] > 1:
         ld.append(d)
 
     colors = ['yellowgreen', 'gold', 'lightskyblue', 'lightcoral','lightgreen','khaki','plum','powderblue']
@@ -618,6 +618,7 @@ class AnalyseResultsExtraction(MultiOptions):
       fig.set_facecolor('white')
       plt.subplot(grid[0,0])
       plt.pie(nb,labels=types,autopct='%1.1f%%',colors=colors)
+      plt.figtext(0.4,0.1,'# events = %d'%np.sum(nb))
       plt.title('Repeated events')
       plt.show()
 
@@ -787,7 +788,7 @@ class AnalyseResultsExtraction(MultiOptions):
           continue
         if self.results[tir][cl]['nb'] == 0:
           continue
-        print '***',cl
+        print '***', cl
         # Ensemble des événements composant la classe extraite
         index_ext = self.results[tir][cl]['index_ok']
         for i in range(len(self.results[tir][cl]['i_other'])):

@@ -177,11 +177,13 @@ def classifier(opt):
       if opt.opdict['method'] == '1b1':
         # EXTRACTEURS
         print "********** EXTRACTION 1-BY-1 **********"
+        opt.opdict['boot'] = 1
         one_by_one(opt,x_ref,y_ref,set['Otime'],boot=10,method='svm')
         continue
 
       elif opt.opdict['method'] == 'ova':
         print "********** EXTRACTION 1-VS-ALL **********"
+        opt.opdict['boot'] = 1
         one_vs_all(opt,x_ref,y_ref,set['Otime'],boot=10,method='svm')
         continue
 
@@ -691,7 +693,7 @@ def one_by_one(opt,x_test_ref0,y_test_ref0,otimes_ref,boot=1,method='lr'):
       sub_dic={}
 
       ### Splitting of the whole set in training, CV and test sets ###
-      y_train, y_cv, y_test_ref = generate_datasets(opt.opdict['proportions'],opt.numt,y_test_ref)
+      y_train_ref, y_cv, y_test_ref = generate_datasets(opt.opdict['proportions'],opt.numt,y_test_ref)
       y_test_ref = pd.concat([y_cv,y_test_ref])
       i_train = y_train_ref.index
       i_cv = y_cv.index
